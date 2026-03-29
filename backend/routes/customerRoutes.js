@@ -1,0 +1,404 @@
+﻿const express = require("express");
+const router = express.Router();
+const pool = require("../config/db");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+const { auth } = require("../middleware/auth");
+
+
+// ================= ROLE CHECK =================
+const adminOnly = (req, res, next) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).send("Access denied. Admins only.");
+  }
+  next();
+};
+
+const cleanerOnly = (req, res, next) => {
+  if (req.user.role !== "cleaner") {
+    return res.status(403).send("Access denied. Cleaners only.");
+  }
+  next();
+};
+
+
+
+// ================= REGISTER =================
+router.post("/register", async (req, res) => {
+  const { name, email, password } = req.body;
+
+  try {
+    const existingUser = await pool.query(
+      "SELECT * FROM customers WHERE email=$1",
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).send("Email already registered");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      "INSERT INTO customers (name, email, password, role) VALUES ($1,$2,$3,'customer')",
+      [name, email, hashedPassword]
+    );
+
+    res.json({
+      message: "Customer registered successfully",
+      role: "customer",
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error registering customer");
+  }
+});
+
+
+
+// ================= LOGIN =================
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM customers WHERE email=$1",
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const user = result.rows[0];
+
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if (!validPassword) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      {
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+      role: user.role,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Login error");
+  }
+});
+
+
+
+// ================= PROFILE =================
+router.get("/profile", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT name, email, role FROM customers WHERE email=$1",
+      [req.user.email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("Customer not found");
+    }
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching profile");
+  }
+});
+
+
+
+// ================= CREATE BOOKING =================
+router.post("/book", auth, async (req, res) => {
+  const { service, booking_date, booking_time, address, price } = req.body;
+
+  if (!service || !booking_date || !booking_time || !address || !price) {
+    return res.status(400).send("All booking fields are required");
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO bookings 
+      (email, service, booking_date, booking_time, address, status, seen, price)
+       VALUES ($1,$2,$3,$4,$5,'pending', false, $6)`,
+      [req.user.email, service, booking_date, booking_time, address, price]
+    );
+
+    res.send("Booking created successfully");
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Booking failed");
+  }
+});
+
+
+
+// ================= CUSTOMER JOB TRACKING =================
+router.get("/my-bookings", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        id,
+        service,
+        booking_date,
+        booking_time,
+        address,
+        status,
+        cleaner,
+        price
+       FROM bookings 
+       WHERE email=$1
+       ORDER BY id DESC`,
+      [req.user.email]
+    );
+
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching bookings");
+  }
+});
+
+
+
+// ================= CLEANER NOTIFICATIONS =================
+router.get("/cleaner-notifications", auth, cleanerOnly, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT COUNT(*) 
+       FROM bookings 
+       WHERE cleaner IS NULL 
+       AND status='pending' 
+       AND seen=false`
+    );
+
+    res.json({
+      new_jobs: parseInt(result.rows[0].count),
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching notifications");
+  }
+});
+
+
+
+// ================= VIEW AVAILABLE JOBS =================
+router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, service, booking_date, booking_time, address, price
+       FROM bookings
+       WHERE cleaner IS NULL AND status='pending'
+       ORDER BY booking_date ASC`
+    );
+
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching available jobs");
+  }
+});
+
+
+
+// ================= ACCEPT JOB =================
+router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `UPDATE bookings 
+       SET cleaner=$1, status='accepted', seen=true 
+       WHERE id=$2 AND cleaner IS NULL 
+       RETURNING *`,
+      [req.user.email, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).send("Job already taken");
+    }
+
+    res.send("Job accepted successfully");
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error accepting job");
+  }
+});
+
+
+
+// ================= CLEANER UPDATE STATUS =================
+router.put("/cleaner-status/:id", auth, cleanerOnly, async (req, res) => {
+  const { status } = req.body;
+  const { id } = req.params;
+
+  const allowedStatus = ["accepted", "in progress", "completed"];
+
+  if (!allowedStatus.includes(status)) {
+    return res.status(400).send("Invalid status value");
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE bookings 
+       SET status=$1 
+       WHERE id=$2 AND cleaner=$3 
+       RETURNING *`,
+      [status, id, req.user.email]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(400).send("You cannot update this job");
+    }
+
+    res.send("Status updated by cleaner");
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error updating status");
+  }
+});
+
+
+
+// ================= CLEANER TOTAL EARNINGS =================
+router.get("/cleaner-earnings", auth, cleanerOnly, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT COALESCE(SUM(price),0) AS total_earnings
+       FROM bookings
+       WHERE cleaner=$1 AND status='completed'`,
+      [req.user.email]
+    );
+
+    res.json({
+      total_earnings: Number(result.rows[0].total_earnings),
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error calculating earnings");
+  }
+});
+
+
+
+// ================= CLEANER EARNINGS HISTORY =================
+router.get("/cleaner-earnings-history", auth, cleanerOnly, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, service, booking_date, booking_time, address, price
+       FROM bookings
+       WHERE cleaner=$1 AND status='completed'
+       ORDER BY booking_date DESC`,
+      [req.user.email]
+    );
+
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching earnings history");
+  }
+});
+
+
+
+// ================= CLEANER MY JOBS =================
+router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, service, booking_date, booking_time, address, status, price
+       FROM bookings 
+       WHERE cleaner=$1
+       ORDER BY id DESC`,
+      [req.user.email]
+    );
+
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching cleaner jobs");
+  }
+});
+
+
+// ================= CUSTOMER BOOKING HISTORY =================
+router.get("/my-bookings", auth, async (req, res) => {
+  try {
+    const email = req.user.email;
+
+    const result = await pool.query(
+      `
+      SELECT id, service, booking_date, price, status
+      FROM bookings
+      WHERE email = $1
+      ORDER BY booking_date DESC
+      `,
+      [email]
+    );
+
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+});
+
+
+// ================= BOOK CLEANING SERVICE =================
+router.post("/book-service", auth, async (req, res) => {
+  try {
+    const { service, booking_date, price } = req.body;
+    const email = req.user.email;
+
+    if (!service || !booking_date || !price) {
+      return res.status(400).send("All fields are required");
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO bookings (email, service, booking_date, price, status)
+      VALUES ($1,$2,$3,$4,'pending')
+      RETURNING *
+      `,
+      [email, service, booking_date, price]
+    );
+
+    res.status(201).json({
+      message: "Booking created successfully",
+      booking: result.rows[0],
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+});
+
+
+module.exports = router;
