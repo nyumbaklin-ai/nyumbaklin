@@ -1,0 +1,8 @@
+.vs/
+**/node_modules/
+backend/.env
+nyumbaklin-frontend/.env
+nyumbaklin-frontend/.env.local
+**/dist/
+*.zip
+cd

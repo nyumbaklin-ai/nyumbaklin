@@ -5,7 +5,16 @@ require("dotenv").config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      process.env.FRONTEND_URL,
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Routes
@@ -16,6 +25,10 @@ const cleanerRoutes = require("./routes/cleanerRoutes");
 app.use("/customers", customerRoutes);
 app.use("/admin", adminRoutes);
 app.use("/cleaner", cleanerRoutes);
+
+app.get("/", (req, res) => {
+  res.send("Nyumbaklin backend is running");
+});
 
 // Server Port
 const PORT = process.env.PORT || 5000;
