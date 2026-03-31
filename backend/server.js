@@ -24,6 +24,20 @@ const customerRoutes = require("./routes/customerRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const cleanerRoutes = require("./routes/cleanerRoutes");
 
+// Ensure required DB updates exist
+async function ensureDatabaseUpdates() {
+  try {
+    await pool.query(`
+      ALTER TABLE customers
+      ADD COLUMN IF NOT EXISTS phone VARCHAR(20)
+    `);
+
+    console.log("✅ customers.phone column is ready");
+  } catch (error) {
+    console.error("❌ Error ensuring database updates:", error);
+  }
+}
+
 app.use("/customers", customerRoutes);
 app.use("/admin", adminRoutes);
 app.use("/cleaner", cleanerRoutes);
@@ -42,7 +56,8 @@ app.get("/setup-db", async (req, res) => {
         name TEXT,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        role TEXT
+        role TEXT,
+        phone VARCHAR(20)
       );
     `);
 
@@ -61,6 +76,11 @@ app.get("/setup-db", async (req, res) => {
       );
     `);
 
+    await pool.query(`
+      ALTER TABLE customers
+      ADD COLUMN IF NOT EXISTS phone VARCHAR(20)
+    `);
+
     res.send("Tables created successfully");
   } catch (error) {
     console.error("Setup DB error:", error);
@@ -72,6 +92,7 @@ app.get("/setup-db", async (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // Start Server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log("🔥 Nyumbaklin server running on port", PORT);
+  await ensureDatabaseUpdates();
 });
