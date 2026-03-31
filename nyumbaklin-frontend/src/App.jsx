@@ -659,9 +659,12 @@ function Dashboard() {
   };
 
   const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.email
-      .toLowerCase()
-      .includes(userSearch.toLowerCase());
+    const emailText = user.email ? user.email.toLowerCase() : "";
+    const phoneText = user.phone ? user.phone.toLowerCase() : "";
+
+    const matchesSearch =
+      emailText.includes(userSearch.toLowerCase()) ||
+      phoneText.includes(userSearch.toLowerCase());
 
     const matchesRole =
       userRoleFilter === "all" || user.role === userRoleFilter;
@@ -672,10 +675,14 @@ function Dashboard() {
   const filteredBookings = bookings.filter((booking) => {
     const emailText = booking.email ? booking.email.toLowerCase() : "";
     const serviceText = booking.service ? booking.service.toLowerCase() : "";
+    const customerPhoneText = booking.customer_phone ? booking.customer_phone.toLowerCase() : "";
+    const cleanerPhoneText = booking.cleaner_phone ? booking.cleaner_phone.toLowerCase() : "";
 
     const matchesSearch =
       emailText.includes(bookingSearch.toLowerCase()) ||
-      serviceText.includes(bookingSearch.toLowerCase());
+      serviceText.includes(bookingSearch.toLowerCase()) ||
+      customerPhoneText.includes(bookingSearch.toLowerCase()) ||
+      cleanerPhoneText.includes(bookingSearch.toLowerCase());
 
     const matchesStatus =
       bookingStatusFilter === "all" || booking.status === bookingStatusFilter;
@@ -735,6 +742,7 @@ function Dashboard() {
     borderBottom: "1px solid #e5e7eb",
     verticalAlign: "middle",
     color: "#334155",
+    wordBreak: "break-word",
   };
 
   const actionButtonStyle = {
@@ -881,7 +889,7 @@ function Dashboard() {
           >
             <input
               type="text"
-              placeholder="Search by email"
+              placeholder="Search by email or phone"
               value={userSearch}
               onChange={(e) => setUserSearch(e.target.value)}
               style={inputStyle}
@@ -900,11 +908,12 @@ function Dashboard() {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "850px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
               <th style={tableHeaderStyle}>Email</th>
+              <th style={tableHeaderStyle}>Phone</th>
               <th style={tableHeaderStyle}>Role</th>
               <th style={tableHeaderStyle}>Change Role</th>
               <th style={tableHeaderStyle}>Delete</th>
@@ -914,7 +923,7 @@ function Dashboard() {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="5">
+                <td style={tableCellStyle} colSpan="6">
                   No users found
                 </td>
               </tr>
@@ -923,6 +932,7 @@ function Dashboard() {
                 <tr key={user.id} style={{ background: "#fff" }}>
                   <td style={tableCellStyle}>{user.id}</td>
                   <td style={tableCellStyle}>{user.email}</td>
+                  <td style={tableCellStyle}>{user.phone || "Not provided"}</td>
                   <td style={tableCellStyle}>
                     <span
                       style={{
@@ -988,7 +998,7 @@ function Dashboard() {
           >
             <input
               type="text"
-              placeholder="Search by email or service"
+              placeholder="Search by email, service or phone"
               value={bookingSearch}
               onChange={(e) => setBookingSearch(e.target.value)}
               style={inputStyle}
@@ -1008,14 +1018,16 @@ function Dashboard() {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1400px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1800px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
               <th style={tableHeaderStyle}>Email</th>
+              <th style={tableHeaderStyle}>Customer Phone</th>
               <th style={tableHeaderStyle}>Service</th>
               <th style={tableHeaderStyle}>Status</th>
               <th style={tableHeaderStyle}>Cleaner</th>
+              <th style={tableHeaderStyle}>Cleaner Phone</th>
               <th style={tableHeaderStyle}>Price</th>
               <th style={tableHeaderStyle}>Platform Fee</th>
               <th style={tableHeaderStyle}>Cleaner Payout</th>
@@ -1028,7 +1040,7 @@ function Dashboard() {
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="11">
+                <td style={tableCellStyle} colSpan="13">
                   No bookings found
                 </td>
               </tr>
@@ -1048,6 +1060,7 @@ function Dashboard() {
                   <tr key={booking.id} style={{ background: "#fff" }}>
                     <td style={tableCellStyle}>{booking.id}</td>
                     <td style={tableCellStyle}>{booking.email}</td>
+                    <td style={tableCellStyle}>{booking.customer_phone || "Not provided"}</td>
                     <td style={tableCellStyle}>{booking.service}</td>
                     <td style={tableCellStyle}>
                       <span
@@ -1065,6 +1078,7 @@ function Dashboard() {
                       </span>
                     </td>
                     <td style={tableCellStyle}>{booking.cleaner || "Not assigned"}</td>
+                    <td style={tableCellStyle}>{booking.cleaner_phone || "Not available"}</td>
                     <td style={tableCellStyle}>
                       <strong>UGX {bookingPrice.toLocaleString()}</strong>
                     </td>
