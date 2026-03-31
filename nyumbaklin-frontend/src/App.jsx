@@ -163,6 +163,7 @@ function Register() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -180,7 +181,7 @@ function Register() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, phone }),
       });
 
       const data = await response.json();
@@ -213,6 +214,15 @@ function Register() {
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+            style={authInputStyle}
+          />
+
+          <input
+            type="text"
+            placeholder="Phone number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             required
             style={authInputStyle}
           />
@@ -269,6 +279,7 @@ function CleanerRegister() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -286,7 +297,7 @@ function CleanerRegister() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, phone }),
       });
 
       const data = await response.json();
@@ -319,6 +330,15 @@ function CleanerRegister() {
             placeholder="Cleaner email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+            style={authInputStyle}
+          />
+
+          <input
+            type="text"
+            placeholder="Phone number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             required
             style={authInputStyle}
           />
