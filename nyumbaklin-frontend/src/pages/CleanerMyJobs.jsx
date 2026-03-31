@@ -174,6 +174,7 @@ function CleanerMyJobs() {
     color: "#111827",
     fontWeight: "600",
     marginBottom: "14px",
+    wordBreak: "break-word",
   };
 
   const badgeBaseStyle = {
@@ -194,6 +195,14 @@ function CleanerMyJobs() {
     fontWeight: "bold",
     cursor: "pointer",
     marginTop: "10px",
+  };
+
+  const phoneBoxStyle = {
+    marginTop: "12px",
+    padding: "12px",
+    borderRadius: "12px",
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
   };
 
   return (
@@ -306,6 +315,23 @@ function CleanerMyJobs() {
                       {badge.text}
                     </div>
                   </div>
+
+                  {(job.status === "accepted" ||
+                    job.status === "in progress" ||
+                    job.status === "completed") && (
+                    <div style={phoneBoxStyle}>
+                      <div style={labelStyle}>Customer Phone</div>
+                      <div
+                        style={{
+                          ...valueStyle,
+                          marginBottom: 0,
+                          color: "#1d4ed8",
+                        }}
+                      >
+                        {job.customer_phone ? job.customer_phone : "Phone not available yet"}
+                      </div>
+                    </div>
+                  )}
 
                   {job.status === "accepted" && (
                     <button
