@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -8,6 +9,7 @@ function CustomerBooking() {
   const [date, setDate] = useState("");
 
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
 
   const getPrice = () => {
     if (service === "House Cleaning") return 50000;
@@ -60,7 +62,7 @@ function CustomerBooking() {
             ? data.message || "✅ Booking successful!"
             : data || "✅ Booking successful!"
         );
-        window.location.href = "/my-bookings";
+        navigate("/my-bookings");
       } else {
         alert(
           typeof data === "object"
