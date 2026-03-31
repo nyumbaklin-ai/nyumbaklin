@@ -10,26 +10,58 @@ function Navbar() {
     navigate("/");
   };
 
+  const navStyle = {
+    padding: "15px 25px",
+    background: "#111827",
+    color: "white",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+  };
+
+  const leftStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "25px",
+  };
+
+  const brandStyle = {
+    margin: 0,
+    fontWeight: "bold",
+    fontSize: "18px",
+    color: "#fff",
+  };
+
+  const linkStyle = {
+    color: "#d1d5db",
+    textDecoration: "none",
+    fontSize: "14px",
+    fontWeight: "500",
+    transition: "0.2s",
+  };
+
+  const logoutStyle = {
+    background: "#dc2626",
+    color: "white",
+    border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  };
+
   return (
-    <div
-      style={{
-        padding: "15px",
-        background: "black",
-        color: "white",
-        display: "flex",
-        gap: "20px",
-        justifyContent: "space-between",
-      }}
-    >
-      <div style={{ display: "flex", gap: "20px" }}>
-        <h3>Nyumbaklin</h3>
+    <div style={navStyle}>
+      <div style={leftStyle}>
+        <h3 style={brandStyle}>Nyumbaklin</h3>
 
         {role === "customer" && (
           <>
-            <Link to="/book-service" style={{ color: "white" }}>
+            <Link to="/book-service" style={linkStyle}>
               Book Service
             </Link>
-            <Link to="/my-bookings" style={{ color: "white" }}>
+            <Link to="/my-bookings" style={linkStyle}>
               My Bookings
             </Link>
           </>
@@ -37,13 +69,13 @@ function Navbar() {
 
         {role === "cleaner" && (
           <>
-            <Link to="/cleaner/dashboard" style={{ color: "white" }}>
+            <Link to="/cleaner/dashboard" style={linkStyle}>
               Dashboard
             </Link>
-            <Link to="/cleaner/my-jobs" style={{ color: "white" }}>
+            <Link to="/cleaner/my-jobs" style={linkStyle}>
               My Jobs
             </Link>
-            <Link to="/cleaner/earnings" style={{ color: "white" }}>
+            <Link to="/cleaner/earnings" style={linkStyle}>
               Earnings
             </Link>
           </>
@@ -51,23 +83,14 @@ function Navbar() {
 
         {role === "admin" && (
           <>
-            <Link to="/dashboard" style={{ color: "white" }}>
+            <Link to="/dashboard" style={linkStyle}>
               Admin
             </Link>
           </>
         )}
       </div>
 
-      <button
-        onClick={handleLogout}
-        style={{
-          background: "red",
-          color: "white",
-          border: "none",
-          padding: "5px 10px",
-          cursor: "pointer",
-        }}
-      >
+      <button onClick={handleLogout} style={logoutStyle}>
         Logout
       </button>
     </div>

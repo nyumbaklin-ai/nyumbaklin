@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function CleanerDashboard() {
   const [jobs, setJobs] = useState([]);
@@ -42,58 +42,171 @@ function CleanerDashboard() {
     }
   };
 
-  return (
-    <div
-      style={{
-        padding: "30px",
-        maxWidth: "600px",
-        margin: "auto",
-      }}
-    >
-      <h2 style={{ textAlign: "center" }}>Available Jobs</h2>
+  const pageStyle = {
+    minHeight: "100vh",
+    background: "#f4f7fb",
+    padding: "30px 20px",
+  };
 
-      {jobs.length === 0 ? (
-        <p style={{ textAlign: "center" }}>No jobs available</p>
-      ) : (
-        jobs.map((job) => (
+  const containerStyle = {
+    maxWidth: "1000px",
+    margin: "0 auto",
+  };
+
+  const headerCardStyle = {
+    background: "white",
+    borderRadius: "16px",
+    padding: "25px",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    border: "1px solid #e5e7eb",
+    marginBottom: "25px",
+  };
+
+  const statsGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "15px",
+    marginTop: "20px",
+  };
+
+  const statCardStyle = {
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "18px",
+  };
+
+  const jobsGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "20px",
+  };
+
+  const jobCardStyle = {
+    background: "white",
+    border: "1px solid #e5e7eb",
+    borderRadius: "16px",
+    padding: "20px",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+  };
+
+  const labelStyle = {
+    color: "#6b7280",
+    fontSize: "14px",
+    marginBottom: "4px",
+  };
+
+  const valueStyle = {
+    color: "#111827",
+    fontWeight: "600",
+    marginBottom: "14px",
+  };
+
+  const buttonStyle = {
+    marginTop: "10px",
+    padding: "10px 14px",
+    background: "#111827",
+    color: "white",
+    border: "none",
+    cursor: "pointer",
+    borderRadius: "8px",
+    fontWeight: "bold",
+    width: "100%",
+  };
+
+  return (
+    <div style={pageStyle}>
+      <div style={containerStyle}>
+        <div style={headerCardStyle}>
+          <h1 style={{ margin: 0, color: "#111827" }}>Cleaner Dashboard</h1>
+          <p style={{ marginTop: "8px", color: "#6b7280" }}>
+            View available cleaning jobs and accept the ones you want to handle.
+          </p>
+
+          <div style={statsGridStyle}>
+            <div style={statCardStyle}>
+              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
+                Available Jobs
+              </p>
+              <h2 style={{ margin: "8px 0 0 0", color: "#111827" }}>
+                {jobs.length}
+              </h2>
+            </div>
+
+            <div style={statCardStyle}>
+              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
+                Status
+              </p>
+              <h2 style={{ margin: "8px 0 0 0", color: "#111827" }}>
+                Ready to Accept
+              </h2>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: "18px" }}>
+          <h2 style={{ margin: 0, color: "#111827" }}>Available Jobs</h2>
+          <p style={{ marginTop: "8px", color: "#6b7280" }}>
+            These are jobs that have not yet been assigned to any cleaner.
+          </p>
+        </div>
+
+        {jobs.length === 0 ? (
           <div
-            key={job.id}
             style={{
-              border: "1px solid #ddd",
-              borderRadius: "10px",
-              padding: "15px",
-              marginBottom: "15px",
-              boxShadow: "0 0 5px rgba(0,0,0,0.1)",
+              background: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: "16px",
+              padding: "30px",
+              textAlign: "center",
+              boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
             }}
           >
-            <h3>{job.service}</h3>
-
-            <p>
-              <strong>Date:</strong>{" "}
-              {new Date(job.booking_date).toLocaleDateString()}
+            <h3 style={{ marginTop: 0, color: "#111827" }}>No jobs available</h3>
+            <p style={{ marginBottom: 0, color: "#6b7280" }}>
+              New jobs will appear here when customers make bookings.
             </p>
-
-            <p>
-              <strong>Price:</strong> UGX {Number(job.price).toLocaleString()}
-            </p>
-
-            <button
-              onClick={() => acceptJob(job.id)}
-              style={{
-                marginTop: "10px",
-                padding: "8px 12px",
-                background: "black",
-                color: "white",
-                border: "none",
-                cursor: "pointer",
-                borderRadius: "5px",
-              }}
-            >
-              Accept Job
-            </button>
           </div>
-        ))
-      )}
+        ) : (
+          <div style={jobsGridStyle}>
+            {jobs.map((job) => (
+              <div key={job.id} style={jobCardStyle}>
+                <h3 style={{ marginTop: 0, marginBottom: "18px", color: "#111827" }}>
+                  {job.service}
+                </h3>
+
+                <div>
+                  <div style={labelStyle}>Booking ID</div>
+                  <div style={valueStyle}>#{job.id}</div>
+                </div>
+
+                <div>
+                  <div style={labelStyle}>Customer Email</div>
+                  <div style={valueStyle}>{job.email}</div>
+                </div>
+
+                <div>
+                  <div style={labelStyle}>Date</div>
+                  <div style={valueStyle}>
+                    {new Date(job.booking_date).toLocaleDateString()}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={labelStyle}>Price</div>
+                  <div style={valueStyle}>
+                    UGX {Number(job.price).toLocaleString()}
+                  </div>
+                </div>
+
+                <button onClick={() => acceptJob(job.id)} style={buttonStyle}>
+                  Accept Job
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
