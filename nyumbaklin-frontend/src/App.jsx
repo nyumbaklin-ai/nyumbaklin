@@ -8,7 +8,7 @@ import CleanerEarnings from "./pages/CleanerEarnings";
 import CustomerBooking from "./pages/CustomerBooking";
 import CustomerMyBookings from "./pages/CustomerMyBookings";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 console.log("API_URL:", API_URL);
 
 function Login() {
@@ -499,7 +499,7 @@ function Dashboard() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setUsers(data);
+        setUsers(Array.isArray(data) ? data : []);
       })
       .catch((error) => {
         console.error("Error fetching users:", error);
@@ -514,7 +514,7 @@ function Dashboard() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setBookings(data);
+        setBookings(Array.isArray(data) ? data : []);
       })
       .catch((error) => {
         console.error("Error fetching bookings:", error);
@@ -529,7 +529,7 @@ function Dashboard() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setStats(data);
+        setStats(data || {});
       })
       .catch((error) => {
         console.error("Error fetching stats:", error);
@@ -755,6 +755,18 @@ function Dashboard() {
     return matchesSearch && matchesStatus;
   });
 
+  const completedBookings = bookings.filter(
+    (booking) => booking.status === "completed"
+  );
+
+  const totalCompletedValue = completedBookings.reduce(
+    (sum, booking) => sum + Number(booking.price || 0),
+    0
+  );
+
+  const totalPlatformRevenue = Math.round(totalCompletedValue * 0.15);
+  const totalCleanerPayout = totalCompletedValue - totalPlatformRevenue;
+
   const cardStyle = {
     borderRadius: "12px",
     padding: "20px",
@@ -826,7 +838,7 @@ function Dashboard() {
       <div style={{ marginBottom: "25px" }}>
         <h1 style={{ margin: 0, color: "#111827" }}>Admin Dashboard</h1>
         <p style={{ marginTop: "8px", color: "#6b7280" }}>
-          Manage users, bookings, and pricing for Nyumbaklin.
+          Manage users, bookings, pricing, and platform commission for Nyumbaklin.
         </p>
       </div>
 
@@ -862,6 +874,33 @@ function Dashboard() {
           <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>Total Customers</h3>
           <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#111827" }}>
             {stats.totalCustomers ?? 0}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>
+            Completed Job Value
+          </h3>
+          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#111827" }}>
+            UGX {totalCompletedValue.toLocaleString()}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>
+            Platform Revenue (15%)
+          </h3>
+          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#b91c1c" }}>
+            UGX {totalPlatformRevenue.toLocaleString()}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>
+            Cleaner Payouts
+          </h3>
+          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#166534" }}>
+            UGX {totalCleanerPayout.toLocaleString()}
           </p>
         </div>
       </div>
@@ -1015,7 +1054,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1100px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1400px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
@@ -1024,6 +1063,8 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Status</th>
               <th style={tableHeaderStyle}>Cleaner</th>
               <th style={tableHeaderStyle}>Price</th>
+              <th style={tableHeaderStyle}>Platform Fee</th>
+              <th style={tableHeaderStyle}>Cleaner Payout</th>
               <th style={tableHeaderStyle}>Date</th>
               <th style={tableHeaderStyle}>Update Price</th>
               <th style={tableHeaderStyle}>Delete</th>
@@ -1033,62 +1074,84 @@ function Dashboard() {
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="9">
+                <td style={tableCellStyle} colSpan="11">
                   No bookings found
                 </td>
               </tr>
             ) : (
-              filteredBookings.map((booking) => (
-                <tr key={booking.id} style={{ background: "#fff" }}>
-                  <td style={tableCellStyle}>{booking.id}</td>
-                  <td style={tableCellStyle}>{booking.email}</td>
-                  <td style={tableCellStyle}>{booking.service}</td>
-                  <td style={tableCellStyle}>
-                    <span
-                      style={{
-                        ...getStatusStyle(booking.status),
-                        padding: "6px 10px",
-                        borderRadius: "999px",
-                        fontSize: "13px",
-                        fontWeight: "bold",
-                        display: "inline-block",
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {booking.status}
-                    </span>
-                  </td>
-                  <td style={tableCellStyle}>{booking.cleaner || "Not assigned"}</td>
-                  <td style={tableCellStyle}>
-                    <strong>UGX {Number(booking.price).toLocaleString()}</strong>
-                  </td>
-                  <td style={tableCellStyle}>
-                    {new Date(booking.booking_date).toLocaleDateString()}
-                  </td>
-                  <td style={tableCellStyle}>
-                    <button
-                      onClick={() => updatePrice(booking.id, booking.price)}
-                      style={{
-                        ...actionButtonStyle,
-                        background: "#16a34a",
-                      }}
-                    >
-                      Update Price
-                    </button>
-                  </td>
-                  <td style={tableCellStyle}>
-                    <button
-                      onClick={() => deleteBooking(booking.id)}
-                      style={{
-                        ...actionButtonStyle,
-                        background: "#dc2626",
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
+              filteredBookings.map((booking) => {
+                const bookingPrice = Number(booking.price || 0);
+                const platformFee =
+                  booking.status === "completed"
+                    ? Math.round(bookingPrice * 0.15)
+                    : 0;
+                const cleanerPayout =
+                  booking.status === "completed"
+                    ? bookingPrice - platformFee
+                    : 0;
+
+                return (
+                  <tr key={booking.id} style={{ background: "#fff" }}>
+                    <td style={tableCellStyle}>{booking.id}</td>
+                    <td style={tableCellStyle}>{booking.email}</td>
+                    <td style={tableCellStyle}>{booking.service}</td>
+                    <td style={tableCellStyle}>
+                      <span
+                        style={{
+                          ...getStatusStyle(booking.status),
+                          padding: "6px 10px",
+                          borderRadius: "999px",
+                          fontSize: "13px",
+                          fontWeight: "bold",
+                          display: "inline-block",
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {booking.status}
+                      </span>
+                    </td>
+                    <td style={tableCellStyle}>{booking.cleaner || "Not assigned"}</td>
+                    <td style={tableCellStyle}>
+                      <strong>UGX {bookingPrice.toLocaleString()}</strong>
+                    </td>
+                    <td style={tableCellStyle}>
+                      {booking.status === "completed"
+                        ? `UGX ${platformFee.toLocaleString()}`
+                        : "-"}
+                    </td>
+                    <td style={tableCellStyle}>
+                      {booking.status === "completed"
+                        ? `UGX ${cleanerPayout.toLocaleString()}`
+                        : "-"}
+                    </td>
+                    <td style={tableCellStyle}>
+                      {new Date(booking.booking_date).toLocaleDateString()}
+                    </td>
+                    <td style={tableCellStyle}>
+                      <button
+                        onClick={() => updatePrice(booking.id, booking.price)}
+                        style={{
+                          ...actionButtonStyle,
+                          background: "#16a34a",
+                        }}
+                      >
+                        Update Price
+                      </button>
+                    </td>
+                    <td style={tableCellStyle}>
+                      <button
+                        onClick={() => deleteBooking(booking.id)}
+                        style={{
+                          ...actionButtonStyle,
+                          background: "#dc2626",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
