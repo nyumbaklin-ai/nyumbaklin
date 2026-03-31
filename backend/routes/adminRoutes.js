@@ -4,7 +4,6 @@ const router = express.Router();
 const { auth, adminOnly } = require("../middleware/auth");
 const pool = require("../config/db");
 
-
 // ================= ADMIN DASHBOARD =================
 router.get("/dashboard", auth, adminOnly, (req, res) => {
   res.json({
@@ -13,51 +12,52 @@ router.get("/dashboard", auth, adminOnly, (req, res) => {
   });
 });
 
-
 // ================= VIEW ALL USERS =================
 router.get("/users", auth, adminOnly, async (req, res) => {
   try {
-
     const result = await pool.query(
-      "SELECT id, email, role FROM customers ORDER BY id ASC"
+      "SELECT id, email, role, phone FROM customers ORDER BY id ASC"
     );
 
     res.json(result.rows);
-
   } catch (error) {
-
     console.error("Error fetching users:", error);
     res.status(500).json({ message: "Server error" });
-
   }
 });
-
 
 // ================= VIEW ALL BOOKINGS =================
 router.get("/bookings", auth, adminOnly, async (req, res) => {
   try {
-
     const result = await pool.query(`
-      SELECT id, email, service, status, cleaner, price, booking_date
-      FROM bookings
-      ORDER BY id DESC
+      SELECT 
+        b.id,
+        b.email,
+        b.service,
+        b.status,
+        b.cleaner,
+        b.price,
+        b.booking_date,
+        customer.phone AS customer_phone,
+        cleaner_user.phone AS cleaner_phone
+      FROM bookings b
+      LEFT JOIN customers customer
+        ON b.email = customer.email
+      LEFT JOIN customers cleaner_user
+        ON b.cleaner = cleaner_user.email
+      ORDER BY b.id DESC
     `);
 
     res.json(result.rows);
-
   } catch (error) {
-
     console.error("Error fetching bookings:", error);
     res.status(500).json({ message: "Server error" });
-
   }
 });
-
 
 // ================= ADMIN STATS =================
 router.get("/stats", auth, adminOnly, async (req, res) => {
   try {
-
     const totalUsers = await pool.query(
       "SELECT COUNT(*) FROM customers"
     );
@@ -90,23 +90,17 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
       completedJobs: completedJobs.rows[0].count,
       totalRevenue: totalRevenue.rows[0].revenue
     });
-
   } catch (error) {
-
     console.error("Error fetching stats:", error);
     res.status(500).json({ message: "Server error" });
-
   }
 });
 
-
 // ================= DELETE USER =================
 router.delete("/delete-user/:id", auth, adminOnly, async (req, res) => {
-
   const { id } = req.params;
 
   try {
-
     const userResult = await pool.query(
       "SELECT id, role FROM customers WHERE id=$1",
       [id]
@@ -128,19 +122,14 @@ router.delete("/delete-user/:id", auth, adminOnly, async (req, res) => {
     );
 
     res.send("User deleted successfully");
-
   } catch (error) {
-
     console.error("Delete user error:", error);
     res.status(500).send("Error deleting user");
-
   }
 });
 
-
 // ================= CHANGE USER ROLE =================
 router.put("/change-role/:id", auth, adminOnly, async (req, res) => {
-
   const { id } = req.params;
   const { role } = req.body;
 
@@ -151,7 +140,6 @@ router.put("/change-role/:id", auth, adminOnly, async (req, res) => {
   }
 
   try {
-
     const userResult = await pool.query(
       "SELECT role FROM customers WHERE id=$1",
       [id]
@@ -171,23 +159,17 @@ router.put("/change-role/:id", auth, adminOnly, async (req, res) => {
     );
 
     res.send("User role updated successfully");
-
   } catch (error) {
-
     console.error("Role update error:", error);
     res.status(500).send("Error updating role");
-
   }
 });
 
-
 // ================= DELETE BOOKING =================
 router.delete("/delete-booking/:id", auth, adminOnly, async (req, res) => {
-
   const { id } = req.params;
 
   try {
-
     const bookingCheck = await pool.query(
       "SELECT id FROM bookings WHERE id=$1",
       [id]
@@ -203,19 +185,14 @@ router.delete("/delete-booking/:id", auth, adminOnly, async (req, res) => {
     );
 
     res.send("Booking deleted successfully");
-
   } catch (error) {
-
     console.error("Delete booking error:", error);
     res.status(500).send("Error deleting booking");
-
   }
 });
 
-
 // ================= UPDATE BOOKING PRICE =================
 router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
-
   const { id } = req.params;
   const { price } = req.body;
 
@@ -224,7 +201,6 @@ router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
   }
 
   try {
-
     const bookingCheck = await pool.query(
       "SELECT id FROM bookings WHERE id=$1",
       [id]
@@ -240,14 +216,10 @@ router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
     );
 
     res.send("Booking price updated successfully");
-
   } catch (error) {
-
     console.error("Price update error:", error);
     res.status(500).send("Error updating price");
-
   }
 });
-
 
 module.exports = router;
