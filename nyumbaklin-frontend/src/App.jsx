@@ -11,6 +11,50 @@ import CustomerMyBookings from "./pages/CustomerMyBookings";
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("API_URL:", API_URL);
 
+const authPageStyle = {
+  minHeight: "100vh",
+  background: "linear-gradient(135deg, #eef2ff 0%, #f8fafc 50%, #ecfeff 100%)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: "20px",
+};
+
+const authCardStyle = {
+  width: "100%",
+  maxWidth: "440px",
+  background: "rgba(255,255,255,0.95)",
+  backdropFilter: "blur(8px)",
+  padding: "32px",
+  borderRadius: "18px",
+  boxShadow: "0 20px 40px rgba(15, 23, 42, 0.10)",
+  border: "1px solid #e5e7eb",
+};
+
+const authInputStyle = {
+  width: "100%",
+  padding: "13px 14px",
+  marginBottom: "15px",
+  border: "1px solid #d1d5db",
+  borderRadius: "10px",
+  fontSize: "15px",
+  boxSizing: "border-box",
+  background: "#ffffff",
+};
+
+const primaryButtonStyle = {
+  width: "100%",
+  background: "linear-gradient(90deg, #2563eb, #1d4ed8)",
+  color: "white",
+  border: "none",
+  padding: "13px",
+  borderRadius: "10px",
+  fontSize: "15px",
+  fontWeight: "700",
+  cursor: "pointer",
+  boxShadow: "0 10px 18px rgba(37, 99, 235, 0.20)",
+};
+
 function Login() {
   const navigate = useNavigate();
 
@@ -50,46 +94,23 @@ function Login() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f4f7fb",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "20px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          background: "white",
-          padding: "30px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h2 style={{ marginBottom: "20px", textAlign: "center", color: "#1f2937" }}>
-          Nyumbaklin Login
-        </h2>
+    <div style={authPageStyle}>
+      <div style={authCardStyle}>
+        <div style={{ textAlign: "center", marginBottom: "22px" }}>
+          <h1 style={{ margin: 0, color: "#0f172a", fontSize: "32px" }}>Nyumbaklin</h1>
+          <p style={{ marginTop: "10px", color: "#64748b" }}>
+            Sign in to manage bookings, jobs, and earnings.
+          </p>
+        </div>
 
         <form onSubmit={handleLogin}>
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "15px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
           <input
@@ -98,46 +119,23 @@ function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "20px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
-          <button
-            type="submit"
-            style={{
-              width: "100%",
-              background: "#2563eb",
-              color: "white",
-              border: "none",
-              padding: "12px",
-              borderRadius: "8px",
-              fontSize: "15px",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
+          <button type="submit" style={primaryButtonStyle}>
             Login
           </button>
         </form>
 
-        <div style={{ marginTop: "18px", textAlign: "center", color: "#4b5563" }}>
-          <p style={{ marginBottom: "10px" }}>
-            Don&apos;t have an account?
-          </p>
+        <div style={{ marginTop: "20px", textAlign: "center", color: "#475569" }}>
+          <p style={{ marginBottom: "12px" }}>Don&apos;t have an account?</p>
 
-          <div style={{ display: "flex", justifyContent: "center", gap: "14px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
             <Link
               to="/register"
               style={{
                 color: "#2563eb",
-                fontWeight: "bold",
+                fontWeight: "700",
                 textDecoration: "none",
               }}
             >
@@ -148,7 +146,7 @@ function Login() {
               to="/cleaner-register"
               style={{
                 color: "#16a34a",
-                fontWeight: "bold",
+                fontWeight: "700",
                 textDecoration: "none",
               }}
             >
@@ -200,46 +198,23 @@ function Register() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f4f7fb",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "20px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          background: "white",
-          padding: "30px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h2 style={{ marginBottom: "20px", textAlign: "center", color: "#1f2937" }}>
-          Customer Registration
-        </h2>
+    <div style={authPageStyle}>
+      <div style={authCardStyle}>
+        <div style={{ textAlign: "center", marginBottom: "22px" }}>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>Customer Registration</h2>
+          <p style={{ marginTop: "10px", color: "#64748b" }}>
+            Create your customer account to start booking cleaning services.
+          </p>
+        </div>
 
         <form onSubmit={handleRegister}>
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "15px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
           <input
@@ -248,59 +223,37 @@ function Register() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "15px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
           <input
             type="password"
-            placeholder="Confirm Password"
+            placeholder="Confirm password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "20px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
           <button
             type="submit"
             style={{
-              width: "100%",
-              background: "#16a34a",
-              color: "white",
-              border: "none",
-              padding: "12px",
-              borderRadius: "8px",
-              fontSize: "15px",
-              fontWeight: "bold",
-              cursor: "pointer",
+              ...primaryButtonStyle,
+              background: "linear-gradient(90deg, #16a34a, #15803d)",
+              boxShadow: "0 10px 18px rgba(22, 163, 74, 0.20)",
             }}
           >
             Register
           </button>
         </form>
 
-        <p style={{ marginTop: "18px", textAlign: "center", color: "#4b5563" }}>
+        <p style={{ marginTop: "18px", textAlign: "center", color: "#475569" }}>
           Already have an account?{" "}
           <Link
             to="/"
             style={{
               color: "#2563eb",
-              fontWeight: "bold",
+              fontWeight: "700",
               textDecoration: "none",
             }}
           >
@@ -351,46 +304,23 @@ function CleanerRegister() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f4f7fb",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "20px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          background: "white",
-          padding: "30px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-        }}
-      >
-        <h2 style={{ marginBottom: "20px", textAlign: "center", color: "#1f2937" }}>
-          Cleaner Registration
-        </h2>
+    <div style={authPageStyle}>
+      <div style={authCardStyle}>
+        <div style={{ textAlign: "center", marginBottom: "22px" }}>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>Cleaner Registration</h2>
+          <p style={{ marginTop: "10px", color: "#64748b" }}>
+            Join Nyumbaklin as a cleaner and start receiving jobs.
+          </p>
+        </div>
 
         <form onSubmit={handleCleanerRegister}>
           <input
             type="email"
-            placeholder="Cleaner Email"
+            placeholder="Cleaner email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "15px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
           <input
@@ -399,59 +329,37 @@ function CleanerRegister() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "15px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
           <input
             type="password"
-            placeholder="Confirm Password"
+            placeholder="Confirm password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "20px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
+            style={authInputStyle}
           />
 
           <button
             type="submit"
             style={{
-              width: "100%",
-              background: "#16a34a",
-              color: "white",
-              border: "none",
-              padding: "12px",
-              borderRadius: "8px",
-              fontSize: "15px",
-              fontWeight: "bold",
-              cursor: "pointer",
+              ...primaryButtonStyle,
+              background: "linear-gradient(90deg, #16a34a, #15803d)",
+              boxShadow: "0 10px 18px rgba(22, 163, 74, 0.20)",
             }}
           >
             Register as Cleaner
           </button>
         </form>
 
-        <p style={{ marginTop: "18px", textAlign: "center", color: "#4b5563" }}>
+        <p style={{ marginTop: "18px", textAlign: "center", color: "#475569" }}>
           Already have an account?{" "}
           <Link
             to="/"
             style={{
               color: "#2563eb",
-              fontWeight: "bold",
+              fontWeight: "700",
               textDecoration: "none",
             }}
           >
@@ -766,80 +674,98 @@ function Dashboard() {
 
   const totalPlatformRevenue = Math.round(totalCompletedValue * 0.15);
   const totalCleanerPayout = totalCompletedValue - totalPlatformRevenue;
+  const pendingJobs = bookings.filter((booking) => booking.status === "pending").length;
+  const inProgressJobs = bookings.filter((booking) => booking.status === "in progress").length;
+
+  const pageStyle = {
+    padding: "32px 24px",
+    background: "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
+    minHeight: "100vh",
+  };
 
   const cardStyle = {
-    borderRadius: "12px",
-    padding: "20px",
-    background: "white",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+    borderRadius: "18px",
+    padding: "22px",
+    background: "rgba(255,255,255,0.96)",
+    boxShadow: "0 16px 36px rgba(15, 23, 42, 0.08)",
     border: "1px solid #e5e7eb",
   };
 
   const sectionStyle = {
-    background: "white",
-    borderRadius: "14px",
+    background: "rgba(255,255,255,0.97)",
+    borderRadius: "18px",
     padding: "24px",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+    boxShadow: "0 16px 36px rgba(15, 23, 42, 0.08)",
     border: "1px solid #e5e7eb",
     marginTop: "30px",
     overflowX: "auto",
   };
 
   const tableHeaderStyle = {
-    background: "#f3f4f6",
-    color: "#111827",
-    fontWeight: "bold",
+    background: "#f8fafc",
+    color: "#0f172a",
+    fontWeight: "700",
     textAlign: "left",
-    padding: "12px",
+    padding: "14px",
     borderBottom: "1px solid #e5e7eb",
   };
 
   const tableCellStyle = {
-    padding: "12px",
+    padding: "14px",
     borderBottom: "1px solid #e5e7eb",
     verticalAlign: "middle",
+    color: "#334155",
   };
 
   const actionButtonStyle = {
     color: "white",
     border: "none",
-    padding: "8px 12px",
+    padding: "9px 14px",
     cursor: "pointer",
-    borderRadius: "6px",
-    fontWeight: "bold",
+    borderRadius: "8px",
+    fontWeight: "700",
     fontSize: "13px",
   };
 
   const inputStyle = {
-    padding: "10px 12px",
+    padding: "11px 13px",
     border: "1px solid #d1d5db",
-    borderRadius: "8px",
+    borderRadius: "10px",
     fontSize: "14px",
     minWidth: "220px",
+    background: "#ffffff",
   };
 
   const selectStyle = {
-    padding: "10px 12px",
+    padding: "11px 13px",
     border: "1px solid #d1d5db",
-    borderRadius: "8px",
+    borderRadius: "10px",
     fontSize: "14px",
     minWidth: "180px",
-    background: "white",
+    background: "#ffffff",
   };
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        background: "#f4f7fb",
-        minHeight: "100vh",
-      }}
-    >
-      <div style={{ marginBottom: "25px" }}>
-        <h1 style={{ margin: 0, color: "#111827" }}>Admin Dashboard</h1>
-        <p style={{ marginTop: "8px", color: "#6b7280" }}>
+    <div style={pageStyle}>
+      <div style={{ marginBottom: "28px" }}>
+        <h1 style={{ margin: 0, color: "#0f172a", fontSize: "34px" }}>Admin Dashboard</h1>
+        <p style={{ marginTop: "10px", color: "#64748b", fontSize: "15px" }}>
           Manage users, bookings, pricing, and platform commission for Nyumbaklin.
         </p>
+      </div>
+
+      <div
+        style={{
+          ...cardStyle,
+          marginBottom: "22px",
+          background: "linear-gradient(135deg, #0f172a, #1d4ed8)",
+          color: "white",
+        }}
+      >
+        <p style={{ margin: 0, opacity: 0.85, fontSize: "14px" }}>Your platform profit</p>
+        <h2 style={{ margin: "10px 0 0 0", fontSize: "40px" }}>
+          UGX {totalPlatformRevenue.toLocaleString()}
+        </h2>
       </div>
 
       <div
@@ -850,57 +776,65 @@ function Dashboard() {
         }}
       >
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>Total Users</h3>
-          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#111827" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Total Users</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#0f172a" }}>
             {stats.totalUsers ?? 0}
           </p>
         </div>
 
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>Total Bookings</h3>
-          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#111827" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Total Bookings</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#0f172a" }}>
             {stats.totalBookings ?? 0}
           </p>
         </div>
 
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>Total Cleaners</h3>
-          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#111827" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Total Cleaners</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#0f172a" }}>
             {stats.totalCleaners ?? 0}
           </p>
         </div>
 
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>Total Customers</h3>
-          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#111827" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Total Customers</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#0f172a" }}>
             {stats.totalCustomers ?? 0}
           </p>
         </div>
 
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>
-            Completed Job Value
-          </h3>
-          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#111827" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Completed Job Value</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#0f172a" }}>
             UGX {totalCompletedValue.toLocaleString()}
           </p>
         </div>
 
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>
-            Platform Revenue (15%)
-          </h3>
-          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#b91c1c" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Platform Revenue (15%)</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#dc2626" }}>
             UGX {totalPlatformRevenue.toLocaleString()}
           </p>
         </div>
 
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#374151" }}>
-            Cleaner Payouts
-          </h3>
-          <p style={{ fontSize: "30px", fontWeight: "bold", margin: 0, color: "#166534" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Cleaner Payouts</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#15803d" }}>
             UGX {totalCleanerPayout.toLocaleString()}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Pending Jobs</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#b45309" }}>
+            {pendingJobs}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>In Progress Jobs</h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#7c3aed" }}>
+            {inProgressJobs}
           </p>
         </div>
       </div>
@@ -916,7 +850,7 @@ function Dashboard() {
             marginBottom: "20px",
           }}
         >
-          <h2 style={{ margin: 0, color: "#111827" }}>All Users</h2>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>All Users</h2>
 
           <div
             style={{
@@ -973,10 +907,10 @@ function Dashboard() {
                     <span
                       style={{
                         ...getRoleStyle(user.role),
-                        padding: "6px 10px",
+                        padding: "7px 12px",
                         borderRadius: "999px",
                         fontSize: "13px",
-                        fontWeight: "bold",
+                        fontWeight: "700",
                         textTransform: "capitalize",
                       }}
                     >
@@ -1023,7 +957,7 @@ function Dashboard() {
             marginBottom: "20px",
           }}
         >
-          <h2 style={{ margin: 0, color: "#111827" }}>All Bookings</h2>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>All Bookings</h2>
 
           <div
             style={{
@@ -1099,10 +1033,10 @@ function Dashboard() {
                       <span
                         style={{
                           ...getStatusStyle(booking.status),
-                          padding: "6px 10px",
+                          padding: "7px 12px",
                           borderRadius: "999px",
                           fontSize: "13px",
-                          fontWeight: "bold",
+                          fontWeight: "700",
                           display: "inline-block",
                           textTransform: "capitalize",
                         }}
