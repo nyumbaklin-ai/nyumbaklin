@@ -7,7 +7,7 @@ const pool = require("../config/db");
 
 // ================= CLEANER REGISTER =================
 router.post("/register", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, phone } = req.body;
 
   try {
     if (!email || !password) {
@@ -26,8 +26,8 @@ router.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      "INSERT INTO customers (name, email, password, role) VALUES ($1,$2,$3,'cleaner')",
-      ["Cleaner", email, hashedPassword]
+      "INSERT INTO customers (name, email, password, role, phone) VALUES ($1,$2,$3,'cleaner',$4)",
+      ["Cleaner", email, hashedPassword, phone || null]
     );
 
     res.json({
@@ -174,7 +174,7 @@ router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
   }
 });
 
-// ================= MY CLEANER JOBS =================
+// ================= MY CLEANER JOBS (WITH PHONE LOGIC) =================
 router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
   try {
     const userResult = await pool.query(
@@ -190,15 +190,34 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, email, service, status, price, booking_date
-      FROM bookings
-      WHERE cleaner = $1
-      ORDER BY booking_date ASC
+      SELECT 
+        b.id,
+        b.email,
+        b.service,
+        b.status,
+        b.price,
+        b.booking_date,
+        c.phone AS customer_phone
+      FROM bookings b
+      LEFT JOIN customers c
+        ON b.email = c.email
+      WHERE b.cleaner = $1
+      ORDER BY b.booking_date ASC
       `,
       [cleanerEmail]
     );
 
-    res.json(result.rows);
+    const jobs = result.rows.map((job) => ({
+      ...job,
+      customer_phone:
+        job.status === "accepted" ||
+        job.status === "in progress" ||
+        job.status === "completed"
+          ? job.customer_phone
+          : null,
+    }));
+
+    res.json(jobs);
   } catch (error) {
     console.error("Error fetching cleaner jobs:", error);
     res.status(500).send("Server error");
