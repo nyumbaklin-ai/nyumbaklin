@@ -1,25 +1,32 @@
 ﻿import { useEffect, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function CustomerMyBookings() {
   const [bookings, setBookings] = useState([]);
-
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    fetch(`${API_URL}/customers/my-bookings`, {
-      headers: {
-        Authorization: "Bearer " + token,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setBookings(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching bookings:", error);
+  const fetchBookings = async () => {
+    try {
+      const response = await fetch(`${API_URL}/customers/my-bookings`, {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
       });
+
+      const data = await response.json();
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      setBookings([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+
+    const interval = setInterval(fetchBookings, 5000);
+    return () => clearInterval(interval);
   }, [token]);
 
   return (
@@ -54,8 +61,7 @@ function CustomerMyBookings() {
             </p>
 
             <p>
-              <strong>Price:</strong> UGX{" "}
-              {Number(b.price).toLocaleString()}
+              <strong>Price:</strong> UGX {Number(b.price).toLocaleString()}
             </p>
 
             <p>
