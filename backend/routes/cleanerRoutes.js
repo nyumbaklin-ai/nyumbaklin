@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 
@@ -34,7 +34,6 @@ router.post("/register", async (req, res) => {
       message: "Cleaner registered successfully",
       role: "cleaner",
     });
-
   } catch (error) {
     console.error("Cleaner registration error:", error);
     res.status(500).send("Server error");
@@ -42,7 +41,7 @@ router.post("/register", async (req, res) => {
 });
 
 // ================= AVAILABLE JOBS =================
-router.get("/available-jobs", async (req, res) => {
+router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT id, email, service, status, cleaner, price, booking_date
@@ -58,76 +57,146 @@ router.get("/available-jobs", async (req, res) => {
   }
 });
 
-// ACCEPT JOB
-router.put("/accept-job/:id", async (req, res) => {
+// ================= ACCEPT JOB =================
+router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
   try {
+    const userResult = await pool.query(
+      "SELECT email FROM customers WHERE id=$1",
+      [req.user.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    const cleanerEmail = userResult.rows[0].email;
+
     const result = await pool.query(
       `
       UPDATE bookings
-      SET cleaner = 'cleaner@gmail.com',
+      SET cleaner = $1,
           status = 'accepted'
-      WHERE id = $1
+      WHERE id = $2
+      AND cleaner IS NULL
       RETURNING *
       `,
-      [jobId]
+      [cleanerEmail, jobId]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("Job not found");
+      return res.status(404).send("Job not found or already accepted");
     }
 
     res.send("Job accepted successfully");
   } catch (error) {
-    console.error(error);
+    console.error("Error accepting job:", error);
     res.status(500).send("Server error");
   }
 });
 
-// START JOB
-router.put("/start-job/:id", async (req, res) => {
+// ================= START JOB =================
+router.put("/start-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    await pool.query(
-      `UPDATE bookings SET status = 'in progress' WHERE id = $1`,
-      [jobId]
+    const userResult = await pool.query(
+      "SELECT email FROM customers WHERE id=$1",
+      [req.user.id]
     );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    const cleanerEmail = userResult.rows[0].email;
+
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET status = 'in progress'
+      WHERE id = $1
+      AND cleaner = $2
+      AND status = 'accepted'
+      RETURNING *
+      `,
+      [jobId, cleanerEmail]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("Job not found or cannot be started");
+    }
 
     res.send("Job started");
   } catch (error) {
-    console.error(error);
+    console.error("Error starting job:", error);
     res.status(500).send("Server error");
   }
 });
 
-// COMPLETE JOB
-router.put("/complete-job/:id", async (req, res) => {
+// ================= COMPLETE JOB =================
+router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    await pool.query(
-      `UPDATE bookings SET status = 'completed' WHERE id = $1`,
-      [jobId]
+    const userResult = await pool.query(
+      "SELECT email FROM customers WHERE id=$1",
+      [req.user.id]
     );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    const cleanerEmail = userResult.rows[0].email;
+
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET status = 'completed'
+      WHERE id = $1
+      AND cleaner = $2
+      AND status = 'in progress'
+      RETURNING *
+      `,
+      [jobId, cleanerEmail]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("Job not found or cannot be completed");
+    }
 
     res.send("Job completed");
   } catch (error) {
-    console.error(error);
+    console.error("Error completing job:", error);
     res.status(500).send("Server error");
   }
 });
 
 // ================= MY CLEANER JOBS =================
-router.get("/my-cleaner-jobs", async (req, res) => {
+router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
   try {
-    const result = await pool.query(`
+    const userResult = await pool.query(
+      "SELECT email FROM customers WHERE id=$1",
+      [req.user.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    const cleanerEmail = userResult.rows[0].email;
+
+    const result = await pool.query(
+      `
       SELECT id, email, service, status, price, booking_date
       FROM bookings
-      WHERE cleaner = 'cleaner@gmail.com'
+      WHERE cleaner = $1
       ORDER BY booking_date ASC
-    `);
+      `,
+      [cleanerEmail]
+    );
 
     res.json(result.rows);
   } catch (error) {
@@ -136,21 +205,46 @@ router.get("/my-cleaner-jobs", async (req, res) => {
   }
 });
 
-// CLEANER EARNINGS
-router.get("/earnings", async (req, res) => {
+// ================= CLEANER EARNINGS =================
+router.get("/earnings", auth, cleanerOnly, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-      COUNT(*) AS total_jobs,
-      COALESCE(SUM(price),0) AS total_earnings
-      FROM bookings
-      WHERE cleaner = 'cleaner@gmail.com'
-      AND status = 'completed'
-    `);
+    const userResult = await pool.query(
+      "SELECT email FROM customers WHERE id=$1",
+      [req.user.id]
+    );
 
-    res.json(result.rows[0]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    const cleanerEmail = userResult.rows[0].email;
+
+    const result = await pool.query(
+      `
+      SELECT 
+        COUNT(*) AS total_jobs,
+        COALESCE(SUM(price), 0) AS total_value
+      FROM bookings
+      WHERE cleaner = $1
+      AND status = 'completed'
+      `,
+      [cleanerEmail]
+    );
+
+    const totalJobs = Number(result.rows[0].total_jobs);
+    const totalValue = Number(result.rows[0].total_value);
+
+    const platformFee = Math.round(totalValue * 0.15);
+    const cleanerEarnings = totalValue - platformFee;
+
+    res.json({
+      total_jobs: totalJobs,
+      total_value: totalValue,
+      platform_fee: platformFee,
+      cleaner_earnings: cleanerEarnings,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching cleaner earnings:", error);
     res.status(500).send("Server error");
   }
 });

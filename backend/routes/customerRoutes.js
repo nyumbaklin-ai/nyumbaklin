@@ -5,7 +5,6 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { auth } = require("../middleware/auth");
 
-
 // ================= ROLE CHECK =================
 const adminOnly = (req, res, next) => {
   if (req.user.role !== "admin") {
@@ -20,8 +19,6 @@ const cleanerOnly = (req, res, next) => {
   }
   next();
 };
-
-
 
 // ================= REGISTER =================
 router.post("/register", async (req, res) => {
@@ -48,14 +45,51 @@ router.post("/register", async (req, res) => {
       message: "Customer registered successfully",
       role: "customer",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error registering customer");
   }
 });
 
+// ================= ONE-TIME ADMIN SETUP =================
+router.post("/setup-admin", async (req, res) => {
+  const { email, password, secret } = req.body;
 
+  try {
+    if (!email || !password || !secret) {
+      return res.status(400).send("Email, password and secret are required");
+    }
+
+    if (secret !== process.env.ADMIN_SETUP_SECRET) {
+      return res.status(403).send("Invalid setup secret");
+    }
+
+    const existingAdmin = await pool.query(
+      "SELECT * FROM customers WHERE email=$1",
+      [email]
+    );
+
+    if (existingAdmin.rows.length > 0) {
+      return res.status(400).send("Admin email already exists");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      "INSERT INTO customers (name, email, password, role) VALUES ($1,$2,$3,'admin')",
+      ["Admin", email, hashedPassword]
+    );
+
+    res.json({
+      message: "Admin created successfully",
+      role: "admin",
+      email,
+    });
+  } catch (error) {
+    console.error("Admin setup error:", error);
+    res.status(500).send("Error creating admin");
+  }
+});
 
 // ================= LOGIN =================
 router.post("/login", async (req, res) => {
@@ -81,6 +115,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       {
+        id: user.id,
         email: user.email,
         role: user.role,
       },
@@ -93,14 +128,11 @@ router.post("/login", async (req, res) => {
       token,
       role: user.role,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Login error");
   }
 });
-
-
 
 // ================= PROFILE =================
 router.get("/profile", auth, async (req, res) => {
@@ -115,14 +147,11 @@ router.get("/profile", auth, async (req, res) => {
     }
 
     res.json(result.rows[0]);
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error fetching profile");
   }
 });
-
-
 
 // ================= CREATE BOOKING =================
 router.post("/book", auth, async (req, res) => {
@@ -141,14 +170,11 @@ router.post("/book", auth, async (req, res) => {
     );
 
     res.send("Booking created successfully");
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Booking failed");
   }
 });
-
-
 
 // ================= CUSTOMER JOB TRACKING =================
 router.get("/my-bookings", auth, async (req, res) => {
@@ -170,14 +196,11 @@ router.get("/my-bookings", auth, async (req, res) => {
     );
 
     res.json(result.rows);
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error fetching bookings");
   }
 });
-
-
 
 // ================= CLEANER NOTIFICATIONS =================
 router.get("/cleaner-notifications", auth, cleanerOnly, async (req, res) => {
@@ -193,14 +216,11 @@ router.get("/cleaner-notifications", auth, cleanerOnly, async (req, res) => {
     res.json({
       new_jobs: parseInt(result.rows[0].count),
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error fetching notifications");
   }
 });
-
-
 
 // ================= VIEW AVAILABLE JOBS =================
 router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
@@ -213,14 +233,11 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
     );
 
     res.json(result.rows);
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error fetching available jobs");
   }
 });
-
-
 
 // ================= ACCEPT JOB =================
 router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
@@ -240,14 +257,11 @@ router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
     }
 
     res.send("Job accepted successfully");
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error accepting job");
   }
 });
-
-
 
 // ================= CLEANER UPDATE STATUS =================
 router.put("/cleaner-status/:id", auth, cleanerOnly, async (req, res) => {
@@ -274,14 +288,11 @@ router.put("/cleaner-status/:id", auth, cleanerOnly, async (req, res) => {
     }
 
     res.send("Status updated by cleaner");
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error updating status");
   }
 });
-
-
 
 // ================= CLEANER TOTAL EARNINGS =================
 router.get("/cleaner-earnings", auth, cleanerOnly, async (req, res) => {
@@ -296,14 +307,11 @@ router.get("/cleaner-earnings", auth, cleanerOnly, async (req, res) => {
     res.json({
       total_earnings: Number(result.rows[0].total_earnings),
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error calculating earnings");
   }
 });
-
-
 
 // ================= CLEANER EARNINGS HISTORY =================
 router.get("/cleaner-earnings-history", auth, cleanerOnly, async (req, res) => {
@@ -317,14 +325,11 @@ router.get("/cleaner-earnings-history", auth, cleanerOnly, async (req, res) => {
     );
 
     res.json(result.rows);
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error fetching earnings history");
   }
 });
-
-
 
 // ================= CLEANER MY JOBS =================
 router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
@@ -338,13 +343,11 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
     );
 
     res.json(result.rows);
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Error fetching cleaner jobs");
   }
 });
-
 
 // ================= CUSTOMER BOOKING HISTORY =================
 router.get("/my-bookings", auth, async (req, res) => {
@@ -362,13 +365,11 @@ router.get("/my-bookings", auth, async (req, res) => {
     );
 
     res.json(result.rows);
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
   }
 });
-
 
 // ================= BOOK CLEANING SERVICE =================
 router.post("/book-service", auth, async (req, res) => {
@@ -393,12 +394,10 @@ router.post("/book-service", auth, async (req, res) => {
       message: "Booking created successfully",
       booking: result.rows[0],
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
   }
 });
-
 
 module.exports = router;
