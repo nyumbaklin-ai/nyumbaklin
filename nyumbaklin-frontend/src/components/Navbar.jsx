@@ -46,7 +46,10 @@ function Navbar() {
     fontWeight: location.pathname === path ? "700" : "600",
     padding: "8px 12px",
     borderRadius: "8px",
-    background: location.pathname === path ? "rgba(255,255,255,0.10)" : "transparent",
+    background:
+      location.pathname === path
+        ? "rgba(255,255,255,0.10)"
+        : "transparent",
   });
 
   const logoutStyle = {
@@ -65,6 +68,7 @@ function Navbar() {
       <div style={leftStyle}>
         <h3 style={brandStyle}>Nyumbaklin</h3>
 
+        {/* CUSTOMER LINKS */}
         {role === "customer" && (
           <>
             <Link to="/book-service" style={getLinkStyle("/book-service")}>
@@ -76,6 +80,7 @@ function Navbar() {
           </>
         )}
 
+        {/* CLEANER LINKS */}
         {role === "cleaner" && (
           <>
             <Link to="/cleaner/dashboard" style={getLinkStyle("/cleaner/dashboard")}>
@@ -90,9 +95,17 @@ function Navbar() {
           </>
         )}
 
+        {/* ADMIN LINK */}
         {role === "admin" && (
           <Link to="/dashboard" style={getLinkStyle("/dashboard")}>
             Admin
+          </Link>
+        )}
+
+        {/* 🔥 NEW: PROFILE LINK FOR ALL */}
+        {role && (
+          <Link to="/profile" style={getLinkStyle("/profile")}>
+            Profile
           </Link>
         )}
       </div>
