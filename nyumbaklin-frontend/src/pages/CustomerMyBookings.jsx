@@ -24,59 +24,40 @@ function CustomerMyBookings() {
 
   useEffect(() => {
     fetchBookings();
-
     const interval = setInterval(fetchBookings, 5000);
     return () => clearInterval(interval);
   }, [token]);
 
   const getStatusBadge = (status) => {
     if (status === "pending") {
-      return {
-        text: "Pending",
-        style: {
-          background: "#f59e0b",
-          color: "white",
-        },
-      };
+      return { text: "Pending", style: { background: "#f59e0b", color: "white" } };
     }
-
     if (status === "accepted") {
-      return {
-        text: "Accepted",
-        style: {
-          background: "#2563eb",
-          color: "white",
-        },
-      };
+      return { text: "Accepted", style: { background: "#2563eb", color: "white" } };
     }
-
     if (status === "in progress") {
-      return {
-        text: "In Progress",
-        style: {
-          background: "#7c3aed",
-          color: "white",
-        },
-      };
+      return { text: "In Progress", style: { background: "#7c3aed", color: "white" } };
     }
-
     if (status === "completed") {
-      return {
-        text: "Completed",
-        style: {
-          background: "#16a34a",
-          color: "white",
-        },
-      };
+      return { text: "Completed", style: { background: "#16a34a", color: "white" } };
     }
+    return { text: status, style: { background: "#6b7280", color: "white" } };
+  };
 
-    return {
-      text: status,
-      style: {
-        background: "#6b7280",
-        color: "white",
-      },
-    };
+  const getStatusMessage = (status) => {
+    if (status === "pending") {
+      return "Your request is waiting for a cleaner to accept.";
+    }
+    if (status === "accepted") {
+      return "A cleaner has accepted your job. You can now contact them.";
+    }
+    if (status === "in progress") {
+      return "Your cleaning service is currently in progress.";
+    }
+    if (status === "completed") {
+      return "This job has been completed successfully.";
+    }
+    return "";
   };
 
   const formatPhoneForWhatsApp = (phone) => {
@@ -128,7 +109,6 @@ function CustomerMyBookings() {
     color: "#111827",
     fontWeight: "600",
     marginBottom: "14px",
-    wordBreak: "break-word",
   };
 
   const badgeBaseStyle = {
@@ -137,7 +117,18 @@ function CustomerMyBookings() {
     borderRadius: "999px",
     fontWeight: "700",
     fontSize: "13px",
-    marginBottom: "16px",
+    marginBottom: "10px",
+  };
+
+  const notificationStyle = {
+    marginTop: "10px",
+    marginBottom: "15px",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    background: "#f1f5f9",
+    border: "1px solid #e2e8f0",
+    fontSize: "14px",
+    color: "#334155",
   };
 
   const phoneBoxStyle = {
@@ -151,8 +142,7 @@ function CustomerMyBookings() {
   const actionButtonsStyle = {
     display: "flex",
     gap: "10px",
-    flexWrap: "wrap",
-    marginTop: "12px",
+    marginTop: "10px",
   };
 
   const actionButtonBaseStyle = {
@@ -168,133 +158,81 @@ function CustomerMyBookings() {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerCardStyle}>
-          <h1 style={{ margin: 0, color: "#111827" }}>My Bookings</h1>
-          <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            Track your cleaning bookings and see cleaner contact details after a job is accepted.
-          </p>
+          <h1 style={{ margin: 0 }}>My Bookings</h1>
         </div>
 
-        {bookings.length === 0 ? (
-          <div
-            style={{
-              background: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "16px",
-              padding: "30px",
-              textAlign: "center",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-            }}
-          >
-            <h3 style={{ marginTop: 0, color: "#111827" }}>No bookings yet</h3>
-            <p style={{ marginBottom: 0, color: "#6b7280" }}>
-              Your booked cleaning services will appear here.
-            </p>
-          </div>
-        ) : (
-          <div style={bookingsGridStyle}>
-            {bookings.map((b) => {
-              const badge = getStatusBadge(b.status);
-              const hasVisiblePhone =
-                (b.status === "accepted" ||
+        <div style={bookingsGridStyle}>
+          {bookings.map((b) => {
+            const badge = getStatusBadge(b.status);
+            const whatsappPhone = formatPhoneForWhatsApp(b.cleaner_phone);
+
+            return (
+              <div key={b.id} style={bookingCardStyle}>
+                <h3>{b.service}</h3>
+
+                <div style={labelStyle}>Booking ID</div>
+                <div style={valueStyle}>#{b.id}</div>
+
+                <div style={labelStyle}>Date</div>
+                <div style={valueStyle}>
+                  {new Date(b.booking_date).toLocaleDateString()}
+                </div>
+
+                <div style={labelStyle}>Price</div>
+                <div style={valueStyle}>
+                  UGX {Number(b.price || 0).toLocaleString()}
+                </div>
+
+                <div style={labelStyle}>Status</div>
+                <div style={{ ...badgeBaseStyle, ...badge.style }}>
+                  {badge.text}
+                </div>
+
+                {/* NEW STATUS MESSAGE */}
+                <div style={notificationStyle}>
+                  {getStatusMessage(b.status)}
+                </div>
+
+                {(b.status === "accepted" ||
                   b.status === "in progress" ||
-                  b.status === "completed") &&
-                b.cleaner_phone;
-
-              const whatsappPhone = formatPhoneForWhatsApp(b.cleaner_phone);
-
-              return (
-                <div key={b.id} style={bookingCardStyle}>
-                  <h3 style={{ marginTop: 0, marginBottom: "18px", color: "#111827" }}>
-                    {b.service}
-                  </h3>
-
-                  <div>
-                    <div style={labelStyle}>Booking ID</div>
-                    <div style={valueStyle}>#{b.id}</div>
-                  </div>
-
-                  <div>
-                    <div style={labelStyle}>Date</div>
-                    <div style={valueStyle}>
-                      {new Date(b.booking_date).toLocaleDateString()}
+                  b.status === "completed") && (
+                  <div style={phoneBoxStyle}>
+                    <div style={labelStyle}>Cleaner Phone</div>
+                    <div style={{ ...valueStyle, color: "#1d4ed8" }}>
+                      {b.cleaner_phone}
                     </div>
-                  </div>
 
-                  <div>
-                    <div style={labelStyle}>Price</div>
-                    <div style={valueStyle}>
-                      UGX {Number(b.price || 0).toLocaleString()}
-                    </div>
-                  </div>
-
-                  {b.cleaner && (
-                    <div>
-                      <div style={labelStyle}>Assigned Cleaner</div>
-                      <div style={valueStyle}>{b.cleaner}</div>
-                    </div>
-                  )}
-
-                  <div>
-                    <div style={labelStyle}>Status</div>
-                    <div
-                      style={{
-                        ...badgeBaseStyle,
-                        ...badge.style,
-                      }}
-                    >
-                      {badge.text}
-                    </div>
-                  </div>
-
-                  {(b.status === "accepted" ||
-                    b.status === "in progress" ||
-                    b.status === "completed") && (
-                    <div style={phoneBoxStyle}>
-                      <div style={labelStyle}>Cleaner Phone</div>
-                      <div
+                    <div style={actionButtonsStyle}>
+                      <a
+                        href={`tel:${b.cleaner_phone}`}
                         style={{
-                          ...valueStyle,
-                          marginBottom: 0,
-                          color: "#1d4ed8",
+                          ...actionButtonBaseStyle,
+                          background: "#2563eb",
+                          color: "white",
                         }}
                       >
-                        {b.cleaner_phone ? b.cleaner_phone : "Phone not available yet"}
-                      </div>
+                        Call
+                      </a>
 
-                      {hasVisiblePhone && (
-                        <div style={actionButtonsStyle}>
-                          <a
-                            href={`tel:${b.cleaner_phone}`}
-                            style={{
-                              ...actionButtonBaseStyle,
-                              background: "#2563eb",
-                              color: "white",
-                            }}
-                          >
-                            Call
-                          </a>
-
-                          <a
-                            href={`https://wa.me/${whatsappPhone}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              ...actionButtonBaseStyle,
-                              background: "#16a34a",
-                              color: "white",
-                            }}
-                          >
-                            WhatsApp
-                          </a>
-                        </div>
-                      )}
+                      <a
+                        href={`https://wa.me/${whatsappPhone}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          ...actionButtonBaseStyle,
+                          background: "#16a34a",
+                          color: "white",
+                        }}
+                      >
+                        WhatsApp
+                      </a>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
