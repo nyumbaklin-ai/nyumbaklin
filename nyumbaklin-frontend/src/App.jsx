@@ -7,6 +7,7 @@ import CleanerMyJobs from "./pages/CleanerMyJobs";
 import CleanerEarnings from "./pages/CleanerEarnings";
 import CustomerBooking from "./pages/CustomerBooking";
 import CustomerMyBookings from "./pages/CustomerMyBookings";
+import Profile from "./pages/Profile";
 
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("API_URL:", API_URL);
@@ -1208,6 +1209,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  }
+/>
       </Routes>
     </Layout>
   );
