@@ -44,8 +44,24 @@ async function ensureDatabaseUpdates() {
       )
     `);
 
+    await pool.query(`
+      ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'cash'
+    `);
+
+    await pool.query(`
+      ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'unpaid'
+    `);
+
+    await pool.query(`
+      ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS cleaner_payout_status TEXT DEFAULT 'unpaid'
+    `);
+
     console.log("✅ customers.phone column is ready");
     console.log("✅ ratings table is ready");
+    console.log("✅ bookings payment columns are ready");
   } catch (error) {
     console.error("❌ Error ensuring database updates:", error);
   }
@@ -85,7 +101,10 @@ app.get("/setup-db", async (req, res) => {
         status TEXT DEFAULT 'pending',
         cleaner TEXT,
         seen BOOLEAN DEFAULT false,
-        price INTEGER
+        price INTEGER,
+        payment_method TEXT DEFAULT 'cash',
+        payment_status TEXT DEFAULT 'unpaid',
+        cleaner_payout_status TEXT DEFAULT 'unpaid'
       );
     `);
 
@@ -104,6 +123,21 @@ app.get("/setup-db", async (req, res) => {
         review TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    await pool.query(`
+      ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'cash'
+    `);
+
+    await pool.query(`
+      ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'unpaid'
+    `);
+
+    await pool.query(`
+      ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS cleaner_payout_status TEXT DEFAULT 'unpaid'
     `);
 
     res.send("Tables created successfully");
