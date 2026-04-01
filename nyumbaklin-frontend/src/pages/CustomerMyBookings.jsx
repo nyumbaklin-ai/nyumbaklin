@@ -4,6 +4,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 function CustomerMyBookings() {
   const [bookings, setBookings] = useState([]);
+  const [ratingInputs, setRatingInputs] = useState({});
+  const [submittingRatings, setSubmittingRatings] = useState({});
+  const [ratingMessages, setRatingMessages] = useState({});
   const token = localStorage.getItem("token");
 
   const fetchBookings = async () => {
@@ -104,6 +107,94 @@ function CustomerMyBookings() {
     return phone.replace(/[^\d]/g, "");
   };
 
+  const handleRatingChange = (bookingId, field, value) => {
+    setRatingInputs((prev) => ({
+      ...prev,
+      [bookingId]: {
+        ...prev[bookingId],
+        [field]: value,
+      },
+    }));
+
+    setRatingMessages((prev) => ({
+      ...prev,
+      [bookingId]: "",
+    }));
+  };
+
+  const submitRating = async (bookingId) => {
+    const currentInput = ratingInputs[bookingId] || {};
+    const rating = currentInput.rating;
+    const review = currentInput.review || "";
+
+    if (!rating) {
+      setRatingMessages((prev) => ({
+        ...prev,
+        [bookingId]: "Please choose a star rating first.",
+      }));
+      return;
+    }
+
+    try {
+      setSubmittingRatings((prev) => ({
+        ...prev,
+        [bookingId]: true,
+      }));
+
+      setRatingMessages((prev) => ({
+        ...prev,
+        [bookingId]: "",
+      }));
+
+      const response = await fetch(`${API_URL}/customers/rate-job/${bookingId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          rating,
+          review,
+        }),
+      });
+
+      const message = await response.text();
+
+      if (!response.ok) {
+        setRatingMessages((prev) => ({
+          ...prev,
+          [bookingId]: message || "Failed to submit rating.",
+        }));
+        return;
+      }
+
+      setRatingMessages((prev) => ({
+        ...prev,
+        [bookingId]: "Rating submitted successfully.",
+      }));
+
+      setRatingInputs((prev) => ({
+        ...prev,
+        [bookingId]: {
+          rating,
+          review,
+          submitted: true,
+        },
+      }));
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      setRatingMessages((prev) => ({
+        ...prev,
+        [bookingId]: "Failed to submit rating.",
+      }));
+    } finally {
+      setSubmittingRatings((prev) => ({
+        ...prev,
+        [bookingId]: false,
+      }));
+    }
+  };
+
   const pageStyle = {
     minHeight: "100vh",
     background: "#f8fafc",
@@ -196,6 +287,62 @@ function CustomerMyBookings() {
     display: "inline-block",
   };
 
+  const ratingBoxStyle = {
+    marginTop: "14px",
+    padding: "14px",
+    borderRadius: "12px",
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
+  };
+
+  const starsRowStyle = {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginTop: "10px",
+    marginBottom: "12px",
+  };
+
+  const reviewInputStyle = {
+    width: "100%",
+    minHeight: "90px",
+    borderRadius: "10px",
+    border: "1px solid #d1d5db",
+    padding: "10px 12px",
+    fontSize: "14px",
+    outline: "none",
+    resize: "vertical",
+    boxSizing: "border-box",
+    marginTop: "8px",
+  };
+
+  const submitRatingButtonStyle = {
+    marginTop: "12px",
+    border: "none",
+    borderRadius: "10px",
+    padding: "10px 14px",
+    background: "#ea580c",
+    color: "white",
+    fontWeight: "600",
+    cursor: "pointer",
+  };
+
+  const getStarButtonStyle = (selected) => ({
+    border: selected ? "1px solid #f59e0b" : "1px solid #d1d5db",
+    background: selected ? "#fef3c7" : "white",
+    color: selected ? "#b45309" : "#374151",
+    borderRadius: "10px",
+    padding: "8px 12px",
+    cursor: "pointer",
+    fontWeight: "600",
+  });
+
+  const ratingMessageStyle = {
+    marginTop: "10px",
+    fontSize: "14px",
+    color: "#374151",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
@@ -233,6 +380,10 @@ function CustomerMyBookings() {
                 b.cleaner_phone;
 
               const whatsappPhone = formatPhoneForWhatsApp(b.cleaner_phone);
+              const currentRatingInput = ratingInputs[b.id] || {};
+              const selectedRating = currentRatingInput.rating || 0;
+              const currentReview = currentRatingInput.review || "";
+              const isSubmitting = submittingRatings[b.id];
 
               return (
                 <div key={b.id} style={bookingCardStyle}>
@@ -321,6 +472,55 @@ function CustomerMyBookings() {
                             WhatsApp
                           </a>
                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {b.status === "completed" && (
+                    <div style={ratingBoxStyle}>
+                      <div style={{ ...labelStyle, marginBottom: "6px", color: "#9a3412" }}>
+                        Rate this completed job
+                      </div>
+
+                      <div style={starsRowStyle}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => handleRatingChange(b.id, "rating", star)}
+                            style={getStarButtonStyle(selectedRating === star)}
+                            disabled={isSubmitting}
+                          >
+                            {star} ★
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={labelStyle}>Optional review</div>
+                      <textarea
+                        placeholder="Write a short review..."
+                        value={currentReview}
+                        onChange={(e) =>
+                          handleRatingChange(b.id, "review", e.target.value)
+                        }
+                        style={reviewInputStyle}
+                        disabled={isSubmitting}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => submitRating(b.id)}
+                        style={{
+                          ...submitRatingButtonStyle,
+                          opacity: isSubmitting ? 0.7 : 1,
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit Rating"}
+                      </button>
+
+                      {ratingMessages[b.id] && (
+                        <div style={ratingMessageStyle}>{ratingMessages[b.id]}</div>
                       )}
                     </div>
                   )}
