@@ -32,7 +32,20 @@ async function ensureDatabaseUpdates() {
       ADD COLUMN IF NOT EXISTS phone VARCHAR(20)
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ratings (
+        id SERIAL PRIMARY KEY,
+        booking_id INTEGER UNIQUE NOT NULL,
+        customer_email TEXT NOT NULL,
+        cleaner_email TEXT NOT NULL,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        review TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log("✅ customers.phone column is ready");
+    console.log("✅ ratings table is ready");
   } catch (error) {
     console.error("❌ Error ensuring database updates:", error);
   }
@@ -79,6 +92,18 @@ app.get("/setup-db", async (req, res) => {
     await pool.query(`
       ALTER TABLE customers
       ADD COLUMN IF NOT EXISTS phone VARCHAR(20)
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ratings (
+        id SERIAL PRIMARY KEY,
+        booking_id INTEGER UNIQUE NOT NULL,
+        customer_email TEXT NOT NULL,
+        cleaner_email TEXT NOT NULL,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        review TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
     `);
 
     res.send("Tables created successfully");
