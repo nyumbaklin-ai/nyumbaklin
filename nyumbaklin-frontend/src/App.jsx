@@ -621,6 +621,69 @@ function Dashboard() {
     }
   };
 
+  const updatePayment = async (id, currentMethod) => {
+    const method = window.prompt(
+      "Enter payment method (cash or mobile_money):",
+      currentMethod || "cash"
+    );
+
+    if (method === null) {
+      return;
+    }
+
+    const cleanedMethod = method.trim().toLowerCase();
+
+    if (cleanedMethod !== "cash" && cleanedMethod !== "mobile_money") {
+      alert("Invalid payment method");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/admin/update-payment-status/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          payment_status: "paid",
+          payment_method: cleanedMethod,
+        }),
+      });
+
+      const message = await response.text();
+      alert(message);
+
+      fetchBookings();
+    } catch (error) {
+      console.error("Error updating payment:", error);
+      alert("Error updating payment");
+    }
+  };
+
+  const markCleanerPaid = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/admin/update-payout-status/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          cleaner_payout_status: "paid",
+        }),
+      });
+
+      const message = await response.text();
+      alert(message);
+
+      fetchBookings();
+    } catch (error) {
+      console.error("Error updating cleaner payout:", error);
+      alert("Error updating cleaner payout");
+    }
+  };
+
   const getStatusStyle = (status) => {
     if (status === "pending") {
       return {
@@ -674,6 +737,34 @@ function Dashboard() {
     return {
       background: "#dcfce7",
       color: "#166534",
+    };
+  };
+
+  const getPaymentBadgeStyle = (status) => {
+    if (status === "paid") {
+      return {
+        background: "#dcfce7",
+        color: "#166534",
+      };
+    }
+
+    return {
+      background: "#fee2e2",
+      color: "#b91c1c",
+    };
+  };
+
+  const getPaymentMethodStyle = (method) => {
+    if (method === "mobile_money") {
+      return {
+        background: "#dbeafe",
+        color: "#1d4ed8",
+      };
+    }
+
+    return {
+      background: "#fef3c7",
+      color: "#92400e",
     };
   };
 
@@ -797,7 +888,7 @@ function Dashboard() {
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ margin: 0, color: "#0f172a", fontSize: "34px" }}>Admin Dashboard</h1>
         <p style={{ marginTop: "10px", color: "#64748b", fontSize: "15px" }}>
-          Manage users, bookings, pricing, and platform commission for Nyumbaklin.
+          Manage users, bookings, pricing, platform commission, payments, and ratings for Nyumbaklin.
         </p>
       </div>
 
@@ -1037,7 +1128,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1800px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "2400px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
@@ -1050,16 +1141,18 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Price</th>
               <th style={tableHeaderStyle}>Platform Fee</th>
               <th style={tableHeaderStyle}>Cleaner Payout</th>
+              <th style={tableHeaderStyle}>Payment Method</th>
+              <th style={tableHeaderStyle}>Payment Status</th>
+              <th style={tableHeaderStyle}>Cleaner Paid</th>
               <th style={tableHeaderStyle}>Date</th>
-              <th style={tableHeaderStyle}>Update Price</th>
-              <th style={tableHeaderStyle}>Delete</th>
+              <th style={tableHeaderStyle}>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="13">
+                <td style={tableCellStyle} colSpan="15">
                   No bookings found
                 </td>
               </tr>
@@ -1074,6 +1167,10 @@ function Dashboard() {
                   booking.status === "completed"
                     ? bookingPrice - platformFee
                     : 0;
+
+                const paymentMethod = booking.payment_method || "cash";
+                const paymentStatus = booking.payment_status || "unpaid";
+                const cleanerPayoutStatus = booking.cleaner_payout_status || "unpaid";
 
                 return (
                   <tr key={booking.id} style={{ background: "#fff" }}>
@@ -1112,29 +1209,92 @@ function Dashboard() {
                         : "-"}
                     </td>
                     <td style={tableCellStyle}>
+                      <span
+                        style={{
+                          ...getPaymentMethodStyle(paymentMethod),
+                          padding: "7px 12px",
+                          borderRadius: "999px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          display: "inline-block",
+                        }}
+                      >
+                        {paymentMethod === "mobile_money" ? "mobile_money" : "cash"}
+                      </span>
+                    </td>
+                    <td style={tableCellStyle}>
+                      <span
+                        style={{
+                          ...getPaymentBadgeStyle(paymentStatus),
+                          padding: "7px 12px",
+                          borderRadius: "999px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          display: "inline-block",
+                        }}
+                      >
+                        {paymentStatus}
+                      </span>
+                    </td>
+                    <td style={tableCellStyle}>
+                      <span
+                        style={{
+                          ...getPaymentBadgeStyle(cleanerPayoutStatus),
+                          padding: "7px 12px",
+                          borderRadius: "999px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          display: "inline-block",
+                        }}
+                      >
+                        {cleanerPayoutStatus}
+                      </span>
+                    </td>
+                    <td style={tableCellStyle}>
                       {new Date(booking.booking_date).toLocaleDateString()}
                     </td>
                     <td style={tableCellStyle}>
-                      <button
-                        onClick={() => updatePrice(booking.id, booking.price)}
-                        style={{
-                          ...actionButtonStyle,
-                          background: "#16a34a",
-                        }}
-                      >
-                        Update Price
-                      </button>
-                    </td>
-                    <td style={tableCellStyle}>
-                      <button
-                        onClick={() => deleteBooking(booking.id)}
-                        style={{
-                          ...actionButtonStyle,
-                          background: "#dc2626",
-                        }}
-                      >
-                        Delete
-                      </button>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <button
+                          onClick={() => updatePrice(booking.id, booking.price)}
+                          style={{
+                            ...actionButtonStyle,
+                            background: "#16a34a",
+                          }}
+                        >
+                          Price
+                        </button>
+
+                        <button
+                          onClick={() => updatePayment(booking.id, booking.payment_method)}
+                          style={{
+                            ...actionButtonStyle,
+                            background: "#2563eb",
+                          }}
+                        >
+                          Mark Paid
+                        </button>
+
+                        <button
+                          onClick={() => markCleanerPaid(booking.id)}
+                          style={{
+                            ...actionButtonStyle,
+                            background: "#7c3aed",
+                          }}
+                        >
+                          Pay Cleaner
+                        </button>
+
+                        <button
+                          onClick={() => deleteBooking(booking.id)}
+                          style={{
+                            ...actionButtonStyle,
+                            background: "#dc2626",
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
