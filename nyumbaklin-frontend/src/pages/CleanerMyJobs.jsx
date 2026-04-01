@@ -72,6 +72,11 @@ function CleanerMyJobs() {
     }
   };
 
+  const formatPhoneForWhatsApp = (phone) => {
+    if (!phone) return "";
+    return phone.replace(/[^\d]/g, "");
+  };
+
   const totalCompleted = jobs.filter((job) => job.status === "completed").length;
   const totalInProgress = jobs.filter((job) => job.status === "in progress").length;
   const totalAccepted = jobs.filter((job) => job.status === "accepted").length;
@@ -205,6 +210,22 @@ function CleanerMyJobs() {
     border: "1px solid #bfdbfe",
   };
 
+  const contactActionsStyle = {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "12px",
+  };
+
+  const contactLinkStyle = {
+    textDecoration: "none",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    fontWeight: "600",
+    fontSize: "14px",
+    display: "inline-block",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
@@ -280,6 +301,13 @@ function CleanerMyJobs() {
           <div style={jobsGridStyle}>
             {jobs.map((job) => {
               const badge = getStatusBadge(job.status);
+              const hasVisiblePhone =
+                (job.status === "accepted" ||
+                  job.status === "in progress" ||
+                  job.status === "completed") &&
+                job.customer_phone;
+
+              const whatsappPhone = formatPhoneForWhatsApp(job.customer_phone);
 
               return (
                 <div key={job.id} style={jobCardStyle}>
@@ -330,6 +358,34 @@ function CleanerMyJobs() {
                       >
                         {job.customer_phone ? job.customer_phone : "Phone not available yet"}
                       </div>
+
+                      {hasVisiblePhone && (
+                        <div style={contactActionsStyle}>
+                          <a
+                            href={`tel:${job.customer_phone}`}
+                            style={{
+                              ...contactLinkStyle,
+                              background: "#2563eb",
+                              color: "white",
+                            }}
+                          >
+                            Call
+                          </a>
+
+                          <a
+                            href={`https://wa.me/${whatsappPhone}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              ...contactLinkStyle,
+                              background: "#16a34a",
+                              color: "white",
+                            }}
+                          >
+                            WhatsApp
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
 
