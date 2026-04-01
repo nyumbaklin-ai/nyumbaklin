@@ -411,6 +411,7 @@ function Dashboard() {
   const [users, setUsers] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({});
+  const [ratings, setRatings] = useState([]);
 
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
@@ -465,10 +466,27 @@ function Dashboard() {
       });
   };
 
+  const fetchRatings = () => {
+    fetch(`${API_URL}/admin/ratings`, {
+      headers: {
+        Authorization: "Bearer " + token,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setRatings(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching ratings:", error);
+        setRatings([]);
+      });
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchBookings();
     fetchStats();
+    fetchRatings();
   }, []);
 
   const deleteUser = async (id) => {
@@ -1125,6 +1143,76 @@ function Dashboard() {
           </tbody>
         </table>
       </div>
+
+      <div style={sectionStyle}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "15px",
+            flexWrap: "wrap",
+            marginBottom: "20px",
+          }}
+        >
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>Customer Ratings</h2>
+          <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
+            Reviews submitted by customers after completed jobs.
+          </p>
+        </div>
+
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1200px" }}>
+          <thead>
+            <tr>
+              <th style={tableHeaderStyle}>ID</th>
+              <th style={tableHeaderStyle}>Booking ID</th>
+              <th style={tableHeaderStyle}>Customer Email</th>
+              <th style={tableHeaderStyle}>Cleaner Email</th>
+              <th style={tableHeaderStyle}>Rating</th>
+              <th style={tableHeaderStyle}>Review</th>
+              <th style={tableHeaderStyle}>Date</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {ratings.length === 0 ? (
+              <tr>
+                <td style={tableCellStyle} colSpan="7">
+                  No ratings submitted yet
+                </td>
+              </tr>
+            ) : (
+              ratings.map((rating) => (
+                <tr key={rating.id} style={{ background: "#fff" }}>
+                  <td style={tableCellStyle}>{rating.id}</td>
+                  <td style={tableCellStyle}>#{rating.booking_id}</td>
+                  <td style={tableCellStyle}>{rating.customer_email}</td>
+                  <td style={tableCellStyle}>{rating.cleaner_email}</td>
+                  <td style={tableCellStyle}>
+                    <span
+                      style={{
+                        background: "#fef3c7",
+                        color: "#92400e",
+                        padding: "7px 12px",
+                        borderRadius: "999px",
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        display: "inline-block",
+                      }}
+                    >
+                      {rating.rating} ★
+                    </span>
+                  </td>
+                  <td style={tableCellStyle}>{rating.review || "No review"}</td>
+                  <td style={tableCellStyle}>
+                    {new Date(rating.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -1211,13 +1299,13 @@ function App() {
         />
 
         <Route
-  path="/profile"
-  element={
-    <ProtectedRoute>
-      <Profile />
-    </ProtectedRoute>
-  }
-/>
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Layout>
   );
