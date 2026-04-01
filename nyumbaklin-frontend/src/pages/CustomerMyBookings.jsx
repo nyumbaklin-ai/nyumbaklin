@@ -79,6 +79,11 @@ function CustomerMyBookings() {
     };
   };
 
+  const formatPhoneForWhatsApp = (phone) => {
+    if (!phone) return "";
+    return phone.replace(/[^\d]/g, "");
+  };
+
   const pageStyle = {
     minHeight: "100vh",
     background: "#f8fafc",
@@ -143,6 +148,22 @@ function CustomerMyBookings() {
     border: "1px solid #bfdbfe",
   };
 
+  const actionButtonsStyle = {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "12px",
+  };
+
+  const actionButtonBaseStyle = {
+    textDecoration: "none",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    fontWeight: "600",
+    fontSize: "14px",
+    display: "inline-block",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
@@ -173,6 +194,13 @@ function CustomerMyBookings() {
           <div style={bookingsGridStyle}>
             {bookings.map((b) => {
               const badge = getStatusBadge(b.status);
+              const hasVisiblePhone =
+                (b.status === "accepted" ||
+                  b.status === "in progress" ||
+                  b.status === "completed") &&
+                b.cleaner_phone;
+
+              const whatsappPhone = formatPhoneForWhatsApp(b.cleaner_phone);
 
               return (
                 <div key={b.id} style={bookingCardStyle}>
@@ -232,6 +260,34 @@ function CustomerMyBookings() {
                       >
                         {b.cleaner_phone ? b.cleaner_phone : "Phone not available yet"}
                       </div>
+
+                      {hasVisiblePhone && (
+                        <div style={actionButtonsStyle}>
+                          <a
+                            href={`tel:${b.cleaner_phone}`}
+                            style={{
+                              ...actionButtonBaseStyle,
+                              background: "#2563eb",
+                              color: "white",
+                            }}
+                          >
+                            Call
+                          </a>
+
+                          <a
+                            href={`https://wa.me/${whatsappPhone}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              ...actionButtonBaseStyle,
+                              background: "#16a34a",
+                              color: "white",
+                            }}
+                          >
+                            WhatsApp
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
