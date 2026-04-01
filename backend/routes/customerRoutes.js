@@ -436,4 +436,65 @@ router.post("/book-service", auth, async (req, res) => {
   }
 });
 
+// ================= RATE COMPLETED JOB =================
+router.post("/rate-job/:id", auth, async (req, res) => {
+  const bookingId = req.params.id;
+  const { rating, review } = req.body;
+
+  try {
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).send("Rating must be between 1 and 5");
+    }
+
+    // Check booking
+    const bookingResult = await pool.query(
+      "SELECT * FROM bookings WHERE id=$1 AND email=$2",
+      [bookingId, req.user.email]
+    );
+
+    if (bookingResult.rows.length === 0) {
+      return res.status(404).send("Booking not found");
+    }
+
+    const booking = bookingResult.rows[0];
+
+    if (booking.status !== "completed") {
+      return res.status(400).send("You can only rate completed jobs");
+    }
+
+    if (!booking.cleaner) {
+      return res.status(400).send("No cleaner assigned");
+    }
+
+    // Prevent duplicate rating
+    const existingRating = await pool.query(
+      "SELECT * FROM ratings WHERE booking_id=$1",
+      [bookingId]
+    );
+
+    if (existingRating.rows.length > 0) {
+      return res.status(400).send("You already rated this job");
+    }
+
+    // Insert rating
+    await pool.query(
+      `INSERT INTO ratings 
+      (booking_id, customer_email, cleaner_email, rating, review)
+      VALUES ($1,$2,$3,$4,$5)`,
+      [
+        bookingId,
+        req.user.email,
+        booking.cleaner,
+        rating,
+        review || null,
+      ]
+    );
+
+    res.send("Rating submitted successfully");
+  } catch (error) {
+    console.error("Rating error:", error);
+    res.status(500).send("Error submitting rating");
+  }
+});
+
 module.exports = router;
