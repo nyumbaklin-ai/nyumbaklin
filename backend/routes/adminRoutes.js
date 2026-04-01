@@ -222,4 +222,27 @@ router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
   }
 });
 
+// ================= VIEW ALL RATINGS =================
+router.get("/ratings", auth, adminOnly, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        r.id,
+        r.booking_id,
+        r.customer_email,
+        r.cleaner_email,
+        r.rating,
+        r.review,
+        r.created_at
+      FROM ratings r
+      ORDER BY r.id DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching ratings:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;
