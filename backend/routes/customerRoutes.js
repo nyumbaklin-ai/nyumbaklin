@@ -153,6 +153,27 @@ router.get("/profile", auth, async (req, res) => {
   }
 });
 
+// ================= UPDATE PHONE =================
+router.put("/update-phone", auth, async (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    return res.status(400).send("Phone number is required");
+  }
+
+  try {
+    await pool.query(
+      "UPDATE customers SET phone=$1 WHERE email=$2",
+      [phone, req.user.email]
+    );
+
+    res.send("Phone updated successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error updating phone");
+  }
+});
+
 // ================= CREATE BOOKING =================
 router.post("/book", auth, async (req, res) => {
   const { service, booking_date, booking_time, address, price } = req.body;
