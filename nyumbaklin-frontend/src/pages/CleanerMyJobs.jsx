@@ -31,7 +31,6 @@ function CleanerMyJobs() {
 
   useEffect(() => {
     fetchJobs();
-
     const interval = setInterval(fetchJobs, 5000);
     return () => clearInterval(interval);
   }, [token]);
@@ -72,6 +71,22 @@ function CleanerMyJobs() {
     }
   };
 
+  const getStatusMessage = (status) => {
+    if (status === "accepted") {
+      return "You have accepted this job. You can now start it.";
+    }
+
+    if (status === "in progress") {
+      return "You are currently working on this job.";
+    }
+
+    if (status === "completed") {
+      return "This job has been completed successfully.";
+    }
+
+    return "";
+  };
+
   const formatPhoneForWhatsApp = (phone) => {
     if (!phone) return "";
     return phone.replace(/[^\d]/g, "");
@@ -85,40 +100,39 @@ function CleanerMyJobs() {
     if (status === "accepted") {
       return {
         text: "Accepted",
-        style: {
-          background: "#dbeafe",
-          color: "#1d4ed8",
-        },
+        style: { background: "#dbeafe", color: "#1d4ed8" },
       };
     }
 
     if (status === "in progress") {
       return {
         text: "In Progress",
-        style: {
-          background: "#fef3c7",
-          color: "#b45309",
-        },
+        style: { background: "#fef3c7", color: "#b45309" },
       };
     }
 
     if (status === "completed") {
       return {
         text: "Completed",
-        style: {
-          background: "#dcfce7",
-          color: "#15803d",
-        },
+        style: { background: "#dcfce7", color: "#15803d" },
       };
     }
 
     return {
       text: status,
-      style: {
-        background: "#e5e7eb",
-        color: "#374151",
-      },
+      style: { background: "#e5e7eb", color: "#374151" },
     };
+  };
+
+  const notificationStyle = {
+    marginTop: "-4px",
+    marginBottom: "14px",
+    padding: "10px 12px",
+    borderRadius: "10px",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    color: "#334155",
+    fontSize: "14px",
   };
 
   const pageStyle = {
@@ -179,7 +193,6 @@ function CleanerMyJobs() {
     color: "#111827",
     fontWeight: "600",
     marginBottom: "14px",
-    wordBreak: "break-word",
   };
 
   const badgeBaseStyle = {
@@ -213,8 +226,7 @@ function CleanerMyJobs() {
   const contactActionsStyle = {
     display: "flex",
     gap: "10px",
-    flexWrap: "wrap",
-    marginTop: "12px",
+    marginTop: "10px",
   };
 
   const contactLinkStyle = {
@@ -223,217 +235,102 @@ function CleanerMyJobs() {
     borderRadius: "10px",
     fontWeight: "600",
     fontSize: "14px",
-    display: "inline-block",
   };
 
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerCardStyle}>
-          <h1 style={{ margin: 0, color: "#111827" }}>My Jobs</h1>
-          <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            Track the jobs you have accepted, started, and completed.
-          </p>
-
-          <div style={statsGridStyle}>
-            <div style={statCardStyle}>
-              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
-                Total My Jobs
-              </p>
-              <h2 style={{ margin: "8px 0 0 0", color: "#111827" }}>
-                {jobs.length}
-              </h2>
-            </div>
-
-            <div style={statCardStyle}>
-              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
-                Accepted
-              </p>
-              <h2 style={{ margin: "8px 0 0 0", color: "#1d4ed8" }}>
-                {totalAccepted}
-              </h2>
-            </div>
-
-            <div style={statCardStyle}>
-              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
-                In Progress
-              </p>
-              <h2 style={{ margin: "8px 0 0 0", color: "#b45309" }}>
-                {totalInProgress}
-              </h2>
-            </div>
-
-            <div style={statCardStyle}>
-              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
-                Completed
-              </p>
-              <h2 style={{ margin: "8px 0 0 0", color: "#15803d" }}>
-                {totalCompleted}
-              </h2>
-            </div>
-          </div>
+          <h1>My Jobs</h1>
         </div>
 
-        <div style={{ marginBottom: "18px" }}>
-          <h2 style={{ margin: 0, color: "#111827" }}>Assigned Jobs</h2>
-          <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            Start accepted jobs, complete jobs in progress, and keep track of finished work.
-          </p>
-        </div>
+        <div style={jobsGridStyle}>
+          {jobs.map((job) => {
+            const badge = getStatusBadge(job.status);
+            const whatsappPhone = formatPhoneForWhatsApp(job.customer_phone);
 
-        {jobs.length === 0 ? (
-          <div
-            style={{
-              background: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "16px",
-              padding: "30px",
-              textAlign: "center",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-            }}
-          >
-            <h3 style={{ marginTop: 0, color: "#111827" }}>No jobs yet</h3>
-            <p style={{ marginBottom: 0, color: "#6b7280" }}>
-              Accepted jobs will appear here.
-            </p>
-          </div>
-        ) : (
-          <div style={jobsGridStyle}>
-            {jobs.map((job) => {
-              const badge = getStatusBadge(job.status);
-              const hasVisiblePhone =
-                (job.status === "accepted" ||
+            return (
+              <div key={job.id} style={jobCardStyle}>
+                <h3>{job.service}</h3>
+
+                <div style={labelStyle}>Booking ID</div>
+                <div style={valueStyle}>#{job.id}</div>
+
+                <div style={labelStyle}>Customer Email</div>
+                <div style={valueStyle}>{job.email}</div>
+
+                <div style={labelStyle}>Price</div>
+                <div style={valueStyle}>
+                  UGX {Number(job.price).toLocaleString()}
+                </div>
+
+                <div style={labelStyle}>Status</div>
+                <div style={{ ...badgeBaseStyle, ...badge.style }}>
+                  {badge.text}
+                </div>
+
+                <div style={notificationStyle}>
+                  {getStatusMessage(job.status)}
+                </div>
+
+                {(job.status === "accepted" ||
                   job.status === "in progress" ||
-                  job.status === "completed") &&
-                job.customer_phone;
-
-              const whatsappPhone = formatPhoneForWhatsApp(job.customer_phone);
-
-              return (
-                <div key={job.id} style={jobCardStyle}>
-                  <h3 style={{ marginTop: 0, marginBottom: "18px", color: "#111827" }}>
-                    {job.service}
-                  </h3>
-
-                  <div>
-                    <div style={labelStyle}>Booking ID</div>
-                    <div style={valueStyle}>#{job.id}</div>
-                  </div>
-
-                  <div>
-                    <div style={labelStyle}>Customer Email</div>
-                    <div style={valueStyle}>{job.email}</div>
-                  </div>
-
-                  <div>
-                    <div style={labelStyle}>Price</div>
-                    <div style={valueStyle}>
-                      UGX {Number(job.price).toLocaleString()}
+                  job.status === "completed") && (
+                  <div style={phoneBoxStyle}>
+                    <div style={labelStyle}>Customer Phone</div>
+                    <div style={{ ...valueStyle, color: "#1d4ed8" }}>
+                      {job.customer_phone}
                     </div>
-                  </div>
 
-                  <div>
-                    <div style={labelStyle}>Status</div>
-                    <div
-                      style={{
-                        ...badgeBaseStyle,
-                        ...badge.style,
-                      }}
-                    >
-                      {badge.text}
-                    </div>
-                  </div>
-
-                  {(job.status === "accepted" ||
-                    job.status === "in progress" ||
-                    job.status === "completed") && (
-                    <div style={phoneBoxStyle}>
-                      <div style={labelStyle}>Customer Phone</div>
-                      <div
+                    <div style={contactActionsStyle}>
+                      <a
+                        href={`tel:${job.customer_phone}`}
                         style={{
-                          ...valueStyle,
-                          marginBottom: 0,
-                          color: "#1d4ed8",
+                          ...contactLinkStyle,
+                          background: "#2563eb",
+                          color: "white",
                         }}
                       >
-                        {job.customer_phone ? job.customer_phone : "Phone not available yet"}
-                      </div>
+                        Call
+                      </a>
 
-                      {hasVisiblePhone && (
-                        <div style={contactActionsStyle}>
-                          <a
-                            href={`tel:${job.customer_phone}`}
-                            style={{
-                              ...contactLinkStyle,
-                              background: "#2563eb",
-                              color: "white",
-                            }}
-                          >
-                            Call
-                          </a>
-
-                          <a
-                            href={`https://wa.me/${whatsappPhone}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              ...contactLinkStyle,
-                              background: "#16a34a",
-                              color: "white",
-                            }}
-                          >
-                            WhatsApp
-                          </a>
-                        </div>
-                      )}
+                      <a
+                        href={`https://wa.me/${whatsappPhone}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          ...contactLinkStyle,
+                          background: "#16a34a",
+                          color: "white",
+                        }}
+                      >
+                        WhatsApp
+                      </a>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {job.status === "accepted" && (
-                    <button
-                      onClick={() => startJob(job.id)}
-                      style={{
-                        ...actionButtonBase,
-                        background: "#2563eb",
-                      }}
-                    >
-                      Start Job
-                    </button>
-                  )}
+                {job.status === "accepted" && (
+                  <button
+                    onClick={() => startJob(job.id)}
+                    style={{ ...actionButtonBase, background: "#2563eb" }}
+                  >
+                    Start Job
+                  </button>
+                )}
 
-                  {job.status === "in progress" && (
-                    <button
-                      onClick={() => completeJob(job.id)}
-                      style={{
-                        ...actionButtonBase,
-                        background: "#16a34a",
-                      }}
-                    >
-                      Complete Job
-                    </button>
-                  )}
-
-                  {job.status === "completed" && (
-                    <div
-                      style={{
-                        marginTop: "10px",
-                        padding: "10px 14px",
-                        borderRadius: "8px",
-                        background: "#ecfdf5",
-                        color: "#15803d",
-                        fontWeight: "bold",
-                        textAlign: "center",
-                        border: "1px solid #bbf7d0",
-                      }}
-                    >
-                      ✔ Done
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                {job.status === "in progress" && (
+                  <button
+                    onClick={() => completeJob(job.id)}
+                    style={{ ...actionButtonBase, background: "#16a34a" }}
+                  >
+                    Complete Job
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
