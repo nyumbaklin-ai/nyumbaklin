@@ -6,6 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 function CustomerBooking() {
   const [service, setService] = useState("");
   const [customService, setCustomService] = useState("");
+  const [customPrice, setCustomPrice] = useState("");
   const [date, setDate] = useState("");
 
   const token = localStorage.getItem("token");
@@ -15,6 +16,7 @@ function CustomerBooking() {
     if (service === "House Cleaning") return 50000;
     if (service === "Deep Cleaning") return 80000;
     if (service === "Office Cleaning") return 100000;
+    if (service === "Other") return Number(customPrice);
     return 0;
   };
 
@@ -22,9 +24,20 @@ function CustomerBooking() {
     e.preventDefault();
 
     const finalService = service === "Other" ? customService.trim() : service;
+    const finalPrice = getPrice();
 
     if (!finalService) {
       alert("Please select or enter a service");
+      return;
+    }
+
+    if (service === "Other" && !customPrice) {
+      alert("Please enter the price for the other service");
+      return;
+    }
+
+    if (service === "Other" && Number(customPrice) <= 0) {
+      alert("Please enter a valid price greater than 0");
       return;
     }
 
@@ -43,7 +56,7 @@ function CustomerBooking() {
         body: JSON.stringify({
           service: finalService,
           booking_date: date,
-          price: service === "Other" ? 0 : getPrice(),
+          price: finalPrice,
         }),
       });
 
@@ -82,7 +95,8 @@ function CustomerBooking() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        height: "80vh",
+        minHeight: "80vh",
+        padding: "20px",
       }}
     >
       <div
@@ -92,6 +106,7 @@ function CustomerBooking() {
           borderRadius: "10px",
           width: "350px",
           boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+          background: "white",
         }}
       >
         <h2 style={{ textAlign: "center" }}>Book Cleaning</h2>
@@ -104,7 +119,11 @@ function CustomerBooking() {
               type="radio"
               value="House Cleaning"
               checked={service === "House Cleaning"}
-              onChange={(e) => setService(e.target.value)}
+              onChange={(e) => {
+                setService(e.target.value);
+                setCustomService("");
+                setCustomPrice("");
+              }}
             />
             House Cleaning (UGX 50,000)
           </label>
@@ -117,7 +136,11 @@ function CustomerBooking() {
               type="radio"
               value="Deep Cleaning"
               checked={service === "Deep Cleaning"}
-              onChange={(e) => setService(e.target.value)}
+              onChange={(e) => {
+                setService(e.target.value);
+                setCustomService("");
+                setCustomPrice("");
+              }}
             />
             Deep Cleaning (UGX 80,000)
           </label>
@@ -130,7 +153,11 @@ function CustomerBooking() {
               type="radio"
               value="Office Cleaning"
               checked={service === "Office Cleaning"}
-              onChange={(e) => setService(e.target.value)}
+              onChange={(e) => {
+                setService(e.target.value);
+                setCustomService("");
+                setCustomPrice("");
+              }}
             />
             Office Cleaning (UGX 100,000)
           </label>
@@ -149,14 +176,35 @@ function CustomerBooking() {
           </label>
 
           {service === "Other" && (
-            <input
-              type="text"
-              placeholder="Describe service"
-              value={customService}
-              onChange={(e) => setCustomService(e.target.value)}
-              style={{ width: "100%", marginTop: "10px" }}
-              required
-            />
+            <>
+              <input
+                type="text"
+                placeholder="Describe service"
+                value={customService}
+                onChange={(e) => setCustomService(e.target.value)}
+                style={{ width: "100%", marginTop: "10px", padding: "8px", boxSizing: "border-box" }}
+                required
+              />
+
+              <input
+                type="number"
+                placeholder="Enter price in UGX"
+                value={customPrice}
+                onChange={(e) => setCustomPrice(e.target.value)}
+                style={{
+                  width: "100%",
+                  marginTop: "10px",
+                  padding: "8px",
+                  boxSizing: "border-box",
+                }}
+                min="1"
+                required
+              />
+
+              <p style={{ marginTop: "10px", color: "#374151", fontSize: "14px" }}>
+                Set the price for this custom service in UGX.
+              </p>
+            </>
           )}
 
           <br />
