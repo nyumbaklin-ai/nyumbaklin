@@ -290,6 +290,14 @@ function CustomerMyBookings() {
     border: "1px solid #bfdbfe",
   };
 
+  const locationBoxStyle = {
+    marginBottom: "16px",
+    padding: "12px",
+    borderRadius: "12px",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
+  };
+
   const actionButtonsStyle = {
     display: "flex",
     gap: "10px",
@@ -376,7 +384,7 @@ function CustomerMyBookings() {
         <div style={headerCardStyle}>
           <h1 style={{ margin: 0, color: "#111827" }}>My Bookings</h1>
           <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            Track your cleaning bookings and see cleaner contact details after a job is accepted.
+            Track your cleaning bookings, location, and see cleaner contact details after a job is accepted.
           </p>
         </div>
 
@@ -436,6 +444,19 @@ function CustomerMyBookings() {
                     <div style={labelStyle}>Price</div>
                     <div style={valueStyle}>
                       UGX {Number(b.price || 0).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div style={locationBoxStyle}>
+                    <div style={labelStyle}>Location / Area</div>
+                    <div
+                      style={{
+                        ...valueStyle,
+                        marginBottom: 0,
+                        color: "#166534",
+                      }}
+                    >
+                      {b.address ? b.address : "Location not available"}
                     </div>
                   </div>
 
