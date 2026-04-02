@@ -43,6 +43,19 @@ router.post("/register", async (req, res) => {
 // ================= AVAILABLE JOBS =================
 router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
   try {
+    // get cleaner email
+    const userResult = await pool.query(
+      "SELECT email FROM customers WHERE id=$1",
+      [req.user.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    const cleanerEmail = userResult.rows[0].email;
+
+    // get all jobs
     const result = await pool.query(`
       SELECT id, email, service, status, cleaner, price, booking_date, address
       FROM bookings
@@ -50,7 +63,17 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
       ORDER BY booking_date ASC
     `);
 
-    res.json(result.rows);
+    const jobs = result.rows;
+
+    // SIMPLE MATCHING (for now)
+    // prioritize jobs that have address text (non-null)
+    const sortedJobs = jobs.sort((a, b) => {
+      if (a.address && !b.address) return -1;
+      if (!a.address && b.address) return 1;
+      return 0;
+    });
+
+    res.json(sortedJobs);
   } catch (error) {
     console.error("Error fetching available jobs:", error);
     res.status(500).send("Server error");
