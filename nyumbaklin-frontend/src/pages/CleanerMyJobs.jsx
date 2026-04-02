@@ -75,15 +75,12 @@ function CleanerMyJobs() {
     if (status === "accepted") {
       return "You have accepted this job. You can now start it.";
     }
-
     if (status === "in progress") {
       return "You are currently working on this job.";
     }
-
     if (status === "completed") {
       return "This job has been completed successfully.";
     }
-
     return "";
   };
 
@@ -94,30 +91,15 @@ function CleanerMyJobs() {
 
   const getStatusBadge = (status) => {
     if (status === "accepted") {
-      return {
-        text: "Accepted",
-        style: { background: "#dbeafe", color: "#1d4ed8" },
-      };
+      return { text: "Accepted", style: { background: "#dbeafe", color: "#1d4ed8" } };
     }
-
     if (status === "in progress") {
-      return {
-        text: "In Progress",
-        style: { background: "#fef3c7", color: "#b45309" },
-      };
+      return { text: "In Progress", style: { background: "#fef3c7", color: "#b45309" } };
     }
-
     if (status === "completed") {
-      return {
-        text: "Completed",
-        style: { background: "#dcfce7", color: "#15803d" },
-      };
+      return { text: "Completed", style: { background: "#dcfce7", color: "#15803d" } };
     }
-
-    return {
-      text: status,
-      style: { background: "#e5e7eb", color: "#374151" },
-    };
+    return { text: status, style: { background: "#e5e7eb", color: "#374151" } };
   };
 
   const notificationStyle = {
@@ -244,26 +226,22 @@ function CleanerMyJobs() {
               <div key={job.id} style={jobCardStyle}>
                 <h3>{job.service}</h3>
 
-                <div style={labelStyle}>Booking ID</div>
-                <div style={valueStyle}>#{job.id}</div>
-
-                <div style={labelStyle}>Customer Email</div>
+                <div style={labelStyle}>📧 Customer Email</div>
                 <div style={valueStyle}>{job.email}</div>
 
-                <div style={labelStyle}>Price</div>
+                <div style={labelStyle}>💰 Price</div>
                 <div style={valueStyle}>
                   UGX {Number(job.price).toLocaleString()}
                 </div>
 
-                {/* ✅ NEW LOCATION SECTION */}
                 <div style={locationBoxStyle}>
-                  <div style={labelStyle}>Location / Area</div>
+                  <div style={labelStyle}>📍 Location</div>
                   <div style={{ ...valueStyle, marginBottom: 0, color: "#166534" }}>
                     {job.address ? job.address : "Location not available"}
                   </div>
                 </div>
 
-                <div style={labelStyle}>Status</div>
+                <div style={labelStyle}>📦 Status</div>
                 <div style={{ ...badgeBaseStyle, ...badge.style }}>
                   {badge.text}
                 </div>
@@ -284,11 +262,7 @@ function CleanerMyJobs() {
                     <div style={contactActionsStyle}>
                       <a
                         href={`tel:${job.customer_phone}`}
-                        style={{
-                          ...contactLinkStyle,
-                          background: "#2563eb",
-                          color: "white",
-                        }}
+                        style={{ ...contactLinkStyle, background: "#2563eb", color: "white" }}
                       >
                         Call
                       </a>
@@ -297,11 +271,7 @@ function CleanerMyJobs() {
                         href={`https://wa.me/${whatsappPhone}`}
                         target="_blank"
                         rel="noreferrer"
-                        style={{
-                          ...contactLinkStyle,
-                          background: "#16a34a",
-                          color: "white",
-                        }}
+                        style={{ ...contactLinkStyle, background: "#16a34a", color: "white" }}
                       >
                         WhatsApp
                       </a>
