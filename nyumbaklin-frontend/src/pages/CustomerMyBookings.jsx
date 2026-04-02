@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 function CustomerMyBookings() {
   const [bookings, setBookings] = useState([]);
   const [payingBookingId, setPayingBookingId] = useState(null);
+  const [paymentMessages, setPaymentMessages] = useState({});
   const token = localStorage.getItem("token");
 
   const fetchBookings = async () => {
@@ -19,6 +20,7 @@ function CustomerMyBookings() {
       setBookings(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching bookings:", error);
+      setBookings([]);
     }
   };
 
@@ -31,18 +33,54 @@ function CustomerMyBookings() {
   const handlePay = async (bookingId) => {
     try {
       setPayingBookingId(bookingId);
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: "",
+      }));
 
-      await fetch(`${API_URL}/customers/pay/${bookingId}`, {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, 30000);
+
+      const response = await fetch(`${API_URL}/customers/pay/${bookingId}`, {
         method: "POST",
         headers: {
           Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
         },
+        signal: controller.signal,
       });
 
-      fetchBookings(); // refresh after payment
+      clearTimeout(timeout);
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Payment failed");
+      }
+
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: "Payment successful",
+      }));
+
+      await fetchBookings();
     } catch (error) {
       console.error("Payment error:", error);
-      alert("Payment failed");
+
+      let message = "Payment failed";
+
+      if (error.name === "AbortError") {
+        message = "Payment request timed out. Please try again.";
+      } else if (error.message) {
+        message = error.message;
+      }
+
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: message,
+      }));
     } finally {
       setPayingBookingId(null);
     }
@@ -95,7 +133,6 @@ function CustomerMyBookings() {
                 {badge.text}
               </div>
 
-              {/* PAYMENT SECTION */}
               <div
                 style={{
                   marginTop: "15px",
@@ -138,7 +175,9 @@ function CustomerMyBookings() {
                         padding: "10px 16px",
                         border: "none",
                         borderRadius: "8px",
-                        cursor: "pointer",
+                        cursor:
+                          payingBookingId === b.id ? "not-allowed" : "pointer",
+                        opacity: payingBookingId === b.id ? 0.7 : 1,
                       }}
                     >
                       {payingBookingId === b.id
@@ -146,6 +185,21 @@ function CustomerMyBookings() {
                         : "Pay with Mobile Money"}
                     </button>
                   </>
+                )}
+
+                {paymentMessages[b.id] && (
+                  <p
+                    style={{
+                      marginTop: "12px",
+                      color:
+                        paymentMessages[b.id] === "Payment successful"
+                          ? "#166534"
+                          : "#dc2626",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {paymentMessages[b.id]}
+                  </p>
                 )}
               </div>
             </div>
