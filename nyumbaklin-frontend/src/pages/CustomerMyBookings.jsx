@@ -18,7 +18,26 @@ function CustomerMyBookings() {
       });
 
       const data = await response.json();
-      setBookings(Array.isArray(data) ? data : []);
+      const safeData = Array.isArray(data) ? data : [];
+
+      setBookings(safeData);
+
+      setRatingInputs((prev) => {
+        const updatedInputs = { ...prev };
+
+        safeData.forEach((b) => {
+          if (b.submitted_rating) {
+            updatedInputs[b.id] = {
+              ...updatedInputs[b.id],
+              rating: b.submitted_rating,
+              review: b.submitted_review || "",
+              submitted: true,
+            };
+          }
+        });
+
+        return updatedInputs;
+      });
     } catch (error) {
       console.error("Error fetching bookings:", error);
       setBookings([]);
@@ -392,7 +411,8 @@ function CustomerMyBookings() {
               const selectedRating = currentRatingInput.rating || 0;
               const currentReview = currentRatingInput.review || "";
               const isSubmitting = submittingRatings[b.id];
-              const hasSubmittedRating = currentRatingInput.submitted === true;
+              const hasSubmittedRating =
+                currentRatingInput.submitted === true || !!b.submitted_rating;
 
               return (
                 <div key={b.id} style={bookingCardStyle}>
@@ -543,15 +563,17 @@ function CustomerMyBookings() {
                       <div>
                         <div style={labelStyle}>Submitted Rating</div>
                         <div style={{ ...valueStyle, marginBottom: "10px", color: "#166534" }}>
-                          {currentRatingInput.rating} / 5
+                          {(currentRatingInput.rating || b.submitted_rating)} / 5
                         </div>
                       </div>
 
                       <div>
                         <div style={labelStyle}>Submitted Review</div>
                         <div style={{ ...valueStyle, marginBottom: 0, fontWeight: "500" }}>
-                          {currentRatingInput.review && currentRatingInput.review.trim() !== ""
-                            ? currentRatingInput.review
+                          {(currentRatingInput.review &&
+                            currentRatingInput.review.trim() !== "") ||
+                          (b.submitted_review && b.submitted_review.trim() !== "")
+                            ? currentRatingInput.review || b.submitted_review
                             : "No written review submitted."}
                         </div>
                       </div>
