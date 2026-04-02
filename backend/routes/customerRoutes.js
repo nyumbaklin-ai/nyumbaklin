@@ -138,7 +138,7 @@ router.post("/login", async (req, res) => {
 router.get("/profile", auth, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT name, email, role, phone FROM customers WHERE email=$1",
+      "SELECT name, email, role, phone, location FROM customers WHERE email=$1",
       [req.user.email]
     );
 
@@ -171,6 +171,27 @@ router.put("/update-phone", auth, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send("Error updating phone");
+  }
+});
+
+// ================= UPDATE LOCATION =================
+router.put("/update-location", auth, async (req, res) => {
+  const { location } = req.body;
+
+  if (!location) {
+    return res.status(400).send("Location is required");
+  }
+
+  try {
+    await pool.query(
+      "UPDATE customers SET location=$1 WHERE email=$2",
+      [location, req.user.email]
+    );
+
+    res.send("Location updated successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error updating location");
   }
 });
 
