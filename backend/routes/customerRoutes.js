@@ -211,10 +211,14 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.status,
         b.cleaner,
         b.price,
-        c.phone AS cleaner_phone
+        c.phone AS cleaner_phone,
+        r.rating AS submitted_rating,
+        r.review AS submitted_review
       FROM bookings b
       LEFT JOIN customers c
         ON b.cleaner = c.email
+      LEFT JOIN ratings r
+        ON b.id = r.booking_id
       WHERE b.email = $1
       ORDER BY b.id DESC
       `,
