@@ -100,6 +100,15 @@ function CleanerDashboard() {
     color: "#111827",
     fontWeight: "600",
     marginBottom: "14px",
+    wordBreak: "break-word",
+  };
+
+  const locationBoxStyle = {
+    marginBottom: "16px",
+    padding: "12px",
+    borderRadius: "12px",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
   };
 
   const buttonStyle = {
@@ -120,7 +129,7 @@ function CleanerDashboard() {
         <div style={headerCardStyle}>
           <h1 style={{ margin: 0, color: "#111827" }}>Cleaner Dashboard</h1>
           <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            View available cleaning jobs and accept the ones you want to handle.
+            View available cleaning jobs, including their location, and accept the ones you want to handle.
           </p>
 
           <div style={statsGridStyle}>
@@ -196,6 +205,19 @@ function CleanerDashboard() {
                   <div style={labelStyle}>Price</div>
                   <div style={valueStyle}>
                     UGX {Number(job.price).toLocaleString()}
+                  </div>
+                </div>
+
+                <div style={locationBoxStyle}>
+                  <div style={labelStyle}>Location / Area</div>
+                  <div
+                    style={{
+                      ...valueStyle,
+                      marginBottom: 0,
+                      color: "#166534",
+                    }}
+                  >
+                    {job.address ? job.address : "Location not available"}
                   </div>
                 </div>
 
