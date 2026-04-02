@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -185,31 +185,26 @@ function CleanerDashboard() {
                 </h3>
 
                 <div>
-                  <div style={labelStyle}>Booking ID</div>
-                  <div style={valueStyle}>#{job.id}</div>
-                </div>
-
-                <div>
-                  <div style={labelStyle}>Customer Email</div>
+                  <div style={labelStyle}>📧 Customer Email</div>
                   <div style={valueStyle}>{job.email}</div>
                 </div>
 
                 <div>
-                  <div style={labelStyle}>Date</div>
+                  <div style={labelStyle}>📅 Date</div>
                   <div style={valueStyle}>
                     {new Date(job.booking_date).toLocaleDateString()}
                   </div>
                 </div>
 
                 <div>
-                  <div style={labelStyle}>Price</div>
+                  <div style={labelStyle}>💰 Price</div>
                   <div style={valueStyle}>
                     UGX {Number(job.price).toLocaleString()}
                   </div>
                 </div>
 
                 <div style={locationBoxStyle}>
-                  <div style={labelStyle}>Location / Area</div>
+                  <div style={labelStyle}>📍 Location</div>
                   <div
                     style={{
                       ...valueStyle,
