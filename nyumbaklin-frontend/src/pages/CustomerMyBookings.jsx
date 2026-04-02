@@ -295,6 +295,14 @@ function CustomerMyBookings() {
     border: "1px solid #fdba74",
   };
 
+  const submittedRatingBoxStyle = {
+    marginTop: "14px",
+    padding: "14px",
+    borderRadius: "12px",
+    background: "#ecfdf5",
+    border: "1px solid #86efac",
+  };
+
   const starsRowStyle = {
     display: "flex",
     gap: "8px",
@@ -384,6 +392,7 @@ function CustomerMyBookings() {
               const selectedRating = currentRatingInput.rating || 0;
               const currentReview = currentRatingInput.review || "";
               const isSubmitting = submittingRatings[b.id];
+              const hasSubmittedRating = currentRatingInput.submitted === true;
 
               return (
                 <div key={b.id} style={bookingCardStyle}>
@@ -476,7 +485,7 @@ function CustomerMyBookings() {
                     </div>
                   )}
 
-                  {b.status === "completed" && (
+                  {b.status === "completed" && !hasSubmittedRating && (
                     <div style={ratingBoxStyle}>
                       <div style={{ ...labelStyle, marginBottom: "6px", color: "#9a3412" }}>
                         Rate this completed job
@@ -518,6 +527,34 @@ function CustomerMyBookings() {
                       >
                         {isSubmitting ? "Submitting..." : "Submit Rating"}
                       </button>
+
+                      {ratingMessages[b.id] && (
+                        <div style={ratingMessageStyle}>{ratingMessages[b.id]}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {b.status === "completed" && hasSubmittedRating && (
+                    <div style={submittedRatingBoxStyle}>
+                      <div style={{ ...labelStyle, marginBottom: "8px", color: "#166534" }}>
+                        You already rated this job
+                      </div>
+
+                      <div>
+                        <div style={labelStyle}>Submitted Rating</div>
+                        <div style={{ ...valueStyle, marginBottom: "10px", color: "#166534" }}>
+                          {currentRatingInput.rating} / 5
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={labelStyle}>Submitted Review</div>
+                        <div style={{ ...valueStyle, marginBottom: 0, fontWeight: "500" }}>
+                          {currentRatingInput.review && currentRatingInput.review.trim() !== ""
+                            ? currentRatingInput.review
+                            : "No written review submitted."}
+                        </div>
+                      </div>
 
                       {ratingMessages[b.id] && (
                         <div style={ratingMessageStyle}>{ratingMessages[b.id]}</div>
