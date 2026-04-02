@@ -7,6 +7,8 @@ function CustomerMyBookings() {
   const [ratingInputs, setRatingInputs] = useState({});
   const [submittingRatings, setSubmittingRatings] = useState({});
   const [ratingMessages, setRatingMessages] = useState({});
+  const [payingBookingId, setPayingBookingId] = useState(null);
+  const [paymentMessages, setPaymentMessages] = useState({});
   const token = localStorage.getItem("token");
 
   const fetchBookings = async () => {
@@ -49,6 +51,45 @@ function CustomerMyBookings() {
     const interval = setInterval(fetchBookings, 5000);
     return () => clearInterval(interval);
   }, [token]);
+
+  const handlePay = async (bookingId) => {
+    try {
+      setPayingBookingId(bookingId);
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: "",
+      }));
+
+      const response = await fetch(`${API_URL}/customers/pay/${bookingId}`, {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Payment failed");
+      }
+
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: `Payment successful. Your commission split has been saved.`,
+      }));
+
+      fetchBookings();
+    } catch (error) {
+      console.error("Payment error:", error);
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: error.message || "Payment failed",
+      }));
+    } finally {
+      setPayingBookingId(null);
+    }
+  };
 
   const getStatusBadge = (status) => {
     if (status === "pending") {
@@ -96,6 +137,7 @@ function CustomerMyBookings() {
     borderRadius: "16px",
     padding: "20px",
     boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    marginBottom: "20px",
   };
 
   const labelStyle = {
@@ -118,6 +160,49 @@ function CustomerMyBookings() {
     border: "1px solid #bbf7d0",
   };
 
+  const statusTextStyle = {
+    color: "#374151",
+    fontSize: "14px",
+    marginTop: "10px",
+    marginBottom: "16px",
+  };
+
+  const paymentBoxStyle = {
+    marginTop: "16px",
+    padding: "16px",
+    borderRadius: "12px",
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+  };
+
+  const paymentButtonStyle = {
+    background: "#16a34a",
+    color: "white",
+    border: "none",
+    padding: "12px 18px",
+    borderRadius: "10px",
+    fontWeight: "600",
+    cursor: "pointer",
+  };
+
+  const paidBadgeStyle = {
+    display: "inline-block",
+    background: "#dcfce7",
+    color: "#166534",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    fontWeight: "700",
+    fontSize: "14px",
+    marginBottom: "10px",
+  };
+
+  const paymentMessageStyle = {
+    marginTop: "10px",
+    fontSize: "14px",
+    color: "#1d4ed8",
+    fontWeight: "500",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
@@ -126,6 +211,7 @@ function CustomerMyBookings() {
         <div>
           {bookings.map((b) => {
             const badge = getStatusBadge(b.status);
+            const isPaid = b.payment_status === "paid";
 
             return (
               <div key={b.id} style={bookingCardStyle}>
@@ -149,8 +235,85 @@ function CustomerMyBookings() {
                 </div>
 
                 <div style={labelStyle}>📦 Status</div>
-                <div style={{ ...valueStyle, ...badge.style }}>
+                <div
+                  style={{
+                    ...badge.style,
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    display: "inline-block",
+                    fontWeight: "700",
+                    marginBottom: "10px",
+                  }}
+                >
                   {badge.text}
+                </div>
+
+                <div style={statusTextStyle}>{getStatusMessage(b.status)}</div>
+
+                <div style={paymentBoxStyle}>
+                  <div style={labelStyle}>📱 Mobile Money Payment</div>
+
+                  {isPaid ? (
+                    <>
+                      <div style={paidBadgeStyle}>Paid</div>
+
+                      <div style={labelStyle}>Payment Method</div>
+                      <div style={valueStyle}>
+                        {b.payment_method || "mobile_money"}
+                      </div>
+
+                      <div style={labelStyle}>Your Total Payment</div>
+                      <div style={valueStyle}>
+                        UGX {Number(b.price).toLocaleString()}
+                      </div>
+
+                      {b.commission !== undefined && b.commission !== null && (
+                        <>
+                          <div style={labelStyle}>Platform Commission</div>
+                          <div style={valueStyle}>
+                            UGX {Number(b.commission).toLocaleString()}
+                          </div>
+                        </>
+                      )}
+
+                      {b.cleaner_amount !== undefined &&
+                        b.cleaner_amount !== null && (
+                          <>
+                            <div style={labelStyle}>Cleaner Share</div>
+                            <div style={valueStyle}>
+                              UGX {Number(b.cleaner_amount).toLocaleString()}
+                            </div>
+                          </>
+                        )}
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ color: "#374151", marginBottom: "12px" }}>
+                        Pay for this booking using Mobile Money.
+                      </div>
+
+                      <button
+                        onClick={() => handlePay(b.id)}
+                        disabled={payingBookingId === b.id}
+                        style={{
+                          ...paymentButtonStyle,
+                          opacity: payingBookingId === b.id ? 0.7 : 1,
+                          cursor:
+                            payingBookingId === b.id ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {payingBookingId === b.id
+                          ? "Processing Payment..."
+                          : "Pay with Mobile Money"}
+                      </button>
+                    </>
+                  )}
+
+                  {paymentMessages[b.id] && (
+                    <div style={paymentMessageStyle}>
+                      {paymentMessages[b.id]}
+                    </div>
+                  )}
                 </div>
               </div>
             );
