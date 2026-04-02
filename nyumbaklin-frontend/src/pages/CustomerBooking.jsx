@@ -7,16 +7,38 @@ function CustomerBooking() {
   const [service, setService] = useState("");
   const [customService, setCustomService] = useState("");
   const [customPrice, setCustomPrice] = useState("");
+  const [roomSize, setRoomSize] = useState("");
   const [date, setDate] = useState("");
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
+  const needsRoomSelection =
+    service === "House Cleaning" ||
+    service === "Deep Cleaning" ||
+    service === "Office Cleaning";
+
   const getPrice = () => {
-    if (service === "House Cleaning") return 50000;
-    if (service === "Deep Cleaning") return 80000;
-    if (service === "Office Cleaning") return 100000;
+    if (service === "House Cleaning") {
+      if (roomSize === "1-2") return 30000;
+      if (roomSize === "3-4") return 45000;
+      if (roomSize === "5-6") return 60000;
+    }
+
+    if (service === "Deep Cleaning") {
+      if (roomSize === "1-2") return 70000;
+      if (roomSize === "3-4") return 100000;
+      if (roomSize === "5-6") return 130000;
+    }
+
+    if (service === "Office Cleaning") {
+      if (roomSize === "1-2") return 60000;
+      if (roomSize === "3-4") return 90000;
+      if (roomSize === "5-6") return 120000;
+    }
+
     if (service === "Other") return Number(customPrice);
+
     return 0;
   };
 
@@ -28,6 +50,11 @@ function CustomerBooking() {
 
     if (!finalService) {
       alert("Please select or enter a service");
+      return;
+    }
+
+    if (needsRoomSelection && !roomSize) {
+      alert("Please select the number of rooms");
       return;
     }
 
@@ -54,7 +81,10 @@ function CustomerBooking() {
           Authorization: "Bearer " + token,
         },
         body: JSON.stringify({
-          service: finalService,
+          service:
+            service === "Other"
+              ? finalService
+              : `${finalService} (${roomSize} rooms)`,
           booking_date: date,
           price: finalPrice,
         }),
@@ -123,9 +153,10 @@ function CustomerBooking() {
                 setService(e.target.value);
                 setCustomService("");
                 setCustomPrice("");
+                setRoomSize("");
               }}
             />
-            House Cleaning (UGX 50,000)
+            House Cleaning
           </label>
 
           <br />
@@ -140,9 +171,10 @@ function CustomerBooking() {
                 setService(e.target.value);
                 setCustomService("");
                 setCustomPrice("");
+                setRoomSize("");
               }}
             />
-            Deep Cleaning (UGX 80,000)
+            Deep Cleaning
           </label>
 
           <br />
@@ -157,9 +189,10 @@ function CustomerBooking() {
                 setService(e.target.value);
                 setCustomService("");
                 setCustomPrice("");
+                setRoomSize("");
               }}
             />
-            Office Cleaning (UGX 100,000)
+            Office Cleaning
           </label>
 
           <br />
@@ -170,10 +203,68 @@ function CustomerBooking() {
               type="radio"
               value="Other"
               checked={service === "Other"}
-              onChange={(e) => setService(e.target.value)}
+              onChange={(e) => {
+                setService(e.target.value);
+                setRoomSize("");
+              }}
             />
             Other
           </label>
+
+          {needsRoomSelection && (
+            <>
+              <p style={{ marginTop: "15px", marginBottom: "10px" }}>
+                Select Number of Rooms
+              </p>
+
+              <label>
+                <input
+                  type="radio"
+                  value="1-2"
+                  checked={roomSize === "1-2"}
+                  onChange={(e) => setRoomSize(e.target.value)}
+                />
+                1 - 2 rooms
+              </label>
+
+              <br />
+              <br />
+
+              <label>
+                <input
+                  type="radio"
+                  value="3-4"
+                  checked={roomSize === "3-4"}
+                  onChange={(e) => setRoomSize(e.target.value)}
+                />
+                3 - 4 rooms
+              </label>
+
+              <br />
+              <br />
+
+              <label>
+                <input
+                  type="radio"
+                  value="5-6"
+                  checked={roomSize === "5-6"}
+                  onChange={(e) => setRoomSize(e.target.value)}
+                />
+                5 - 6 rooms
+              </label>
+
+              <p
+                style={{
+                  marginTop: "12px",
+                  color: "#374151",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                }}
+              >
+                Estimated Price: UGX {getPrice().toLocaleString()}
+              </p>
+            </>
+          )}
 
           {service === "Other" && (
             <>
@@ -182,7 +273,12 @@ function CustomerBooking() {
                 placeholder="Describe service"
                 value={customService}
                 onChange={(e) => setCustomService(e.target.value)}
-                style={{ width: "100%", marginTop: "10px", padding: "8px", boxSizing: "border-box" }}
+                style={{
+                  width: "100%",
+                  marginTop: "10px",
+                  padding: "8px",
+                  boxSizing: "border-box",
+                }}
                 required
               />
 
@@ -201,7 +297,13 @@ function CustomerBooking() {
                 required
               />
 
-              <p style={{ marginTop: "10px", color: "#374151", fontSize: "14px" }}>
+              <p
+                style={{
+                  marginTop: "10px",
+                  color: "#374151",
+                  fontSize: "14px",
+                }}
+              >
                 Set the price for this custom service in UGX.
               </p>
             </>
