@@ -785,12 +785,14 @@ function Dashboard() {
   const filteredBookings = bookings.filter((booking) => {
     const emailText = booking.email ? booking.email.toLowerCase() : "";
     const serviceText = booking.service ? booking.service.toLowerCase() : "";
+    const addressText = booking.address ? booking.address.toLowerCase() : "";
     const customerPhoneText = booking.customer_phone ? booking.customer_phone.toLowerCase() : "";
     const cleanerPhoneText = booking.cleaner_phone ? booking.cleaner_phone.toLowerCase() : "";
 
     const matchesSearch =
       emailText.includes(bookingSearch.toLowerCase()) ||
       serviceText.includes(bookingSearch.toLowerCase()) ||
+      addressText.includes(bookingSearch.toLowerCase()) ||
       customerPhoneText.includes(bookingSearch.toLowerCase()) ||
       cleanerPhoneText.includes(bookingSearch.toLowerCase());
 
@@ -1108,7 +1110,7 @@ function Dashboard() {
           >
             <input
               type="text"
-              placeholder="Search by email, service or phone"
+              placeholder="Search by email, service, location or phone"
               value={bookingSearch}
               onChange={(e) => setBookingSearch(e.target.value)}
               style={inputStyle}
@@ -1135,6 +1137,7 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Email</th>
               <th style={tableHeaderStyle}>Customer Phone</th>
               <th style={tableHeaderStyle}>Service</th>
+              <th style={tableHeaderStyle}>Location / Area</th>
               <th style={tableHeaderStyle}>Status</th>
               <th style={tableHeaderStyle}>Cleaner</th>
               <th style={tableHeaderStyle}>Cleaner Phone</th>
@@ -1152,7 +1155,7 @@ function Dashboard() {
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="15">
+                <td style={tableCellStyle} colSpan="16">
                   No bookings found
                 </td>
               </tr>
@@ -1178,6 +1181,7 @@ function Dashboard() {
                     <td style={tableCellStyle}>{booking.email}</td>
                     <td style={tableCellStyle}>{booking.customer_phone || "Not provided"}</td>
                     <td style={tableCellStyle}>{booking.service}</td>
+                    <td style={tableCellStyle}>{booking.address || "Not provided"}</td>
                     <td style={tableCellStyle}>
                       <span
                         style={{
