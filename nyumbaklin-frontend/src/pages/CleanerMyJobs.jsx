@@ -92,10 +92,6 @@ function CleanerMyJobs() {
     return phone.replace(/[^\d]/g, "");
   };
 
-  const totalCompleted = jobs.filter((job) => job.status === "completed").length;
-  const totalInProgress = jobs.filter((job) => job.status === "in progress").length;
-  const totalAccepted = jobs.filter((job) => job.status === "accepted").length;
-
   const getStatusBadge = (status) => {
     if (status === "accepted") {
       return {
@@ -155,20 +151,6 @@ function CleanerMyJobs() {
     marginBottom: "25px",
   };
 
-  const statsGridStyle = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "15px",
-    marginTop: "20px",
-  };
-
-  const statCardStyle = {
-    background: "#f9fafb",
-    border: "1px solid #e5e7eb",
-    borderRadius: "12px",
-    padding: "18px",
-  };
-
   const jobsGridStyle = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -193,6 +175,15 @@ function CleanerMyJobs() {
     color: "#111827",
     fontWeight: "600",
     marginBottom: "14px",
+    wordBreak: "break-word",
+  };
+
+  const locationBoxStyle = {
+    marginBottom: "16px",
+    padding: "12px",
+    borderRadius: "12px",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
   };
 
   const badgeBaseStyle = {
@@ -262,6 +253,14 @@ function CleanerMyJobs() {
                 <div style={labelStyle}>Price</div>
                 <div style={valueStyle}>
                   UGX {Number(job.price).toLocaleString()}
+                </div>
+
+                {/* ✅ NEW LOCATION SECTION */}
+                <div style={locationBoxStyle}>
+                  <div style={labelStyle}>Location / Area</div>
+                  <div style={{ ...valueStyle, marginBottom: 0, color: "#166534" }}>
+                    {job.address ? job.address : "Location not available"}
+                  </div>
                 </div>
 
                 <div style={labelStyle}>Status</div>
