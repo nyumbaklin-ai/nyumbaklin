@@ -414,20 +414,20 @@ router.get("/my-bookings-simple", auth, async (req, res) => {
 // ================= BOOK CLEANING SERVICE =================
 router.post("/book-service", auth, async (req, res) => {
   try {
-    const { service, booking_date, price } = req.body;
+    const { service, booking_date, price, address } = req.body;
     const email = req.user.email;
 
-    if (!service || !booking_date || !price) {
+    if (!service || !booking_date || !price || !address) {
       return res.status(400).send("All fields are required");
     }
 
     const result = await pool.query(
       `
-      INSERT INTO bookings (email, service, booking_date, price, status)
-      VALUES ($1,$2,$3,$4,'pending')
+      INSERT INTO bookings (email, service, booking_date, address, price, status)
+      VALUES ($1,$2,$3,$4,$5,'pending')
       RETURNING *
       `,
-      [email, service, booking_date, price]
+      [email, service, booking_date, address, price]
     );
 
     res.status(201).json({
