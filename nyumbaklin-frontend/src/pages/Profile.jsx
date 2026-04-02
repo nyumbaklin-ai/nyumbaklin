@@ -5,7 +5,56 @@ const API_URL = import.meta.env.VITE_API_URL;
 function Profile() {
   const [profile, setProfile] = useState({});
   const [phone, setPhone] = useState("");
+  const [location, setLocation] = useState("");
   const token = localStorage.getItem("token");
+
+  const kampalaAreas = [
+    "Ntinda",
+    "Kisaasi",
+    "Najjera",
+    "Kyaliwajjala",
+    "Bukoto",
+    "Bugolobi",
+    "Kibuli",
+    "Muyenga",
+    "Kansanga",
+    "Makindye",
+    "Rubaga",
+    "Mengo",
+    "Nansana",
+    "Wakiso",
+    "Kawempe",
+    "Bwaise",
+    "Kireka",
+    "Namugongo",
+    "Seeta",
+    "Gayaza",
+    "Entebbe",
+    "Nakawa",
+    "Banda",
+    "Kasubi",
+    "Munyonyo",
+    "Bunga",
+    "Luzira",
+    "Najjanankumbi",
+    "Lubowa",
+    "Zzana",
+    "Kitintale",
+    "Kulambiro",
+    "Naalya",
+    "Kyebando",
+    "Kamwokya",
+    "Kololo",
+    "Acacia",
+    "Wandegeya",
+    "Makerere",
+    "Mulago",
+    "Old Kampala",
+    "Kabalagala",
+    "Bukasa",
+    "Sonde",
+    "Mukono",
+  ];
 
   const fetchProfile = async () => {
     try {
@@ -18,6 +67,7 @@ function Profile() {
       const data = await res.json();
       setProfile(data);
       setPhone(data.phone || "");
+      setLocation(data.location || "");
     } catch (err) {
       console.error(err);
     }
@@ -44,6 +94,31 @@ function Profile() {
     } catch (err) {
       console.error(err);
       alert("Error updating phone");
+    }
+  };
+
+  const updateLocation = async () => {
+    if (!location) {
+      alert("Please select a location");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/customers/update-location`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ location }),
+      });
+
+      const msg = await res.text();
+      alert(msg);
+      fetchProfile();
+    } catch (err) {
+      console.error(err);
+      alert("Error updating location");
     }
   };
 
@@ -128,7 +203,7 @@ function Profile() {
               My Profile
             </h1>
             <p style={{ marginTop: "10px", color: "#64748b", fontSize: "15px" }}>
-              View your account details and keep your phone number up to date.
+              View your account details and keep your phone number and location up to date.
             </p>
           </div>
 
@@ -144,6 +219,11 @@ function Profile() {
                 {profile.role || "Not available"}
               </div>
             </div>
+
+            <div style={infoBoxStyle}>
+              <div style={labelStyle}>Current Location</div>
+              <div style={valueStyle}>{profile.location || "Not set yet"}</div>
+            </div>
           </div>
 
           <div
@@ -152,6 +232,7 @@ function Profile() {
               border: "1px solid #e5e7eb",
               borderRadius: "16px",
               padding: "22px",
+              marginBottom: "20px",
             }}
           >
             <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
@@ -175,6 +256,43 @@ function Profile() {
 
             <button onClick={updatePhone} style={buttonStyle}>
               Update Phone
+            </button>
+          </div>
+
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "16px",
+              padding: "22px",
+            }}
+          >
+            <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
+              Update Location
+            </h3>
+            <p style={{ marginTop: "8px", color: "#64748b", fontSize: "14px" }}>
+              Select your main working area so Nyumbaklin can prioritize nearby jobs for you.
+            </p>
+
+            <label style={{ ...labelStyle, display: "block", marginTop: "18px" }}>
+              Location
+            </label>
+
+            <select
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Select your area</option>
+              {kampalaAreas.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
+
+            <button onClick={updateLocation} style={buttonStyle}>
+              Update Location
             </button>
           </div>
         </div>
