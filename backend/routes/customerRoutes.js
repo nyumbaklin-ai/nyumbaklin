@@ -286,11 +286,26 @@ router.get("/cleaner-notifications", auth, cleanerOnly, async (req, res) => {
 // ================= VIEW AVAILABLE JOBS =================
 router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
   try {
+    const cleanerResult = await pool.query(
+      "SELECT location FROM customers WHERE email=$1",
+      [req.user.email]
+    );
+
+    const cleanerLocation = cleanerResult.rows[0]?.location || "";
+
     const result = await pool.query(
-      `SELECT id, service, booking_date, booking_time, address, price
-       FROM bookings
-       WHERE cleaner IS NULL AND status='pending'
-       ORDER BY booking_date ASC`
+      `
+      SELECT id, service, booking_date, booking_time, address, price
+      FROM bookings
+      WHERE cleaner IS NULL AND status='pending'
+      ORDER BY
+        CASE
+          WHEN $1 <> '' AND address ILIKE $2 THEN 0
+          ELSE 1
+        END,
+        booking_date ASC
+      `,
+      [cleanerLocation, `%${cleanerLocation}%`]
     );
 
     res.json(result.rows);
@@ -471,7 +486,6 @@ router.post("/rate-job/:id", auth, async (req, res) => {
       return res.status(400).send("Rating must be between 1 and 5");
     }
 
-    // Check booking
     const bookingResult = await pool.query(
       "SELECT * FROM bookings WHERE id=$1 AND email=$2",
       [bookingId, req.user.email]
@@ -491,7 +505,6 @@ router.post("/rate-job/:id", auth, async (req, res) => {
       return res.status(400).send("No cleaner assigned");
     }
 
-    // Prevent duplicate rating
     const existingRating = await pool.query(
       "SELECT * FROM ratings WHERE booking_id=$1",
       [bookingId]
@@ -501,7 +514,6 @@ router.post("/rate-job/:id", auth, async (req, res) => {
       return res.status(400).send("You already rated this job");
     }
 
-    // Insert rating
     await pool.query(
       `INSERT INTO ratings 
       (booking_id, customer_email, cleaner_email, rating, review)
@@ -519,6 +531,47 @@ router.post("/rate-job/:id", auth, async (req, res) => {
   } catch (error) {
     console.error("Rating error:", error);
     res.status(500).send("Error submitting rating");
+  }
+});
+
+// ================= PAY FOR BOOKING =================
+router.post("/pay/:id", auth, async (req, res) => {
+  const bookingId = req.params.id;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM bookings WHERE id=$1",
+      [bookingId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("Booking not found");
+    }
+
+    const booking = result.rows[0];
+
+    // calculate commission (15%)
+    const commission = Math.floor(booking.price * 0.15);
+    const cleanerAmount = booking.price - commission;
+
+    await pool.query(
+      `UPDATE bookings
+       SET payment_status='paid',
+           payment_method='mobile_money',
+           commission=$1,
+           cleaner_amount=$2
+       WHERE id=$3`,
+      [commission, cleanerAmount, bookingId]
+    );
+
+    res.json({
+      message: "Payment successful",
+      commission,
+      cleanerAmount,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Payment failed");
   }
 });
 
