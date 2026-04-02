@@ -34,12 +34,15 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
         b.id,
         b.email,
         b.service,
+        b.address,
         b.status,
         b.cleaner,
         b.price,
         b.booking_date,
         b.payment_method,
         b.payment_status,
+        b.commission,
+        b.cleaner_amount,
         b.cleaner_payout_status,
         customer.phone AS customer_phone,
         cleaner_user.phone AS cleaner_phone
@@ -243,7 +246,7 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
 
   try {
     const bookingCheck = await pool.query(
-      "SELECT id FROM bookings WHERE id=$1",
+      "SELECT id, price FROM bookings WHERE id=$1",
       [id]
     );
 
@@ -251,9 +254,25 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
       return res.status(404).send("Booking not found");
     }
 
+    const booking = bookingCheck.rows[0];
+    const price = Number(booking.price || 0);
+
+    let commission = null;
+    let cleanerAmount = null;
+
+    if (payment_status === "paid") {
+      commission = Math.floor(price * 0.15);
+      cleanerAmount = price - commission;
+    }
+
     await pool.query(
-      "UPDATE bookings SET payment_status=$1, payment_method=$2 WHERE id=$3",
-      [payment_status, payment_method, id]
+      `UPDATE bookings
+       SET payment_status=$1,
+           payment_method=$2,
+           commission=$3,
+           cleaner_amount=$4
+       WHERE id=$5`,
+      [payment_status, payment_method, commission, cleanerAmount, id]
     );
 
     res.send("Payment status updated successfully");
