@@ -9,6 +9,8 @@ function CustomerBooking() {
   const [customPrice, setCustomPrice] = useState("");
   const [roomSize, setRoomSize] = useState("");
   const [date, setDate] = useState("");
+  const [area, setArea] = useState("");
+  const [customArea, setCustomArea] = useState("");
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -17,6 +19,55 @@ function CustomerBooking() {
     service === "House Cleaning" ||
     service === "Deep Cleaning" ||
     service === "Office Cleaning";
+
+  const kampalaAreas = [
+    "Ntinda",
+    "Kisaasi",
+    "Najjera",
+    "Kyaliwajjala",
+    "Bukoto",
+    "Bugolobi",
+    "Kibuli",
+    "Muyenga",
+    "Kansanga",
+    "Makindye",
+    "Rubaga",
+    "Mengo",
+    "Nansana",
+    "Wakiso",
+    "Kawempe",
+    "Bwaise",
+    "Kireka",
+    "Namugongo",
+    "Seeta",
+    "Gayaza",
+    "Entebbe",
+    "Nakawa",
+    "Banda",
+    "Kasubi",
+    "Munyonyo",
+    "Bunga",
+    "Luzira",
+    "Najjanankumbi",
+    "Lubowa",
+    "Zzana",
+    "Kitintale",
+    "Kulambiro",
+    "Naalya",
+    "Kyebando",
+    "Kamwokya",
+    "Kololo",
+    "Acacia",
+    "Wandegeya",
+    "Makerere",
+    "Mulago",
+    "Old Kampala",
+    "Kabalagala",
+    "Bukasa",
+    "Sonde",
+    "Mukono",
+    "Other",
+  ];
 
   const getPrice = () => {
     if (service === "House Cleaning") {
@@ -47,6 +98,7 @@ function CustomerBooking() {
 
     const finalService = service === "Other" ? customService.trim() : service;
     const finalPrice = getPrice();
+    const finalAddress = area === "Other" ? customArea.trim() : area;
 
     if (!finalService) {
       alert("Please select or enter a service");
@@ -65,6 +117,16 @@ function CustomerBooking() {
 
     if (service === "Other" && Number(customPrice) <= 0) {
       alert("Please enter a valid price greater than 0");
+      return;
+    }
+
+    if (!area) {
+      alert("Please select your location");
+      return;
+    }
+
+    if (area === "Other" && !customArea.trim()) {
+      alert("Please enter your location");
       return;
     }
 
@@ -87,6 +149,7 @@ function CustomerBooking() {
               : `${finalService} (${roomSize} rooms)`,
           booking_date: date,
           price: finalPrice,
+          address: finalAddress,
         }),
       });
 
@@ -305,6 +368,61 @@ function CustomerBooking() {
                 }}
               >
                 Set the price for this custom service in UGX.
+              </p>
+            </>
+          )}
+
+          <br />
+
+          <p>Select Location / Area</p>
+
+          <select
+            value={area}
+            onChange={(e) => {
+              setArea(e.target.value);
+              if (e.target.value !== "Other") {
+                setCustomArea("");
+              }
+            }}
+            style={{
+              width: "100%",
+              padding: "10px",
+              boxSizing: "border-box",
+            }}
+            required
+          >
+            <option value="">Select your area</option>
+            {kampalaAreas.map((place) => (
+              <option key={place} value={place}>
+                {place === "Other" ? "Other (Enter manually)" : place}
+              </option>
+            ))}
+          </select>
+
+          {area === "Other" && (
+            <>
+              <input
+                type="text"
+                placeholder="Enter your area / location"
+                value={customArea}
+                onChange={(e) => setCustomArea(e.target.value)}
+                style={{
+                  width: "100%",
+                  marginTop: "10px",
+                  padding: "8px",
+                  boxSizing: "border-box",
+                }}
+                required
+              />
+
+              <p
+                style={{
+                  marginTop: "10px",
+                  color: "#374151",
+                  fontSize: "14px",
+                }}
+              >
+                Type your exact location if it is not in the list.
               </p>
             </>
           )}
