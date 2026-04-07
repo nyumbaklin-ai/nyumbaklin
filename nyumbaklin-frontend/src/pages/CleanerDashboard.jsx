@@ -83,8 +83,16 @@ function CleanerDashboard() {
   }, []);
 
   // ================= STYLES =================
-  const pageStyle = { minHeight: "100vh", background: "#f4f7fb", padding: "30px 20px" };
-  const containerStyle = { maxWidth: "1000px", margin: "0 auto" };
+  const pageStyle = {
+    minHeight: "100vh",
+    background: "#f4f7fb",
+    padding: "30px 20px",
+  };
+
+  const containerStyle = {
+    maxWidth: "1000px",
+    margin: "0 auto",
+  };
 
   const card = {
     background: "white",
@@ -92,6 +100,14 @@ function CleanerDashboard() {
     padding: "20px",
     marginBottom: "20px",
     boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    border: "1px solid #e5e7eb",
+  };
+
+  const jobCard = {
+    background: "#fafafa",
+    borderRadius: "12px",
+    padding: "15px",
+    marginBottom: "15px",
     border: "1px solid #e5e7eb",
   };
 
@@ -104,6 +120,16 @@ function CleanerDashboard() {
     fontWeight: "bold",
   };
 
+  const badge = (type) => ({
+    padding: "5px 10px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "bold",
+    color: "white",
+    background:
+      type === "premium" ? "#16a34a" : "#6b7280",
+  });
+
   // ================= UI =================
   return (
     <div style={pageStyle}>
@@ -115,7 +141,12 @@ function CleanerDashboard() {
 
           {subscription && (
             <>
-              <p><b>Plan:</b> {subscription.subscription_type || "ordinary"}</p>
+              <div style={{ marginBottom: "10px" }}>
+                <span style={badge(subscription.subscription_type)}>
+                  {subscription.subscription_type || "ordinary"}
+                </span>
+              </div>
+
               <p><b>Status:</b> {subscription.subscription_status || "inactive"}</p>
 
               {subscription.subscription_expiry && (
@@ -154,15 +185,21 @@ function CleanerDashboard() {
             <p>No jobs available</p>
           ) : (
             jobs.map((job) => (
-              <div key={job.id} style={{ marginBottom: "20px", borderBottom: "1px solid #eee", paddingBottom: "15px" }}>
-                <h3>{job.service}</h3>
+              <div key={job.id} style={jobCard}>
+                <h3 style={{ marginBottom: "5px" }}>{job.service}</h3>
+
                 <p>📧 {job.email}</p>
                 <p>📅 {new Date(job.booking_date).toLocaleDateString()}</p>
                 <p>💰 UGX {Number(job.price).toLocaleString()}</p>
                 <p>📍 {job.address || "No location"}</p>
 
                 <button
-                  style={{ ...button, background: "#111827", width: "100%" }}
+                  style={{
+                    ...button,
+                    background: "#111827",
+                    width: "100%",
+                    marginTop: "10px",
+                  }}
                   onClick={() => acceptJob(job.id)}
                 >
                   Accept Job
