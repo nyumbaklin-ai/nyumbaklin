@@ -214,7 +214,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
     cleaner = await normalizeCleanerSubscription(cleaner);
 
     const premiumActive = isPremiumActive(cleaner);
-    const cleanerLocation = cleaner.location || "";
+    const cleanerLocation = (cleaner.location || "").toLowerCase();
 
     const result = await pool.query(
       `
@@ -230,12 +230,11 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
     const sortedJobs = jobs.sort((a, b) => {
       const aAddress = (a.address || "").toLowerCase();
       const bAddress = (b.address || "").toLowerCase();
-      const locationText = cleanerLocation.toLowerCase();
 
       const aMatchesLocation =
-        locationText && aAddress.includes(locationText) ? 1 : 0;
+        cleanerLocation && aAddress.includes(cleanerLocation) ? 1 : 0;
       const bMatchesLocation =
-        locationText && bAddress.includes(locationText) ? 1 : 0;
+        cleanerLocation && bAddress.includes(cleanerLocation) ? 1 : 0;
 
       if (premiumActive) {
         if (aMatchesLocation !== bMatchesLocation) {
@@ -256,7 +255,9 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
       return new Date(a.booking_date) - new Date(b.booking_date);
     });
 
-    res.json(sortedJobs);
+    const visibleJobs = premiumActive ? sortedJobs : sortedJobs.slice(0, 3);
+
+    res.json(visibleJobs);
   } catch (error) {
     console.error("Error fetching available jobs:", error);
     res.status(500).send("Server error");
