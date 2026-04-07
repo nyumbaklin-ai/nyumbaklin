@@ -494,4 +494,39 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
   }
 });
 
+// ================= CLEANER EARNINGS HISTORY =================
+router.get("/earnings-history", auth, cleanerOnly, async (req, res) => {
+  try {
+    let cleaner = await getCurrentCleaner(req.user);
+
+    if (!cleaner) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    cleaner = await normalizeCleanerSubscription(cleaner);
+
+    const result = await pool.query(
+      `
+      SELECT 
+        id,
+        service,
+        price,
+        booking_date,
+        cleaner_payout_status,
+        COALESCE(cleaner_amount, price - FLOOR(price * 0.15)) AS cleaner_amount
+      FROM bookings
+      WHERE cleaner = $1
+      AND status = 'completed'
+      ORDER BY booking_date DESC
+      `,
+      [cleaner.email]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching earnings history:", error);
+    res.status(500).send("Server error");
+  }
+});
+
 module.exports = router;
