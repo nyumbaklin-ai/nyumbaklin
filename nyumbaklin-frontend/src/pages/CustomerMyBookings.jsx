@@ -122,40 +122,87 @@ function CustomerMyBookings() {
 
   const pageStyle = {
     minHeight: "100vh",
-    background: "#f8fafc",
+    background: "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
     padding: "30px 20px",
   };
 
   const containerStyle = {
-    maxWidth: "900px",
+    maxWidth: "950px",
     margin: "0 auto",
+  };
+
+  const pageHeaderStyle = {
+    background: "linear-gradient(135deg, #0f172a, #1d4ed8)",
+    color: "white",
+    padding: "24px",
+    borderRadius: "18px",
+    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.18)",
+    marginBottom: "24px",
   };
 
   const bookingCardStyle = {
     background: "white",
     border: "1px solid #e5e7eb",
-    borderRadius: "16px",
-    padding: "20px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    borderRadius: "18px",
+    padding: "22px",
+    boxShadow: "0 8px 22px rgba(0,0,0,0.06)",
     marginBottom: "20px",
+  };
+
+  const cardTopRowStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginBottom: "16px",
+  };
+
+  const serviceTitleStyle = {
+    margin: 0,
+    color: "#0f172a",
+    fontSize: "24px",
+  };
+
+  const badgeStyle = {
+    padding: "10px 14px",
+    borderRadius: "999px",
+    display: "inline-block",
+    fontWeight: "700",
+    fontSize: "14px",
+  };
+
+  const detailsGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "16px",
+    marginBottom: "16px",
+  };
+
+  const detailCardStyle = {
+    background: "#f8fafc",
+    border: "1px solid #e5e7eb",
+    borderRadius: "14px",
+    padding: "14px",
   };
 
   const labelStyle = {
     color: "#6b7280",
-    fontSize: "14px",
-    marginBottom: "4px",
+    fontSize: "13px",
+    marginBottom: "6px",
+    fontWeight: "500",
   };
 
   const valueStyle = {
     color: "#111827",
-    fontWeight: "600",
-    marginBottom: "14px",
+    fontWeight: "700",
+    fontSize: "16px",
   };
 
   const locationBoxStyle = {
     marginBottom: "16px",
-    padding: "12px",
-    borderRadius: "12px",
+    padding: "14px",
+    borderRadius: "14px",
     background: "#f0fdf4",
     border: "1px solid #bbf7d0",
   };
@@ -163,14 +210,15 @@ function CustomerMyBookings() {
   const statusTextStyle = {
     color: "#374151",
     fontSize: "14px",
-    marginTop: "10px",
+    marginTop: "8px",
     marginBottom: "16px",
+    lineHeight: "1.5",
   };
 
   const paymentBoxStyle = {
     marginTop: "16px",
-    padding: "16px",
-    borderRadius: "12px",
+    padding: "18px",
+    borderRadius: "14px",
     background: "#eff6ff",
     border: "1px solid #bfdbfe",
   };
@@ -181,8 +229,9 @@ function CustomerMyBookings() {
     border: "none",
     padding: "12px 18px",
     borderRadius: "10px",
-    fontWeight: "600",
+    fontWeight: "700",
     cursor: "pointer",
+    fontSize: "14px",
   };
 
   const paidBadgeStyle = {
@@ -196,110 +245,232 @@ function CustomerMyBookings() {
     marginBottom: "10px",
   };
 
+  const unpaidBadgeStyle = {
+    display: "inline-block",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    fontWeight: "700",
+    fontSize: "14px",
+    marginBottom: "10px",
+  };
+
   const paymentMessageStyle = {
     marginTop: "10px",
     fontSize: "14px",
     color: "#1d4ed8",
-    fontWeight: "500",
+    fontWeight: "600",
+  };
+
+  const emptyStateStyle = {
+    background: "white",
+    border: "1px solid #e5e7eb",
+    borderRadius: "18px",
+    padding: "30px",
+    textAlign: "center",
+    color: "#64748b",
+    boxShadow: "0 8px 22px rgba(0,0,0,0.05)",
   };
 
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
-        <h1>My Bookings</h1>
+        <div style={pageHeaderStyle}>
+          <h1 style={{ margin: 0, fontSize: "32px" }}>My Bookings</h1>
+          <p style={{ margin: "10px 0 0 0", opacity: 0.9 }}>
+            Track your cleaning bookings, payment status, and service progress.
+          </p>
+        </div>
 
-        <div>
-          {bookings.map((b) => {
-            const badge = getStatusBadge(b.status);
-            const isPaid = b.payment_status === "paid";
+        {bookings.length === 0 ? (
+          <div style={emptyStateStyle}>
+            <h2 style={{ marginTop: 0, color: "#0f172a" }}>No bookings yet</h2>
+            <p style={{ marginBottom: 0 }}>
+              Your booked services will appear here once you make a booking.
+            </p>
+          </div>
+        ) : (
+          <div>
+            {bookings.map((b) => {
+              const badge = getStatusBadge(b.status);
+              const isPaid = b.payment_status === "paid";
+              const cleanerPhone = b.cleaner_phone || "";
+              const whatsappPhone = formatPhoneForWhatsApp(cleanerPhone);
 
-            return (
-              <div key={b.id} style={bookingCardStyle}>
-                <h3>{b.service}</h3>
+              return (
+                <div key={b.id} style={bookingCardStyle}>
+                  <div style={cardTopRowStyle}>
+                    <div>
+                      <h3 style={serviceTitleStyle}>{b.service}</h3>
+                      <p style={{ margin: "6px 0 0 0", color: "#6b7280", fontSize: "14px" }}>
+                        Booking #{b.id}
+                      </p>
+                    </div>
 
-                <div style={labelStyle}>📅 Date</div>
-                <div style={valueStyle}>
-                  {new Date(b.booking_date).toLocaleDateString()}
-                </div>
-
-                <div style={labelStyle}>💰 Price</div>
-                <div style={valueStyle}>
-                  UGX {Number(b.price).toLocaleString()}
-                </div>
-
-                <div style={locationBoxStyle}>
-                  <div style={labelStyle}>📍 Location</div>
-                  <div style={valueStyle}>
-                    {b.address || "Location not available"}
+                    <div
+                      style={{
+                        ...badgeStyle,
+                        ...badge.style,
+                      }}
+                    >
+                      {badge.text}
+                    </div>
                   </div>
-                </div>
 
-                <div style={labelStyle}>📦 Status</div>
-                <div
-                  style={{
-                    ...badge.style,
-                    padding: "10px 14px",
-                    borderRadius: "10px",
-                    display: "inline-block",
-                    fontWeight: "700",
-                    marginBottom: "10px",
-                  }}
-                >
-                  {badge.text}
-                </div>
-
-                <div style={statusTextStyle}>{getStatusMessage(b.status)}</div>
-
-                <div style={paymentBoxStyle}>
-                  <div style={labelStyle}>📱 Mobile Money Payment</div>
-
-                  {isPaid ? (
-                    <>
-                      <div style={paidBadgeStyle}>Paid</div>
-
-                      <div style={labelStyle}>Payment Method</div>
+                  <div style={detailsGridStyle}>
+                    <div style={detailCardStyle}>
+                      <div style={labelStyle}>📅 Date</div>
                       <div style={valueStyle}>
-                        {b.payment_method || "mobile_money"}
+                        {new Date(b.booking_date).toLocaleDateString()}
                       </div>
+                    </div>
 
-                      <div style={labelStyle}>Your Total Payment</div>
+                    <div style={detailCardStyle}>
+                      <div style={labelStyle}>💰 Price</div>
                       <div style={valueStyle}>
                         UGX {Number(b.price).toLocaleString()}
                       </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ color: "#374151", marginBottom: "12px" }}>
-                        Pay for this booking using Mobile Money.
+                    </div>
+
+                    <div style={detailCardStyle}>
+                      <div style={labelStyle}>📱 Payment Status</div>
+                      <div style={valueStyle}>
+                        {isPaid ? "Paid" : b.payment_status || "Unpaid"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={locationBoxStyle}>
+                    <div style={labelStyle}>📍 Location</div>
+                    <div style={valueStyle}>
+                      {b.address || "Location not available"}
+                    </div>
+                  </div>
+
+                  <div style={statusTextStyle}>{getStatusMessage(b.status)}</div>
+
+                  {(b.cleaner || cleanerPhone) && (
+                    <div
+                      style={{
+                        marginBottom: "16px",
+                        padding: "14px",
+                        borderRadius: "14px",
+                        background: "#f9fafb",
+                        border: "1px solid #e5e7eb",
+                      }}
+                    >
+                      <div style={labelStyle}>🧹 Assigned Cleaner</div>
+                      <div style={{ ...valueStyle, marginBottom: "10px" }}>
+                        {b.cleaner || "Cleaner assigned"}
                       </div>
 
-                      <button
-                        onClick={() => handlePay(b.id)}
-                        disabled={payingBookingId === b.id}
-                        style={{
-                          ...paymentButtonStyle,
-                          opacity: payingBookingId === b.id ? 0.7 : 1,
-                          cursor:
-                            payingBookingId === b.id ? "not-allowed" : "pointer",
-                        }}
-                      >
-                        {payingBookingId === b.id
-                          ? "Processing Payment..."
-                          : "Pay with Mobile Money"}
-                      </button>
-                    </>
-                  )}
+                      {cleanerPhone && (
+                        <>
+                          <div style={labelStyle}>📞 Cleaner Phone</div>
+                          <div style={{ ...valueStyle, marginBottom: "12px" }}>
+                            {cleanerPhone}
+                          </div>
 
-                  {paymentMessages[b.id] && (
-                    <div style={paymentMessageStyle}>
-                      {paymentMessages[b.id]}
+                          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                            <a
+                              href={`tel:${cleanerPhone}`}
+                              style={{
+                                background: "#16a34a",
+                                color: "white",
+                                textDecoration: "none",
+                                padding: "10px 14px",
+                                borderRadius: "10px",
+                                fontWeight: "700",
+                                fontSize: "14px",
+                              }}
+                            >
+                              Call Cleaner
+                            </a>
+
+                            {whatsappPhone && (
+                              <a
+                                href={`https://wa.me/${whatsappPhone}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  background: "#2563eb",
+                                  color: "white",
+                                  textDecoration: "none",
+                                  padding: "10px 14px",
+                                  borderRadius: "10px",
+                                  fontWeight: "700",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                WhatsApp Cleaner
+                              </a>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
+
+                  <div style={paymentBoxStyle}>
+                    <div style={labelStyle}>📱 Mobile Money Payment</div>
+
+                    {isPaid ? (
+                      <>
+                        <div style={paidBadgeStyle}>Payment Successful</div>
+
+                        <div style={detailsGridStyle}>
+                          <div style={detailCardStyle}>
+                            <div style={labelStyle}>Payment Method</div>
+                            <div style={valueStyle}>
+                              {b.payment_method || "mobile_money"}
+                            </div>
+                          </div>
+
+                          <div style={detailCardStyle}>
+                            <div style={labelStyle}>Total Paid</div>
+                            <div style={valueStyle}>
+                              UGX {Number(b.price).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={unpaidBadgeStyle}>Payment Pending</div>
+
+                        <div style={{ color: "#374151", marginBottom: "12px", lineHeight: "1.5" }}>
+                          Pay for this booking using Mobile Money to confirm your service payment.
+                        </div>
+
+                        <button
+                          onClick={() => handlePay(b.id)}
+                          disabled={payingBookingId === b.id}
+                          style={{
+                            ...paymentButtonStyle,
+                            opacity: payingBookingId === b.id ? 0.7 : 1,
+                            cursor:
+                              payingBookingId === b.id ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {payingBookingId === b.id
+                            ? "Processing Payment..."
+                            : "Pay with Mobile Money"}
+                        </button>
+                      </>
+                    )}
+
+                    {paymentMessages[b.id] && (
+                      <div style={paymentMessageStyle}>
+                        {paymentMessages[b.id]}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
