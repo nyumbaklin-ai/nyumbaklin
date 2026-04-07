@@ -550,25 +550,24 @@ router.post("/pay/:id", auth, async (req, res) => {
 
     const booking = result.rows[0];
 
-    // calculate commission (15%)
-    const commission = Math.floor(booking.price * 0.15);
-    const cleanerAmount = booking.price - commission;
+    // If already paid
+    if (booking.payment_status === "paid") {
+      return res.status(400).send("Booking already paid");
+    }
 
+    // STEP 1: mark as pending confirmation (simulate OTP waiting)
     await pool.query(
       `UPDATE bookings
-       SET payment_status='paid',
-           payment_method='mobile_money',
-           commission=$1,
-           cleaner_amount=$2
-       WHERE id=$3`,
-      [commission, cleanerAmount, bookingId]
+       SET payment_status='pending_confirmation',
+           payment_method='mobile_money'
+       WHERE id=$1`,
+      [bookingId]
     );
 
     res.json({
-      message: "Payment successful",
-      commission,
-      cleanerAmount,
+      message: "Payment request sent. Waiting for confirmation...",
     });
+
   } catch (error) {
     console.error(error);
     res.status(500).send("Payment failed");
