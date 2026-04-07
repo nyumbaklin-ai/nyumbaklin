@@ -227,37 +227,45 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const jobs = result.rows;
 
-    const sortedJobs = jobs.sort((a, b) => {
-      const aAddress = (a.address || "").toLowerCase();
-      const bAddress = (b.address || "").toLowerCase();
+    const scoredJobs = jobs.map((job) => {
+      const address = (job.address || "").toLowerCase();
+      const hasAddress = job.address ? 1 : 0;
+      const matchesLocation =
+        cleanerLocation && address.includes(cleanerLocation) ? 1 : 0;
 
-      const aMatchesLocation =
-        cleanerLocation && aAddress.includes(cleanerLocation) ? 1 : 0;
-      const bMatchesLocation =
-        cleanerLocation && bAddress.includes(cleanerLocation) ? 1 : 0;
+      let priorityScore = 0;
 
       if (premiumActive) {
-        if (aMatchesLocation !== bMatchesLocation) {
-          return bMatchesLocation - aMatchesLocation;
-        }
-
-        if (!!a.address !== !!b.address) {
-          return a.address ? -1 : 1;
-        }
-
-        return new Date(a.booking_date) - new Date(b.booking_date);
+        // premium gets stronger priority
+        if (matchesLocation) priorityScore += 100;
+        if (hasAddress) priorityScore += 20;
+      } else {
+        // ordinary gets simpler order
+        if (hasAddress) priorityScore += 10;
       }
 
-      if (!!a.address !== !!b.address) {
-        return a.address ? -1 : 1;
+      return {
+        ...job,
+        _priorityScore: priorityScore,
+        _matchesLocation: matchesLocation,
+      };
+    });
+
+    scoredJobs.sort((a, b) => {
+      if (b._priorityScore !== a._priorityScore) {
+        return b._priorityScore - a._priorityScore;
       }
 
       return new Date(a.booking_date) - new Date(b.booking_date);
     });
 
-    const visibleJobs = premiumActive ? sortedJobs : sortedJobs.slice(0, 3);
+    const visibleJobs = premiumActive ? scoredJobs : scoredJobs.slice(0, 3);
 
-    res.json(visibleJobs);
+    const cleanedJobs = visibleJobs.map(
+      ({ _priorityScore, _matchesLocation, ...job }) => job
+    );
+
+    res.json(cleanedJobs);
   } catch (error) {
     console.error("Error fetching available jobs:", error);
     res.status(500).send("Server error");
