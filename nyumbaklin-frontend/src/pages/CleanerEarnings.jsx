@@ -6,58 +6,71 @@ function CleanerEarnings() {
   const [earnings, setEarnings] = useState(null);
   const [ratingsSummary, setRatingsSummary] = useState(null);
   const [earningsHistory, setEarningsHistory] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   const token = localStorage.getItem("token");
 
+  const fetchEarnings = async () => {
+    try {
+      const response = await fetch(`${API_URL}/cleaner/earnings`, {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const data = await response.json();
+      setEarnings(data);
+    } catch (error) {
+      console.error("Error fetching earnings:", error);
+    }
+  };
+
+  const fetchRatingsSummary = async () => {
+    try {
+      const response = await fetch(`${API_URL}/cleaner/ratings-summary`, {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const data = await response.json();
+      setRatingsSummary(data);
+    } catch (error) {
+      console.error("Error fetching ratings summary:", error);
+    }
+  };
+
+  const fetchEarningsHistory = async () => {
+    try {
+      const response = await fetch(`${API_URL}/cleaner/earnings-history`, {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const data = await response.json();
+      setEarningsHistory(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching earnings history:", error);
+    }
+  };
+
+  const fetchAllCleanerData = async () => {
+    await Promise.all([
+      fetchEarnings(),
+      fetchRatingsSummary(),
+      fetchEarningsHistory(),
+    ]);
+  };
+
   useEffect(() => {
-    const fetchEarnings = async () => {
-      try {
-        const response = await fetch(`${API_URL}/cleaner/earnings`, {
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-        });
-
-        const data = await response.json();
-        setEarnings(data);
-      } catch (error) {
-        console.error("Error fetching earnings:", error);
-      }
-    };
-
-    const fetchRatingsSummary = async () => {
-      try {
-        const response = await fetch(`${API_URL}/cleaner/ratings-summary`, {
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-        });
-
-        const data = await response.json();
-        setRatingsSummary(data);
-      } catch (error) {
-        console.error("Error fetching ratings summary:", error);
-      }
-    };
-
-    const fetchEarningsHistory = async () => {
-      try {
-        const response = await fetch(`${API_URL}/cleaner/earnings-history`, {
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-        });
-
-        const data = await response.json();
-        setEarningsHistory(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Error fetching earnings history:", error);
-      }
-    };
-
-    fetchEarnings();
-    fetchRatingsSummary();
-    fetchEarningsHistory();
+    fetchAllCleanerData();
   }, [token]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchAllCleanerData();
+    setRefreshing(false);
+  };
 
   const pageStyle = {
     minHeight: "100vh",
@@ -133,6 +146,18 @@ function CleanerEarnings() {
     fontWeight: "700",
   };
 
+  const refreshButtonStyle = {
+    background: refreshing ? "#94a3b8" : "#2563eb",
+    color: "white",
+    border: "none",
+    padding: "10px 16px",
+    borderRadius: "10px",
+    fontSize: "14px",
+    fontWeight: "700",
+    cursor: refreshing ? "not-allowed" : "pointer",
+    marginTop: "16px",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
@@ -141,6 +166,14 @@ function CleanerEarnings() {
           <p style={{ marginTop: "8px", color: "#6b7280" }}>
             View your completed jobs, earnings, payouts, and customer ratings.
           </p>
+
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={refreshButtonStyle}
+          >
+            {refreshing ? "Refreshing..." : "Refresh Earnings"}
+          </button>
         </div>
 
         {!earnings ? (
