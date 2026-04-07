@@ -4,32 +4,67 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 function CleanerDashboard() {
   const [jobs, setJobs] = useState([]);
+  const [subscription, setSubscription] = useState(null);
+  const [loadingSub, setLoadingSub] = useState(false);
+
   const token = localStorage.getItem("token");
 
+  // ================= FETCH JOBS =================
   const fetchJobs = () => {
     fetch(`${API_URL}/cleaner/available-jobs`, {
-      headers: {
-        Authorization: "Bearer " + token,
-      },
+      headers: { Authorization: "Bearer " + token },
     })
       .then((res) => res.json())
-      .then((data) => {
-        setJobs(Array.isArray(data) ? data : []);
-      })
+      .then((data) => setJobs(Array.isArray(data) ? data : []))
       .catch((err) => console.error(err));
   };
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
+  // ================= FETCH SUBSCRIPTION =================
+  const fetchSubscription = async () => {
+    try {
+      const res = await fetch(`${API_URL}/cleaner/subscription-status`, {
+        headers: { Authorization: "Bearer " + token },
+      });
 
+      const data = await res.json();
+      setSubscription(data);
+    } catch (err) {
+      console.error("Subscription error:", err);
+    }
+  };
+
+  // ================= UPGRADE =================
+  const upgrade = async (plan) => {
+    try {
+      setLoadingSub(true);
+
+      const res = await fetch(`${API_URL}/cleaner/upgrade-subscription`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ plan }),
+      });
+
+      const data = await res.json();
+      alert(data.message);
+
+      fetchSubscription();
+    } catch (err) {
+      console.error(err);
+      alert("Upgrade failed");
+    } finally {
+      setLoadingSub(false);
+    }
+  };
+
+  // ================= ACCEPT JOB =================
   const acceptJob = async (id) => {
     try {
       const response = await fetch(`${API_URL}/cleaner/accept-job/${id}`, {
         method: "PUT",
-        headers: {
-          Authorization: "Bearer " + token,
-        },
+        headers: { Authorization: "Bearer " + token },
       });
 
       const message = await response.text();
@@ -42,187 +77,101 @@ function CleanerDashboard() {
     }
   };
 
-  const pageStyle = {
-    minHeight: "100vh",
-    background: "#f4f7fb",
-    padding: "30px 20px",
-  };
+  useEffect(() => {
+    fetchJobs();
+    fetchSubscription();
+  }, []);
 
-  const containerStyle = {
-    maxWidth: "1000px",
-    margin: "0 auto",
-  };
+  // ================= STYLES =================
+  const pageStyle = { minHeight: "100vh", background: "#f4f7fb", padding: "30px 20px" };
+  const containerStyle = { maxWidth: "1000px", margin: "0 auto" };
 
-  const headerCardStyle = {
+  const card = {
     background: "white",
-    borderRadius: "16px",
-    padding: "25px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-    border: "1px solid #e5e7eb",
-    marginBottom: "25px",
-  };
-
-  const statsGridStyle = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "15px",
-    marginTop: "20px",
-  };
-
-  const statCardStyle = {
-    background: "#f9fafb",
-    border: "1px solid #e5e7eb",
-    borderRadius: "12px",
-    padding: "18px",
-  };
-
-  const jobsGridStyle = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "20px",
-  };
-
-  const jobCardStyle = {
-    background: "white",
-    border: "1px solid #e5e7eb",
     borderRadius: "16px",
     padding: "20px",
+    marginBottom: "20px",
     boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    border: "1px solid #e5e7eb",
   };
 
-  const labelStyle = {
-    color: "#6b7280",
-    fontSize: "14px",
-    marginBottom: "4px",
-  };
-
-  const valueStyle = {
-    color: "#111827",
-    fontWeight: "600",
-    marginBottom: "14px",
-    wordBreak: "break-word",
-  };
-
-  const locationBoxStyle = {
-    marginBottom: "16px",
-    padding: "12px",
-    borderRadius: "12px",
-    background: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-  };
-
-  const buttonStyle = {
-    marginTop: "10px",
-    padding: "10px 14px",
-    background: "#111827",
-    color: "white",
+  const button = {
+    padding: "10px",
+    borderRadius: "8px",
     border: "none",
     cursor: "pointer",
-    borderRadius: "8px",
+    color: "white",
     fontWeight: "bold",
-    width: "100%",
   };
 
+  // ================= UI =================
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
-        <div style={headerCardStyle}>
-          <h1 style={{ margin: 0, color: "#111827" }}>Cleaner Dashboard</h1>
-          <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            View available cleaning jobs, including their location, and accept the ones you want to handle.
-          </p>
 
-          <div style={statsGridStyle}>
-            <div style={statCardStyle}>
-              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
-                Available Jobs
-              </p>
-              <h2 style={{ margin: "8px 0 0 0", color: "#111827" }}>
-                {jobs.length}
-              </h2>
-            </div>
+        {/* 🔥 SUBSCRIPTION CARD */}
+        <div style={card}>
+          <h2>💎 Subscription</h2>
 
-            <div style={statCardStyle}>
-              <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
-                Status
-              </p>
-              <h2 style={{ margin: "8px 0 0 0", color: "#111827" }}>
-                Ready to Accept
-              </h2>
-            </div>
+          {subscription && (
+            <>
+              <p><b>Plan:</b> {subscription.subscription_type || "ordinary"}</p>
+              <p><b>Status:</b> {subscription.subscription_status || "inactive"}</p>
+
+              {subscription.subscription_expiry && (
+                <p>
+                  <b>Expires:</b>{" "}
+                  {new Date(subscription.subscription_expiry).toLocaleDateString()}
+                </p>
+              )}
+            </>
+          )}
+
+          <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+            <button
+              style={{ ...button, background: "#16a34a" }}
+              onClick={() => upgrade("weekly")}
+              disabled={loadingSub}
+            >
+              Weekly (UGX 5,000)
+            </button>
+
+            <button
+              style={{ ...button, background: "#2563eb" }}
+              onClick={() => upgrade("monthly")}
+              disabled={loadingSub}
+            >
+              Monthly (UGX 15,000)
+            </button>
           </div>
         </div>
 
-        <div style={{ marginBottom: "18px" }}>
-          <h2 style={{ margin: 0, color: "#111827" }}>Available Jobs</h2>
-          <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            These are jobs that have not yet been assigned to any cleaner.
-          </p>
-        </div>
+        {/* JOBS */}
+        <div style={card}>
+          <h2>Available Jobs ({jobs.length})</h2>
 
-        {jobs.length === 0 ? (
-          <div
-            style={{
-              background: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "16px",
-              padding: "30px",
-              textAlign: "center",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-            }}
-          >
-            <h3 style={{ marginTop: 0, color: "#111827" }}>No jobs available</h3>
-            <p style={{ marginBottom: 0, color: "#6b7280" }}>
-              New jobs will appear here when customers make bookings.
-            </p>
-          </div>
-        ) : (
-          <div style={jobsGridStyle}>
-            {jobs.map((job) => (
-              <div key={job.id} style={jobCardStyle}>
-                <h3 style={{ marginTop: 0, marginBottom: "18px", color: "#111827" }}>
-                  {job.service}
-                </h3>
+          {jobs.length === 0 ? (
+            <p>No jobs available</p>
+          ) : (
+            jobs.map((job) => (
+              <div key={job.id} style={{ marginBottom: "20px", borderBottom: "1px solid #eee", paddingBottom: "15px" }}>
+                <h3>{job.service}</h3>
+                <p>📧 {job.email}</p>
+                <p>📅 {new Date(job.booking_date).toLocaleDateString()}</p>
+                <p>💰 UGX {Number(job.price).toLocaleString()}</p>
+                <p>📍 {job.address || "No location"}</p>
 
-                <div>
-                  <div style={labelStyle}>📧 Customer Email</div>
-                  <div style={valueStyle}>{job.email}</div>
-                </div>
-
-                <div>
-                  <div style={labelStyle}>📅 Date</div>
-                  <div style={valueStyle}>
-                    {new Date(job.booking_date).toLocaleDateString()}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={labelStyle}>💰 Price</div>
-                  <div style={valueStyle}>
-                    UGX {Number(job.price).toLocaleString()}
-                  </div>
-                </div>
-
-                <div style={locationBoxStyle}>
-                  <div style={labelStyle}>📍 Location</div>
-                  <div
-                    style={{
-                      ...valueStyle,
-                      marginBottom: 0,
-                      color: "#166534",
-                    }}
-                  >
-                    {job.address ? job.address : "Location not available"}
-                  </div>
-                </div>
-
-                <button onClick={() => acceptJob(job.id)} style={buttonStyle}>
+                <button
+                  style={{ ...button, background: "#111827", width: "100%" }}
+                  onClick={() => acceptJob(job.id)}
+                >
                   Accept Job
                 </button>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
+
       </div>
     </div>
   );
