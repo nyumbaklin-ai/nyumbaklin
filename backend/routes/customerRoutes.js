@@ -550,24 +550,13 @@ router.post("/pay/:id", auth, async (req, res) => {
 
     const booking = result.rows[0];
 
-    // If already paid
     if (booking.payment_status === "paid") {
       return res.status(400).send("Booking already paid");
     }
 
-    // STEP 1: mark as pending confirmation (simulate OTP waiting)
-    await pool.query(
-      `UPDATE bookings
-       SET payment_status='pending_confirmation',
-           payment_method='mobile_money'
-       WHERE id=$1`,
-      [bookingId]
-    );
-
     res.json({
       message: "Payment request sent. Waiting for confirmation...",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Payment failed");
