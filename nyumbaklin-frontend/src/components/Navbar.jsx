@@ -40,11 +40,11 @@ function Navbar() {
   };
 
   const logoStyle = {
-    width: "34px",
-    height: "34px",
+    width: "44px",
+    height: "44px",
     borderRadius: "8px",
     background: "#ffffff",
-    padding: "4px",
+    padding: "2px",
     objectFit: "contain",
     boxShadow: "0 4px 12px rgba(255,255,255,0.12)",
   };
