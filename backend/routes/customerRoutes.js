@@ -4,6 +4,7 @@ const pool = require("../config/db");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { auth } = require("../middleware/auth");
+const pendingPayments = new Map();
 
 // ================= ROLE CHECK =================
 const adminOnly = (req, res, next) => {
@@ -232,6 +233,8 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.status,
         b.cleaner,
         b.price,
+        b.payment_status,
+        b.payment_method,
         c.phone AS cleaner_phone,
         r.rating AS submitted_rating,
         r.review AS submitted_review
@@ -536,13 +539,109 @@ router.post("/rate-job/:id", auth, async (req, res) => {
 
 // ================= PAY FOR BOOKING =================
 router.post("/pay/:id", auth, async (req, res) => {
+  const bookingId = req.params.id;
+
   try {
+    const result = await pool.query(
+      "SELECT * FROM bookings WHERE id=$1 AND email=$2",
+      [bookingId, req.user.email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("Booking not found");
+    }
+
+    const booking = result.rows[0];
+
+    if (booking.payment_status === "paid") {
+      return res.status(400).send("Booking already paid");
+    }
+
+    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+    pendingPayments.set(String(bookingId), {
+      otpCode,
+      email: req.user.email,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+
+    await pool.query(
+      `UPDATE bookings
+       SET payment_method='mobile_money'
+       WHERE id=$1`,
+      [bookingId]
+    );
+
     res.json({
-      message: "Payment request sent. Waiting for confirmation...",
+      message: "Payment request sent. Waiting for OTP confirmation...",
+      otpCode,
     });
   } catch (error) {
     console.error(error);
     res.status(500).send("Payment failed");
+  }
+});
+
+// ================= CONFIRM PAYMENT OTP =================
+router.post("/confirm-payment/:id", auth, async (req, res) => {
+  const bookingId = req.params.id;
+  const { otp } = req.body;
+
+  try {
+    const pending = pendingPayments.get(String(bookingId));
+
+    if (!pending) {
+      return res.status(400).send("No pending payment request found");
+    }
+
+    if (pending.email !== req.user.email) {
+      return res.status(403).send("You cannot confirm this payment");
+    }
+
+    if (Date.now() > pending.expiresAt) {
+      pendingPayments.delete(String(bookingId));
+      return res.status(400).send("OTP expired. Please request payment again");
+    }
+
+    if (!otp || otp !== pending.otpCode) {
+      return res.status(400).send("Invalid OTP");
+    }
+
+    const result = await pool.query(
+      "SELECT * FROM bookings WHERE id=$1 AND email=$2",
+      [bookingId, req.user.email]
+    );
+
+    if (result.rows.length === 0) {
+      pendingPayments.delete(String(bookingId));
+      return res.status(404).send("Booking not found");
+    }
+
+    const booking = result.rows[0];
+
+    const commission = Math.floor(Number(booking.price) * 0.15);
+    const cleanerAmount = Number(booking.price) - commission;
+
+    await pool.query(
+      `UPDATE bookings
+       SET payment_status='paid',
+           payment_method='mobile_money',
+           commission=$1,
+           cleaner_amount=$2
+       WHERE id=$3`,
+      [commission, cleanerAmount, bookingId]
+    );
+
+    pendingPayments.delete(String(bookingId));
+
+    res.json({
+      message: "Payment confirmed successfully",
+      commission,
+      cleanerAmount,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("OTP confirmation failed");
   }
 });
 
