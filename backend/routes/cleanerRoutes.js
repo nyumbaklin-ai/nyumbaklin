@@ -236,11 +236,9 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
       let priorityScore = 0;
 
       if (premiumActive) {
-        // premium gets stronger priority
         if (matchesLocation) priorityScore += 100;
         if (hasAddress) priorityScore += 20;
       } else {
-        // ordinary gets simpler order
         if (hasAddress) priorityScore += 10;
       }
 
@@ -443,7 +441,27 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
       `
       SELECT 
         COUNT(*) AS total_jobs,
-        COALESCE(SUM(price), 0) AS total_value
+        COALESCE(SUM(price), 0) AS total_value,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN cleaner_payout_status = 'paid'
+              THEN COALESCE(cleaner_amount, price - FLOOR(price * 0.15))
+              ELSE 0
+            END
+          ), 0
+        ) AS total_paid,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN cleaner_payout_status IS NULL
+                   OR cleaner_payout_status = 'unpaid'
+                   OR cleaner_payout_status = 'pending'
+              THEN COALESCE(cleaner_amount, price - FLOOR(price * 0.15))
+              ELSE 0
+            END
+          ), 0
+        ) AS total_pending
       FROM bookings
       WHERE cleaner = $1
       AND status = 'completed'
@@ -453,6 +471,8 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
 
     const totalJobs = Number(result.rows[0].total_jobs);
     const totalValue = Number(result.rows[0].total_value);
+    const totalPaid = Number(result.rows[0].total_paid);
+    const totalPending = Number(result.rows[0].total_pending);
 
     const platformFee = Math.round(totalValue * 0.15);
     const cleanerEarnings = totalValue - platformFee;
@@ -462,6 +482,8 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
       total_value: totalValue,
       platform_fee: platformFee,
       cleaner_earnings: cleanerEarnings,
+      total_paid: totalPaid,
+      total_pending: totalPending,
       subscription_type: cleaner.subscription_type || "ordinary",
       subscription_status: cleaner.subscription_status || "inactive",
       subscription_expiry: cleaner.subscription_expiry || null,
