@@ -16,7 +16,16 @@ router.get("/dashboard", auth, adminOnly, (req, res) => {
 router.get("/users", auth, adminOnly, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, email, role, phone FROM customers ORDER BY id ASC"
+      `SELECT 
+        id, 
+        email, 
+        role, 
+        phone,
+        subscription_type,
+        subscription_status,
+        subscription_expiry
+       FROM customers 
+       ORDER BY id ASC`
     );
 
     res.json(result.rows);
