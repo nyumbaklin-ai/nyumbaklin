@@ -536,24 +536,7 @@ router.post("/rate-job/:id", auth, async (req, res) => {
 
 // ================= PAY FOR BOOKING =================
 router.post("/pay/:id", auth, async (req, res) => {
-  const bookingId = req.params.id;
-
   try {
-    const result = await pool.query(
-      "SELECT * FROM bookings WHERE id=$1",
-      [bookingId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).send("Booking not found");
-    }
-
-    const booking = result.rows[0];
-
-    if (booking.payment_status === "paid") {
-      return res.status(400).send("Booking already paid");
-    }
-
     res.json({
       message: "Payment request sent. Waiting for confirmation...",
     });
