@@ -12,7 +12,7 @@ function Navbar() {
   };
 
   const navStyle = {
-    padding: "16px 28px",
+    padding: "20px 36px",
     background: "linear-gradient(90deg, #0f172a, #111827)",
     color: "white",
     display: "flex",
@@ -27,24 +27,24 @@ function Navbar() {
   const leftStyle = {
     display: "flex",
     alignItems: "center",
-    gap: "22px",
+    gap: "28px",
     flexWrap: "wrap",
   };
 
   const brandWrapperStyle = {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "14px",
     textDecoration: "none",
-    marginRight: "8px",
+    marginRight: "12px",
   };
 
   const logoStyle = {
-    width: "44px",
-    height: "44px",
-    borderRadius: "8px",
+    width: "54px",
+    height: "54px",
+    borderRadius: "12px",
     background: "#ffffff",
-    padding: "2px",
+    padding: "3px",
     objectFit: "contain",
     boxShadow: "0 4px 12px rgba(255,255,255,0.12)",
   };
@@ -52,18 +52,19 @@ function Navbar() {
   const brandStyle = {
     margin: 0,
     fontWeight: "800",
-    fontSize: "22px",
+    fontSize: "30px",
     color: "#ffffff",
-    letterSpacing: "0.3px",
+    letterSpacing: "0.4px",
+    lineHeight: 1,
   };
 
   const getLinkStyle = (path) => ({
     color: location.pathname === path ? "#ffffff" : "#cbd5e1",
     textDecoration: "none",
-    fontSize: "14px",
+    fontSize: "16px",
     fontWeight: location.pathname === path ? "700" : "600",
-    padding: "8px 12px",
-    borderRadius: "8px",
+    padding: "10px 14px",
+    borderRadius: "10px",
     background:
       location.pathname === path
         ? "rgba(255,255,255,0.10)"
@@ -74,10 +75,11 @@ function Navbar() {
     background: "#ef4444",
     color: "white",
     border: "none",
-    padding: "10px 16px",
-    borderRadius: "10px",
+    padding: "12px 20px",
+    borderRadius: "12px",
     cursor: "pointer",
     fontWeight: "700",
+    fontSize: "15px",
     boxShadow: "0 6px 14px rgba(239, 68, 68, 0.22)",
   };
 
