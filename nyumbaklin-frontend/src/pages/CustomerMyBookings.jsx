@@ -40,6 +40,18 @@ function CustomerMyBookings() {
 
         return updatedInputs;
       });
+
+      setPaymentMessages((prev) => {
+        const updatedMessages = { ...prev };
+
+        safeData.forEach((b) => {
+          if (b.payment_status === "paid" && updatedMessages[b.id]) {
+            delete updatedMessages[b.id];
+          }
+        });
+
+        return updatedMessages;
+      });
     } catch (error) {
       console.error("Error fetching bookings:", error);
       setBookings([]);
@@ -76,7 +88,7 @@ function CustomerMyBookings() {
 
       setPaymentMessages((prev) => ({
         ...prev,
-        [bookingId]: "Payment successful.",
+        [bookingId]: "Payment request sent. Waiting for confirmation...",
       }));
 
       fetchBookings();
@@ -457,13 +469,13 @@ function CustomerMyBookings() {
                             ? "Processing Payment..."
                             : "Pay with Mobile Money"}
                         </button>
-                      </>
-                    )}
 
-                    {paymentMessages[b.id] && (
-                      <div style={paymentMessageStyle}>
-                        {paymentMessages[b.id]}
-                      </div>
+                        {!isPaid && paymentMessages[b.id] && (
+                          <div style={paymentMessageStyle}>
+                            {paymentMessages[b.id]}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
