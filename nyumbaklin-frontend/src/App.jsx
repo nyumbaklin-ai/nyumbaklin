@@ -1336,15 +1336,31 @@ function Dashboard() {
                           Mark Paid
                         </button>
 
-                        <button
-                          onClick={() => markCleanerPaid(booking.id)}
-                          style={{
-                            ...actionButtonStyle,
-                            background: "#7c3aed",
-                          }}
-                        >
-                          Pay Cleaner
-                        </button>
+                        {booking.cleaner_payout_status === "paid" ? (
+  <span
+    style={{
+      background: "#dcfce7",
+      color: "#166534",
+      padding: "9px 14px",
+      borderRadius: "8px",
+      fontWeight: "700",
+      fontSize: "13px",
+      display: "inline-block",
+    }}
+  >
+    Cleaner Paid
+  </span>
+) : (
+  <button
+    onClick={() => markCleanerPaid(booking.id)}
+    style={{
+      ...actionButtonStyle,
+      background: "#7c3aed",
+    }}
+  >
+    Pay Cleaner
+  </button>
+)}
 
                         <button
                           onClick={() => deleteBooking(booking.id)}
