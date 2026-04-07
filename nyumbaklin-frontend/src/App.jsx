@@ -1027,6 +1027,9 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Email</th>
               <th style={tableHeaderStyle}>Phone</th>
               <th style={tableHeaderStyle}>Role</th>
+              <th style={tableHeaderStyle}>Subscription</th>
+              <th style={tableHeaderStyle}>Sub Status</th>
+              <th style={tableHeaderStyle}>Expiry</th>
               <th style={tableHeaderStyle}>Change Role</th>
               <th style={tableHeaderStyle}>Delete</th>
             </tr>
@@ -1035,7 +1038,7 @@ function Dashboard() {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="6">
+                <td style={tableCellStyle} colSpan="9">
                   No users found
                 </td>
               </tr>
@@ -1046,30 +1049,83 @@ function Dashboard() {
                   <td style={tableCellStyle}>{user.email}</td>
                   <td style={tableCellStyle}>{user.phone || "Not provided"}</td>
                   <td style={tableCellStyle}>
-                    <span
-                      style={{
-                        ...getRoleStyle(user.role),
-                        padding: "7px 12px",
-                        borderRadius: "999px",
-                        fontSize: "13px",
-                        fontWeight: "700",
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {user.role}
-                    </span>
-                  </td>
-                  <td style={tableCellStyle}>
-                    <button
-                      onClick={() => changeUserRole(user.id, user.role)}
-                      style={{
-                        ...actionButtonStyle,
-                        background: "#2563eb",
-                      }}
-                    >
-                      Change Role
-                    </button>
-                  </td>
+  <span
+    style={{
+      ...getRoleStyle(user.role),
+      padding: "7px 12px",
+      borderRadius: "999px",
+      fontSize: "13px",
+      fontWeight: "700",
+      textTransform: "capitalize",
+    }}
+  >
+    {user.role}
+  </span>
+</td>
+
+<td style={tableCellStyle}>
+  {user.role === "cleaner" ? (
+    <span
+      style={{
+        background:
+          user.subscription_type === "premium" ? "#dbeafe" : "#f3f4f6",
+        color:
+          user.subscription_type === "premium" ? "#1d4ed8" : "#374151",
+        padding: "7px 12px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        fontWeight: "700",
+        textTransform: "capitalize",
+      }}
+    >
+      {user.subscription_type || "ordinary"}
+    </span>
+  ) : (
+    "—"
+  )}
+</td>
+
+<td style={tableCellStyle}>
+  {user.role === "cleaner" ? (
+    <span
+      style={{
+        background:
+          user.subscription_status === "active" ? "#dcfce7" : "#fee2e2",
+        color:
+          user.subscription_status === "active" ? "#166534" : "#b91c1c",
+        padding: "7px 12px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        fontWeight: "700",
+        textTransform: "capitalize",
+      }}
+    >
+      {user.subscription_status || "inactive"}
+    </span>
+  ) : (
+    "—"
+  )}
+</td>
+
+<td style={tableCellStyle}>
+  {user.role === "cleaner"
+    ? user.subscription_expiry
+      ? new Date(user.subscription_expiry).toLocaleDateString()
+      : "—"
+    : "—"}
+</td>
+
+<td style={tableCellStyle}>
+  <button
+    onClick={() => changeUserRole(user.id, user.role)}
+    style={{
+      ...actionButtonStyle,
+      background: "#2563eb",
+    }}
+  >
+    Change Role
+  </button>
+</td>
                   <td style={tableCellStyle}>
                     <button
                       onClick={() => deleteUser(user.id)}
