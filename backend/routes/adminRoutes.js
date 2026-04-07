@@ -294,17 +294,10 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
 // ================= UPDATE CLEANER PAYOUT STATUS =================
 router.put("/update-payout-status/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
-  const { cleaner_payout_status } = req.body;
-
-  const allowedStatuses = ["unpaid", "paid"];
-
-  if (!allowedStatuses.includes(cleaner_payout_status)) {
-    return res.status(400).send("Invalid payout status");
-  }
 
   try {
     const bookingCheck = await pool.query(
-      "SELECT id FROM bookings WHERE id=$1",
+      "SELECT id, payment_status, cleaner FROM bookings WHERE id=$1",
       [id]
     );
 
@@ -312,12 +305,24 @@ router.put("/update-payout-status/:id", auth, adminOnly, async (req, res) => {
       return res.status(404).send("Booking not found");
     }
 
+    const booking = bookingCheck.rows[0];
+
+    // ❌ Prevent payout if not paid
+    if (booking.payment_status !== "paid") {
+      return res.status(400).send("Customer has not paid yet");
+    }
+
+    // ❌ Prevent payout if no cleaner
+    if (!booking.cleaner) {
+      return res.status(400).send("No cleaner assigned");
+    }
+
     await pool.query(
-      "UPDATE bookings SET cleaner_payout_status=$1 WHERE id=$2",
-      [cleaner_payout_status, id]
+      "UPDATE bookings SET cleaner_payout_status='paid' WHERE id=$1",
+      [id]
     );
 
-    res.send("Cleaner payout status updated successfully");
+    res.send("Cleaner paid successfully ✅");
   } catch (error) {
     console.error("Cleaner payout update error:", error);
     res.status(500).send("Error updating cleaner payout status");
