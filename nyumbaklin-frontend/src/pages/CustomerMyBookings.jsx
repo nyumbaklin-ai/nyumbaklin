@@ -88,7 +88,42 @@ function CustomerMyBookings() {
 
       setPaymentMessages((prev) => ({
         ...prev,
-        [bookingId]: "Payment request sent. Waiting for confirmation...",
+        [bookingId]: "Payment request sent. Waiting for OTP confirmation...",
+      }));
+
+      const enteredOtp = window.prompt(
+        `Enter the OTP sent to your phone.\n\nDemo OTP: ${data?.otpCode || ""}`
+      );
+
+      if (!enteredOtp) {
+        setPaymentMessages((prev) => ({
+          ...prev,
+          [bookingId]: "OTP confirmation was cancelled.",
+        }));
+        return;
+      }
+
+      const confirmResponse = await fetch(
+        `${API_URL}/customers/confirm-payment/${bookingId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ otp: enteredOtp }),
+        }
+      );
+
+      const confirmData = await confirmResponse.json().catch(() => null);
+
+      if (!confirmResponse.ok) {
+        throw new Error(confirmData?.message || "OTP confirmation failed");
+      }
+
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: "Payment successful.",
       }));
 
       fetchBookings();
