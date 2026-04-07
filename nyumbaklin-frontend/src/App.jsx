@@ -1280,7 +1280,13 @@ function Dashboard() {
                           display: "inline-block",
                         }}
                       >
-                        {paymentMethod === "mobile_money" ? "mobile_money" : "cash"}
+                        {paymentMethod === "pay_after"
+  ? "Pay After Service"
+  : paymentMethod === "momo" || paymentMethod === "mobile_money"
+  ? "Mobile Money"
+  : paymentMethod === "cash"
+  ? "Cash"
+ : paymentMethod}
                       </span>
                     </td>
                     <td style={tableCellStyle}>
