@@ -85,7 +85,7 @@ function CleanerEarnings() {
   const valueStyle = {
     margin: "10px 0 0 0",
     color: "#111827",
-    fontSize: "28px",
+    fontSize: "26px",
     fontWeight: "bold",
   };
 
@@ -122,22 +122,13 @@ function CleanerEarnings() {
         <div style={headerCardStyle}>
           <h1 style={{ margin: 0, color: "#111827" }}>Cleaner Earnings</h1>
           <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            View your completed jobs, total job value, platform fee, your take-home earnings, and customer ratings.
+            View your completed jobs, earnings, payouts, and customer ratings.
           </p>
         </div>
 
         {!earnings ? (
-          <div
-            style={{
-              background: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "16px",
-              padding: "30px",
-              textAlign: "center",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-            }}
-          >
-            <p style={{ margin: 0, color: "#6b7280", fontSize: "16px" }}>
+          <div style={headerCardStyle}>
+            <p style={{ margin: 0, color: "#6b7280" }}>
               Loading earnings...
             </p>
           </div>
@@ -170,6 +161,21 @@ function CleanerEarnings() {
                 </h2>
               </div>
 
+              {/* NEW */}
+              <div style={statCardStyle}>
+                <p style={labelStyle}>Paid To You</p>
+                <h2 style={{ ...valueStyle, color: "green" }}>
+                  UGX {Number(earnings.total_paid || 0).toLocaleString()}
+                </h2>
+              </div>
+
+              <div style={statCardStyle}>
+                <p style={labelStyle}>Pending Payout</p>
+                <h2 style={{ ...valueStyle, color: "orange" }}>
+                  UGX {Number(earnings.total_pending || 0).toLocaleString()}
+                </h2>
+              </div>
+
               <div style={statCardStyle}>
                 <p style={labelStyle}>Average Rating</p>
                 <h2 style={valueStyle}>
@@ -186,58 +192,26 @@ function CleanerEarnings() {
             </div>
 
             <div style={subCardStyle}>
-              <h2 style={{ marginTop: 0, color: "#111827" }}>Commission Breakdown</h2>
-              <p style={{ color: "#6b7280", marginBottom: "10px" }}>
-                Nyumbaklin currently charges a 15% platform service fee on completed jobs.
-              </p>
-              <p style={{ color: "#6b7280", marginBottom: 0 }}>
-                Cleaner earnings = Total job value minus the 15% platform fee.
+              <h2 style={{ marginTop: 0 }}>Commission Breakdown</h2>
+              <p style={{ color: "#6b7280" }}>
+                Nyumbaklin takes 15% platform fee. The rest is your earning.
               </p>
             </div>
 
             <div style={subCardStyle}>
-              <h2 style={{ marginTop: 0, color: "#111827" }}>Customer Reviews</h2>
+              <h2 style={{ marginTop: 0 }}>Customer Reviews</h2>
 
               {!ratingsSummary ? (
-                <p style={{ color: "#6b7280", marginBottom: 0 }}>
-                  Loading reviews...
-                </p>
+                <p>Loading reviews...</p>
               ) : ratingsSummary.reviews.length === 0 ? (
-                <p style={{ color: "#6b7280", marginBottom: 0 }}>
-                  No reviews yet. Complete more jobs and customer ratings will appear here.
-                </p>
+                <p>No reviews yet.</p>
               ) : (
                 ratingsSummary.reviews.map((review) => (
                   <div key={review.id} style={reviewCardStyle}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        flexWrap: "wrap",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      <div>
-                        <p style={{ margin: 0, color: "#111827", fontWeight: "700" }}>
-                          {review.customer_email}
-                        </p>
-                        <p style={{ margin: "6px 0 0 0", color: "#6b7280", fontSize: "14px" }}>
-                          Booking #{review.booking_id}
-                        </p>
-                      </div>
-
-                      <div style={{ textAlign: "right" }}>
-                        <span style={badgeStyle}>{review.rating} ★</span>
-                        <p style={{ margin: "8px 0 0 0", color: "#6b7280", fontSize: "13px" }}>
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p style={{ margin: 0, color: "#334155" }}>
-                      {review.review ? review.review : "No written review provided."}
-                    </p>
+                    <strong>{review.customer_email}</strong>
+                    <p>Booking #{review.booking_id}</p>
+                    <span style={badgeStyle}>{review.rating} ★</span>
+                    <p>{review.review || "No review"}</p>
                   </div>
                 ))
               )}
