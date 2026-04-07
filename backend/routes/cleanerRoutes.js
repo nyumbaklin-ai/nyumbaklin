@@ -5,6 +5,79 @@ const bcrypt = require("bcryptjs");
 const { auth, cleanerOnly } = require("../middleware/auth");
 const pool = require("../config/db");
 
+// ================= HELPER: GET CURRENT CLEANER =================
+const getCurrentCleaner = async (user) => {
+  if (user.id) {
+    const result = await pool.query(
+      `
+      SELECT id, email, location, subscription_type, subscription_status, subscription_expiry
+      FROM customers
+      WHERE id = $1 AND role = 'cleaner'
+      `,
+      [user.id]
+    );
+
+    if (result.rows.length > 0) {
+      return result.rows[0];
+    }
+  }
+
+  if (user.email) {
+    const result = await pool.query(
+      `
+      SELECT id, email, location, subscription_type, subscription_status, subscription_expiry
+      FROM customers
+      WHERE email = $1 AND role = 'cleaner'
+      `,
+      [user.email]
+    );
+
+    if (result.rows.length > 0) {
+      return result.rows[0];
+    }
+  }
+
+  return null;
+};
+
+// ================= HELPER: CHECK ACTIVE PREMIUM =================
+const isPremiumActive = (cleaner) => {
+  if (!cleaner) return false;
+  if (cleaner.subscription_type !== "premium") return false;
+  if (cleaner.subscription_status !== "active") return false;
+  if (!cleaner.subscription_expiry) return false;
+
+  return new Date(cleaner.subscription_expiry) > new Date();
+};
+
+// ================= HELPER: AUTO-EXPIRE SUBSCRIPTION =================
+const normalizeCleanerSubscription = async (cleaner) => {
+  if (!cleaner) return null;
+
+  const premiumStillActive = isPremiumActive(cleaner);
+
+  if (
+    cleaner.subscription_type === "premium" &&
+    cleaner.subscription_status === "active" &&
+    !premiumStillActive
+  ) {
+    const result = await pool.query(
+      `
+      UPDATE customers
+      SET subscription_type = 'ordinary',
+          subscription_status = 'inactive'
+      WHERE id = $1
+      RETURNING id, email, location, subscription_type, subscription_status, subscription_expiry
+      `,
+      [cleaner.id]
+    );
+
+    return result.rows[0];
+  }
+
+  return cleaner;
+};
+
 // ================= CLEANER REGISTER =================
 router.post("/register", async (req, res) => {
   const { email, password, phone } = req.body;
@@ -26,8 +99,20 @@ router.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      "INSERT INTO customers (name, email, password, role, phone) VALUES ($1,$2,$3,'cleaner',$4)",
-      ["Cleaner", email, hashedPassword, phone || null]
+      `
+      INSERT INTO customers
+      (name, email, password, role, phone, subscription_type, subscription_status, subscription_expiry)
+      VALUES ($1, $2, $3, 'cleaner', $4, $5, $6, $7)
+      `,
+      [
+        "Cleaner",
+        email,
+        hashedPassword,
+        phone || null,
+        "ordinary",
+        "inactive",
+        null,
+      ]
     );
 
     res.json({
@@ -40,37 +125,135 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// ================= AVAILABLE JOBS =================
-router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
-  try {
-    // get cleaner email
-    const userResult = await pool.query(
-      "SELECT email FROM customers WHERE id=$1",
-      [req.user.id]
-    );
+// ================= UPGRADE SUBSCRIPTION =================
+router.put("/upgrade-subscription", auth, cleanerOnly, async (req, res) => {
+  const { plan } = req.body;
 
-    if (userResult.rows.length === 0) {
+  try {
+    if (!plan || (plan !== "weekly" && plan !== "monthly")) {
+      return res
+        .status(400)
+        .send("Plan is required and must be either weekly or monthly");
+    }
+
+    let cleaner = await getCurrentCleaner(req.user);
+
+    if (!cleaner) {
       return res.status(404).send("Cleaner not found");
     }
 
-    const cleanerEmail = userResult.rows[0].email;
+    cleaner = await normalizeCleanerSubscription(cleaner);
 
-    // get all jobs
-    const result = await pool.query(`
+    const now = new Date();
+    let baseDate = now;
+
+    if (
+      cleaner.subscription_expiry &&
+      new Date(cleaner.subscription_expiry) > now
+    ) {
+      baseDate = new Date(cleaner.subscription_expiry);
+    }
+
+    const newExpiry = new Date(baseDate);
+
+    if (plan === "weekly") {
+      newExpiry.setDate(newExpiry.getDate() + 7);
+    } else {
+      newExpiry.setMonth(newExpiry.getMonth() + 1);
+    }
+
+    const updateResult = await pool.query(
+      `
+      UPDATE customers
+      SET subscription_type = 'premium',
+          subscription_status = 'active',
+          subscription_expiry = $1
+      WHERE id = $2
+      RETURNING id, email, location, subscription_type, subscription_status, subscription_expiry
+      `,
+      [newExpiry, cleaner.id]
+    );
+
+    res.json({
+      message: `Cleaner upgraded to premium successfully (${plan} plan)`,
+      cleaner: updateResult.rows[0],
+    });
+  } catch (error) {
+    console.error("Error upgrading subscription:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// ================= SUBSCRIPTION STATUS =================
+router.get("/subscription-status", auth, cleanerOnly, async (req, res) => {
+  try {
+    let cleaner = await getCurrentCleaner(req.user);
+
+    if (!cleaner) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    cleaner = await normalizeCleanerSubscription(cleaner);
+
+    res.json(cleaner);
+  } catch (error) {
+    console.error("Error fetching subscription status:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+// ================= AVAILABLE JOBS =================
+router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
+  try {
+    let cleaner = await getCurrentCleaner(req.user);
+
+    if (!cleaner) {
+      return res.status(404).send("Cleaner not found");
+    }
+
+    cleaner = await normalizeCleanerSubscription(cleaner);
+
+    const premiumActive = isPremiumActive(cleaner);
+    const cleanerLocation = cleaner.location || "";
+
+    const result = await pool.query(
+      `
       SELECT id, email, service, status, cleaner, price, booking_date, address
       FROM bookings
-      WHERE cleaner IS NULL
+      WHERE cleaner IS NULL AND status = 'pending'
       ORDER BY booking_date ASC
-    `);
+      `
+    );
 
     const jobs = result.rows;
 
-    // SIMPLE MATCHING (for now)
-    // prioritize jobs that have address text (non-null)
     const sortedJobs = jobs.sort((a, b) => {
-      if (a.address && !b.address) return -1;
-      if (!a.address && b.address) return 1;
-      return 0;
+      const aAddress = (a.address || "").toLowerCase();
+      const bAddress = (b.address || "").toLowerCase();
+      const locationText = cleanerLocation.toLowerCase();
+
+      const aMatchesLocation =
+        locationText && aAddress.includes(locationText) ? 1 : 0;
+      const bMatchesLocation =
+        locationText && bAddress.includes(locationText) ? 1 : 0;
+
+      if (premiumActive) {
+        if (aMatchesLocation !== bMatchesLocation) {
+          return bMatchesLocation - aMatchesLocation;
+        }
+
+        if (!!a.address !== !!b.address) {
+          return a.address ? -1 : 1;
+        }
+
+        return new Date(a.booking_date) - new Date(b.booking_date);
+      }
+
+      if (!!a.address !== !!b.address) {
+        return a.address ? -1 : 1;
+      }
+
+      return new Date(a.booking_date) - new Date(b.booking_date);
     });
 
     res.json(sortedJobs);
@@ -85,16 +268,13 @@ router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    const userResult = await pool.query(
-      "SELECT email FROM customers WHERE id=$1",
-      [req.user.id]
-    );
+    let cleaner = await getCurrentCleaner(req.user);
 
-    if (userResult.rows.length === 0) {
+    if (!cleaner) {
       return res.status(404).send("Cleaner not found");
     }
 
-    const cleanerEmail = userResult.rows[0].email;
+    cleaner = await normalizeCleanerSubscription(cleaner);
 
     const result = await pool.query(
       `
@@ -105,7 +285,7 @@ router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
       AND cleaner IS NULL
       RETURNING *
       `,
-      [cleanerEmail, jobId]
+      [cleaner.email, jobId]
     );
 
     if (result.rows.length === 0) {
@@ -124,16 +304,13 @@ router.put("/start-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    const userResult = await pool.query(
-      "SELECT email FROM customers WHERE id=$1",
-      [req.user.id]
-    );
+    let cleaner = await getCurrentCleaner(req.user);
 
-    if (userResult.rows.length === 0) {
+    if (!cleaner) {
       return res.status(404).send("Cleaner not found");
     }
 
-    const cleanerEmail = userResult.rows[0].email;
+    cleaner = await normalizeCleanerSubscription(cleaner);
 
     const result = await pool.query(
       `
@@ -144,7 +321,7 @@ router.put("/start-job/:id", auth, cleanerOnly, async (req, res) => {
       AND status = 'accepted'
       RETURNING *
       `,
-      [jobId, cleanerEmail]
+      [jobId, cleaner.email]
     );
 
     if (result.rows.length === 0) {
@@ -163,16 +340,13 @@ router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    const userResult = await pool.query(
-      "SELECT email FROM customers WHERE id=$1",
-      [req.user.id]
-    );
+    let cleaner = await getCurrentCleaner(req.user);
 
-    if (userResult.rows.length === 0) {
+    if (!cleaner) {
       return res.status(404).send("Cleaner not found");
     }
 
-    const cleanerEmail = userResult.rows[0].email;
+    cleaner = await normalizeCleanerSubscription(cleaner);
 
     const result = await pool.query(
       `
@@ -183,7 +357,7 @@ router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
       AND status = 'in progress'
       RETURNING *
       `,
-      [jobId, cleanerEmail]
+      [jobId, cleaner.email]
     );
 
     if (result.rows.length === 0) {
@@ -200,16 +374,13 @@ router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
 // ================= MY CLEANER JOBS (WITH PHONE LOGIC) =================
 router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
   try {
-    const userResult = await pool.query(
-      "SELECT email FROM customers WHERE id=$1",
-      [req.user.id]
-    );
+    let cleaner = await getCurrentCleaner(req.user);
 
-    if (userResult.rows.length === 0) {
+    if (!cleaner) {
       return res.status(404).send("Cleaner not found");
     }
 
-    const cleanerEmail = userResult.rows[0].email;
+    cleaner = await normalizeCleanerSubscription(cleaner);
 
     const result = await pool.query(
       `
@@ -228,7 +399,7 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
       WHERE b.cleaner = $1
       ORDER BY b.booking_date ASC
       `,
-      [cleanerEmail]
+      [cleaner.email]
     );
 
     const jobs = result.rows.map((job) => ({
@@ -251,16 +422,13 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
 // ================= CLEANER EARNINGS =================
 router.get("/earnings", auth, cleanerOnly, async (req, res) => {
   try {
-    const userResult = await pool.query(
-      "SELECT email FROM customers WHERE id=$1",
-      [req.user.id]
-    );
+    let cleaner = await getCurrentCleaner(req.user);
 
-    if (userResult.rows.length === 0) {
+    if (!cleaner) {
       return res.status(404).send("Cleaner not found");
     }
 
-    const cleanerEmail = userResult.rows[0].email;
+    cleaner = await normalizeCleanerSubscription(cleaner);
 
     const result = await pool.query(
       `
@@ -271,7 +439,7 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
       WHERE cleaner = $1
       AND status = 'completed'
       `,
-      [cleanerEmail]
+      [cleaner.email]
     );
 
     const totalJobs = Number(result.rows[0].total_jobs);
@@ -285,6 +453,9 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
       total_value: totalValue,
       platform_fee: platformFee,
       cleaner_earnings: cleanerEarnings,
+      subscription_type: cleaner.subscription_type || "ordinary",
+      subscription_status: cleaner.subscription_status || "inactive",
+      subscription_expiry: cleaner.subscription_expiry || null,
     });
   } catch (error) {
     console.error("Error fetching cleaner earnings:", error);
