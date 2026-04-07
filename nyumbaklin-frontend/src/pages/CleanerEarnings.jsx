@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 function CleanerEarnings() {
   const [earnings, setEarnings] = useState(null);
   const [ratingsSummary, setRatingsSummary] = useState(null);
+  const [earningsHistory, setEarningsHistory] = useState([]);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -38,8 +39,24 @@ function CleanerEarnings() {
       }
     };
 
+    const fetchEarningsHistory = async () => {
+      try {
+        const response = await fetch(`${API_URL}/cleaner/earnings-history`, {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        });
+
+        const data = await response.json();
+        setEarningsHistory(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Error fetching earnings history:", error);
+      }
+    };
+
     fetchEarnings();
     fetchRatingsSummary();
+    fetchEarningsHistory();
   }, [token]);
 
   const pageStyle = {
@@ -161,7 +178,6 @@ function CleanerEarnings() {
                 </h2>
               </div>
 
-              {/* NEW */}
               <div style={statCardStyle}>
                 <p style={labelStyle}>Paid To You</p>
                 <h2 style={{ ...valueStyle, color: "green" }}>
@@ -196,6 +212,52 @@ function CleanerEarnings() {
               <p style={{ color: "#6b7280" }}>
                 Nyumbaklin takes 15% platform fee. The rest is your earning.
               </p>
+            </div>
+
+            <div style={subCardStyle}>
+              <h2 style={{ marginTop: 0 }}>Earnings History</h2>
+
+              {earningsHistory.length === 0 ? (
+                <p style={{ color: "#6b7280" }}>No completed jobs yet.</p>
+              ) : (
+                earningsHistory.map((job) => (
+                  <div key={job.id} style={reviewCardStyle}>
+                    <strong>{job.service}</strong>
+                    <p>Booking #{job.id}</p>
+
+                    <p>
+                      Total Price:{" "}
+                      <strong>
+                        UGX {Number(job.price || 0).toLocaleString()}
+                      </strong>
+                    </p>
+
+                    <p>
+                      Your Earnings:{" "}
+                      <strong style={{ color: "green" }}>
+                        UGX {Number(job.cleaner_amount || 0).toLocaleString()}
+                      </strong>
+                    </p>
+
+                    <p>
+                      Payout Status:{" "}
+                      <span
+                        style={{
+                          color:
+                            job.cleaner_payout_status === "paid"
+                              ? "green"
+                              : "orange",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {job.cleaner_payout_status === "paid"
+                          ? "Paid"
+                          : "Pending"}
+                      </span>
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
 
             <div style={subCardStyle}>
