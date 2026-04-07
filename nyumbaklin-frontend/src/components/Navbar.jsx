@@ -31,6 +31,24 @@ function Navbar() {
     flexWrap: "wrap",
   };
 
+  const brandWrapperStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    textDecoration: "none",
+    marginRight: "8px",
+  };
+
+  const logoStyle = {
+    width: "34px",
+    height: "34px",
+    borderRadius: "8px",
+    background: "#ffffff",
+    padding: "4px",
+    objectFit: "contain",
+    boxShadow: "0 4px 12px rgba(255,255,255,0.12)",
+  };
+
   const brandStyle = {
     margin: 0,
     fontWeight: "800",
@@ -63,12 +81,21 @@ function Navbar() {
     boxShadow: "0 6px 14px rgba(239, 68, 68, 0.22)",
   };
 
+  const getBrandPath = () => {
+    if (role === "customer") return "/book-service";
+    if (role === "cleaner") return "/cleaner/dashboard";
+    if (role === "admin") return "/dashboard";
+    return "/";
+  };
+
   return (
     <div style={navStyle}>
       <div style={leftStyle}>
-        <h3 style={brandStyle}>Nyumbaklin</h3>
+        <Link to={getBrandPath()} style={brandWrapperStyle}>
+          <img src="/favicon.png" alt="Nyumbaklin Logo" style={logoStyle} />
+          <h3 style={brandStyle}>Nyumbaklin</h3>
+        </Link>
 
-        {/* CUSTOMER LINKS */}
         {role === "customer" && (
           <>
             <Link to="/book-service" style={getLinkStyle("/book-service")}>
@@ -80,29 +107,35 @@ function Navbar() {
           </>
         )}
 
-        {/* CLEANER LINKS */}
         {role === "cleaner" && (
           <>
-            <Link to="/cleaner/dashboard" style={getLinkStyle("/cleaner/dashboard")}>
+            <Link
+              to="/cleaner/dashboard"
+              style={getLinkStyle("/cleaner/dashboard")}
+            >
               Dashboard
             </Link>
-            <Link to="/cleaner/my-jobs" style={getLinkStyle("/cleaner/my-jobs")}>
+            <Link
+              to="/cleaner/my-jobs"
+              style={getLinkStyle("/cleaner/my-jobs")}
+            >
               My Jobs
             </Link>
-            <Link to="/cleaner/earnings" style={getLinkStyle("/cleaner/earnings")}>
+            <Link
+              to="/cleaner/earnings"
+              style={getLinkStyle("/cleaner/earnings")}
+            >
               Earnings
             </Link>
           </>
         )}
 
-        {/* ADMIN LINK */}
         {role === "admin" && (
           <Link to="/dashboard" style={getLinkStyle("/dashboard")}>
             Admin
           </Link>
         )}
 
-        {/* 🔥 NEW: PROFILE LINK FOR ALL */}
         {role && (
           <Link to="/profile" style={getLinkStyle("/profile")}>
             Profile
