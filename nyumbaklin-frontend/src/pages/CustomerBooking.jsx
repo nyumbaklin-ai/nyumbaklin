@@ -64,13 +64,15 @@ function CustomerBooking() {
     if (!finalService) return alert("Select service");
     if (needsRoomSelection && !roomSize) return alert("Select rooms");
 
-    if (service === "Other" && (!customPrice || Number(customPrice) <= 0))
+    if (service === "Other" && (!customPrice || Number(customPrice) <= 0)) {
       return alert("Enter valid price");
+    }
 
     if (!area) return alert("Select location");
 
-    if (area === "Other" && !customArea.trim())
+    if (area === "Other" && !customArea.trim()) {
       return alert("Enter location");
+    }
 
     if (!date) return alert("Select date");
 
@@ -101,7 +103,6 @@ function CustomerBooking() {
             ? "✅ Booking successful! Pay after service."
             : "✅ Booking successful!"
         );
-
         navigate("/my-bookings");
       } else {
         alert(data.message || "Booking failed");
@@ -112,176 +113,313 @@ function CustomerBooking() {
     }
   };
 
+  const pageStyle = {
+    minHeight: "100vh",
+    background: "linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%)",
+    padding: "40px 20px",
+    display: "flex",
+    justifyContent: "center",
+  };
+
+  const cardStyle = {
+    width: "100%",
+    maxWidth: "640px",
+    background: "#ffffff",
+    borderRadius: "24px",
+    padding: "32px",
+    boxShadow: "0 20px 45px rgba(15, 23, 42, 0.10)",
+    border: "1px solid #e5e7eb",
+  };
+
+  const headingStyle = {
+    margin: 0,
+    fontSize: "32px",
+    color: "#0f172a",
+    fontWeight: "800",
+  };
+
+  const subTextStyle = {
+    marginTop: "10px",
+    marginBottom: "28px",
+    color: "#64748b",
+    fontSize: "15px",
+    lineHeight: "1.6",
+  };
+
+  const sectionTitleStyle = {
+    marginTop: "24px",
+    marginBottom: "14px",
+    color: "#0f172a",
+    fontSize: "18px",
+    fontWeight: "700",
+  };
+
+  const optionBoxStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "14px 16px",
+    border: "1px solid #dbe3ef",
+    borderRadius: "14px",
+    marginBottom: "12px",
+    background: "#f8fafc",
+    color: "#1e293b",
+    fontWeight: "500",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "14px 16px",
+    borderRadius: "14px",
+    border: "1px solid #cbd5e1",
+    fontSize: "15px",
+    outline: "none",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    marginBottom: "14px",
+  };
+
+  const selectStyle = {
+    width: "100%",
+    padding: "14px 16px",
+    borderRadius: "14px",
+    border: "1px solid #cbd5e1",
+    fontSize: "15px",
+    outline: "none",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    marginBottom: "14px",
+  };
+
+  const priceBoxStyle = {
+    marginTop: "14px",
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: "16px",
+    padding: "16px",
+  };
+
+  const noteStyle = {
+    fontSize: "15px",
+    color: "#64748b",
+    marginTop: "10px",
+    lineHeight: "1.6",
+  };
+
+  const buttonStyle = {
+    width: "100%",
+    marginTop: "24px",
+    background: "linear-gradient(90deg, #2563eb, #1d4ed8)",
+    color: "#ffffff",
+    border: "none",
+    padding: "16px",
+    borderRadius: "16px",
+    fontSize: "16px",
+    fontWeight: "700",
+    cursor: "pointer",
+    boxShadow: "0 14px 28px rgba(37, 99, 235, 0.25)",
+  };
+
   return (
-    <div style={{ display: "flex", justifyContent: "center", padding: "30px" }}>
-      <div style={{ width: "400px", background: "white", padding: "25px" }}>
-        <h2>Book Cleaning</h2>
+    <div style={pageStyle}>
+      <div style={cardStyle}>
+        <h2 style={headingStyle}>Book Cleaning</h2>
+        <p style={subTextStyle}>
+          Choose your service, area, date, and payment method to place your booking quickly and easily.
+        </p>
 
         <form onSubmit={handleBooking}>
-          <p>Select Service</p>
+          <div>
+            <p style={sectionTitleStyle}>Select Service</p>
 
-          <label>
-            <input
-              type="radio"
-              value="House Cleaning"
-              checked={service === "House Cleaning"}
-              onChange={(e) => setService(e.target.value)}
-            />
-            House Cleaning
-          </label>
-          <br /><br />
-
-          <label>
-            <input
-              type="radio"
-              value="Deep Cleaning"
-              checked={service === "Deep Cleaning"}
-              onChange={(e) => setService(e.target.value)}
-            />
-            Deep Cleaning
-          </label>
-          <br /><br />
-
-          <label>
-            <input
-              type="radio"
-              value="Office Cleaning"
-              checked={service === "Office Cleaning"}
-              onChange={(e) => setService(e.target.value)}
-            />
-            Office Cleaning
-          </label>
-          <br /><br />
-
-          <label>
-            <input
-              type="radio"
-              value="Other"
-              checked={service === "Other"}
-              onChange={(e) => setService(e.target.value)}
-            />
-            Other
-          </label>
-
-          {service === "Other" && (
-            <>
-              <br /><br />
+            <label style={optionBoxStyle}>
               <input
-                type="text"
-                placeholder="Enter service type"
-                value={customService}
-                onChange={(e) => setCustomService(e.target.value)}
+                type="radio"
+                value="House Cleaning"
+                checked={service === "House Cleaning"}
+                onChange={(e) => setService(e.target.value)}
               />
+              House Cleaning
+            </label>
 
-              <br /><br />
-
+            <label style={optionBoxStyle}>
               <input
-                type="number"
-                placeholder="Enter service price"
-                value={customPrice}
-                onChange={(e) => setCustomPrice(e.target.value)}
+                type="radio"
+                value="Deep Cleaning"
+                checked={service === "Deep Cleaning"}
+                onChange={(e) => setService(e.target.value)}
               />
-            </>
-          )}
+              Deep Cleaning
+            </label>
+
+            <label style={optionBoxStyle}>
+              <input
+                type="radio"
+                value="Office Cleaning"
+                checked={service === "Office Cleaning"}
+                onChange={(e) => setService(e.target.value)}
+              />
+              Office Cleaning
+            </label>
+
+            <label style={optionBoxStyle}>
+              <input
+                type="radio"
+                value="Other"
+                checked={service === "Other"}
+                onChange={(e) => setService(e.target.value)}
+              />
+              Other
+            </label>
+
+            {service === "Other" && (
+              <div style={{ marginTop: "14px" }}>
+                <input
+                  type="text"
+                  placeholder="Enter service type"
+                  value={customService}
+                  onChange={(e) => setCustomService(e.target.value)}
+                  style={inputStyle}
+                />
+
+                <input
+                  type="number"
+                  placeholder="Enter service price"
+                  value={customPrice}
+                  onChange={(e) => setCustomPrice(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            )}
+          </div>
 
           {needsRoomSelection && (
-            <>
-              <p>Select Rooms</p>
+            <div>
+              <p style={sectionTitleStyle}>Select Rooms</p>
 
-              <label>
-                <input type="radio" value="1-2" onChange={(e) => setRoomSize(e.target.value)} />
-                1-2
-              </label><br />
-
-              <label>
-                <input type="radio" value="3-4" onChange={(e) => setRoomSize(e.target.value)} />
-                3-4
-              </label><br />
-
-              <label>
-                <input type="radio" value="5-6" onChange={(e) => setRoomSize(e.target.value)} />
-                5-6
+              <label style={optionBoxStyle}>
+                <input
+                  type="radio"
+                  value="1-2"
+                  checked={roomSize === "1-2"}
+                  onChange={(e) => setRoomSize(e.target.value)}
+                />
+                1-2 Rooms
               </label>
 
-              <p>Price: UGX {getPrice().toLocaleString()}</p>
-            </>
+              <label style={optionBoxStyle}>
+                <input
+                  type="radio"
+                  value="3-4"
+                  checked={roomSize === "3-4"}
+                  onChange={(e) => setRoomSize(e.target.value)}
+                />
+                3-4 Rooms
+              </label>
+
+              <label style={optionBoxStyle}>
+                <input
+                  type="radio"
+                  value="5-6"
+                  checked={roomSize === "5-6"}
+                  onChange={(e) => setRoomSize(e.target.value)}
+                />
+                5-6 Rooms
+              </label>
+
+              <div style={priceBoxStyle}>
+                <p style={{ margin: 0, color: "#1d4ed8", fontSize: "14px", fontWeight: "600" }}>
+                  Estimated Price
+                </p>
+                <p
+                  style={{
+                    margin: "8px 0 0 0",
+                    color: "#0f172a",
+                    fontSize: "24px",
+                    fontWeight: "800",
+                  }}
+                >
+                  UGX {getPrice().toLocaleString()}
+                </p>
+              </div>
+            </div>
           )}
 
-          <br />
+          <div>
+            <p style={sectionTitleStyle}>Select Area</p>
 
-          <p>Select Area</p>
+            <select
+              value={area}
+              onChange={(e) => setArea(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">Select area</option>
+              {kampalaAreas.map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+            </select>
 
-          <select value={area} onChange={(e) => setArea(e.target.value)}>
-            <option value="">Select</option>
-
-            {kampalaAreas.map((a) => (
-              <option key={a}>{a}</option>
-            ))}
-          </select>
-
-          {area === "Other" && (
-            <>
-              <br /><br />
+            {area === "Other" && (
               <input
                 type="text"
                 placeholder="Enter your area"
                 value={customArea}
                 onChange={(e) => setCustomArea(e.target.value)}
+                style={inputStyle}
               />
-            </>
-          )}
+            )}
+          </div>
 
-          <br /><br />
+          <div>
+            <p style={sectionTitleStyle}>Select Date</p>
 
-          <p>Select Date</p>
-
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-
-          <br /><br />
-
-          <p>Payment Method</p>
-
-          <label>
             <input
-              type="radio"
-              value="pay_after"
-              checked={paymentMethod === "pay_after"}
-              onChange={(e) => setPaymentMethod(e.target.value)}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={inputStyle}
             />
-            Pay After Service (Recommended)
-          </label>
+          </div>
 
-          <br /><br />
+          <div>
+            <p style={sectionTitleStyle}>Payment Method</p>
 
-          <label>
-            <input
-              type="radio"
-              value="momo"
-              checked={paymentMethod === "momo"}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            />
-            Pay with Mobile Money
-          </label>
+            <label style={optionBoxStyle}>
+              <input
+                type="radio"
+                value="pay_after"
+                checked={paymentMethod === "pay_after"}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              />
+              Pay After Service (Recommended)
+            </label>
 
-          <p style={{ fontSize: "15px", color: "gray" }}>
-            Pay after service is safer and builds trust.
-          </p>
+            <label style={optionBoxStyle}>
+              <input
+                type="radio"
+                value="momo"
+                checked={paymentMethod === "momo"}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              />
+              Pay with Mobile Money
+            </label>
 
-          <p style={{ fontSize: "15px", color: "gray" }}>
-            Prices include cleaner transport within Kampala.
-          </p>
+            <p style={noteStyle}>
+              Pay after service is safer and builds trust.
+            </p>
 
-          <p style={{ fontSize: "15px", color: "gray" }}>
-            Customer provides cleaning materials unless agreed otherwise.
-          </p>
+            <p style={noteStyle}>
+              Prices include cleaner transport within Kampala.
+            </p>
 
-          <br />
+            <p style={noteStyle}>
+              Customer provides cleaning materials unless agreed otherwise.
+            </p>
+          </div>
 
-          <button type="submit">Book Service</button>
+          <button type="submit" style={buttonStyle}>
+            Book Service
+          </button>
         </form>
       </div>
     </div>
