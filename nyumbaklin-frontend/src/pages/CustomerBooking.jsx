@@ -32,21 +32,21 @@ function CustomerBooking() {
 
   const getPrice = () => {
     if (service === "House Cleaning") {
-      if (roomSize === "1-2") return 30000;
-      if (roomSize === "3-4") return 45000;
-      if (roomSize === "5-6") return 60000;
+      if (roomSize === "1-2") return 33000;
+      if (roomSize === "3-4") return 48000;
+      if (roomSize === "5-6") return 65000;
     }
 
     if (service === "Deep Cleaning") {
-      if (roomSize === "1-2") return 70000;
-      if (roomSize === "3-4") return 100000;
-      if (roomSize === "5-6") return 130000;
+      if (roomSize === "1-2") return 75000;
+      if (roomSize === "3-4") return 105000;
+      if (roomSize === "5-6") return 135000;
     }
 
     if (service === "Office Cleaning") {
-      if (roomSize === "1-2") return 60000;
-      if (roomSize === "3-4") return 90000;
-      if (roomSize === "5-6") return 120000;
+      if (roomSize === "1-2") return 65000;
+      if (roomSize === "3-4") return 95000;
+      if (roomSize === "5-6") return 125000;
     }
 
     if (service === "Other") return Number(customPrice);
