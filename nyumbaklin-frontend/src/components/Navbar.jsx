@@ -12,12 +12,14 @@ function Navbar() {
   };
 
   const navStyle = {
-    padding: "20px 36px",
+    padding: "16px 20px",
     background: "linear-gradient(90deg, #0f172a, #111827)",
     color: "white",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: "14px",
     boxShadow: "0 8px 24px rgba(15, 23, 42, 0.18)",
     position: "sticky",
     top: 0,
@@ -27,21 +29,24 @@ function Navbar() {
   const leftStyle = {
     display: "flex",
     alignItems: "center",
-    gap: "28px",
+    gap: "14px",
     flexWrap: "wrap",
+    flex: "1 1 700px",
+    minWidth: 0,
   };
 
   const brandWrapperStyle = {
     display: "flex",
     alignItems: "center",
-    gap: "14px",
+    gap: "10px",
     textDecoration: "none",
-    marginRight: "12px",
+    marginRight: "6px",
+    flexShrink: 0,
   };
 
   const logoStyle = {
-    width: "54px",
-    height: "54px",
+    width: "48px",
+    height: "48px",
     borderRadius: "12px",
     background: "#ffffff",
     padding: "3px",
@@ -52,16 +57,16 @@ function Navbar() {
   const brandStyle = {
     margin: 0,
     fontWeight: "800",
-    fontSize: "30px",
+    fontSize: "24px",
     color: "#ffffff",
-    letterSpacing: "0.4px",
+    letterSpacing: "0.3px",
     lineHeight: 1,
   };
 
   const getLinkStyle = (path) => ({
     color: location.pathname === path ? "#ffffff" : "#cbd5e1",
     textDecoration: "none",
-    fontSize: "16px",
+    fontSize: "15px",
     fontWeight: location.pathname === path ? "700" : "600",
     padding: "10px 14px",
     borderRadius: "10px",
@@ -69,18 +74,26 @@ function Navbar() {
       location.pathname === path
         ? "rgba(255,255,255,0.10)"
         : "transparent",
+    whiteSpace: "nowrap",
   });
+
+  const rightStyle = {
+    display: "flex",
+    alignItems: "center",
+    flexShrink: 0,
+  };
 
   const logoutStyle = {
     background: "#ef4444",
     color: "white",
     border: "none",
-    padding: "12px 20px",
+    padding: "11px 18px",
     borderRadius: "12px",
     cursor: "pointer",
     fontWeight: "700",
     fontSize: "15px",
     boxShadow: "0 6px 14px rgba(239, 68, 68, 0.22)",
+    whiteSpace: "nowrap",
   };
 
   const getBrandPath = () => {
@@ -145,9 +158,11 @@ function Navbar() {
         )}
       </div>
 
-      <button onClick={handleLogout} style={logoutStyle}>
-        Logout
-      </button>
+      <div style={rightStyle}>
+        <button onClick={handleLogout} style={logoutStyle}>
+          Logout
+        </button>
+      </div>
     </div>
   );
 }
