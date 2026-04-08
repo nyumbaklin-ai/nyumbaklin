@@ -267,15 +267,15 @@ function CustomerBooking() {
             Pay with Mobile Money
           </label>
 
-          <p style={{ fontSize: "13px", color: "gray" }}>
+          <p style={{ fontSize: "15px", color: "gray" }}>
             Pay after service is safer and builds trust.
           </p>
 
-          <p style={{ fontSize: "13px", color: "gray" }}>
+          <p style={{ fontSize: "15px", color: "gray" }}>
             Prices include cleaner transport within Kampala.
           </p>
 
-          <p style={{ fontSize: "13px", color: "gray" }}>
+          <p style={{ fontSize: "15px", color: "gray" }}>
             Customer provides cleaning materials unless agreed otherwise.
           </p>
 
