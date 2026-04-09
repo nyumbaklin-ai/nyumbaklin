@@ -38,18 +38,18 @@ function Navbar() {
   const brandWrapperStyle = {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "12px",
     textDecoration: "none",
-    marginRight: "6px",
+    marginRight: "8px",
     flexShrink: 0,
   };
 
   const logoStyle = {
-    width: "48px",
-    height: "48px",
-    borderRadius: "12px",
+    width: "58px",
+    height: "58px",
+    borderRadius: "14px",
     background: "#ffffff",
-    padding: "3px",
+    padding: "1px",
     objectFit: "contain",
     boxShadow: "0 4px 12px rgba(255,255,255,0.12)",
   };
@@ -57,7 +57,7 @@ function Navbar() {
   const brandStyle = {
     margin: 0,
     fontWeight: "800",
-    fontSize: "24px",
+    fontSize: "28px",
     color: "#ffffff",
     letterSpacing: "0.3px",
     lineHeight: 1,
