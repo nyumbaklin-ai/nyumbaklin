@@ -28,14 +28,29 @@
 
   const textStyle = {
     fontSize: "14px",
-    lineHeight: "1.8",
+    lineHeight: "1.6",
   };
 
-  const linkStyle = {
-    color: "#22c55e",
-    textDecoration: "none",
+  const buttonStyle = {
     display: "block",
-    marginTop: "5px",
+    width: "fit-content",
+    padding: "10px 16px",
+    borderRadius: "10px",
+    fontWeight: "600",
+    textDecoration: "none",
+    marginTop: "8px",
+  };
+
+  const callButton = {
+    ...buttonStyle,
+    background: "#2563eb",
+    color: "white",
+  };
+
+  const whatsappButton = {
+    ...buttonStyle,
+    background: "#22c55e",
+    color: "white",
   };
 
   const bottomStyle = {
@@ -59,28 +74,25 @@
 
         <div style={sectionStyle}>
           <p style={titleStyle}>Contact Us</p>
-          <p style={textStyle}>
-            
-            {/* CALL */}
-            <a href="tel:+256750749484" style={linkStyle}>
-              📞 Call: 0750 749 484
-            </a>
 
-            {/* WHATSAPP */}
-            <a
-              href="https://wa.me/256781812743"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={linkStyle}
-            >
-              💬 WhatsApp: 0781 812 743
-            </a>
+          {/* CALL BUTTON */}
+          <a href="tel:+256750749484" style={callButton}>
+            📞 Call Us
+          </a>
 
-            {/* EMAIL */}
-            <span style={{ display: "block", marginTop: "5px" }}>
-              📧 nyumbaklin@gmail.com
-            </span>
+          {/* WHATSAPP BUTTON */}
+          <a
+            href="https://wa.me/256781812743"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={whatsappButton}
+          >
+            💬 WhatsApp Chat
+          </a>
 
+          {/* EMAIL */}
+          <p style={{ marginTop: "10px", fontSize: "14px" }}>
+            📧 nyumbaklin@gmail.com
           </p>
         </div>
 
