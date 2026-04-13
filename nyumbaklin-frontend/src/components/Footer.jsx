@@ -1,4 +1,6 @@
-﻿function Footer() {
+﻿import { Link } from "react-router-dom";
+
+function Footer() {
   const footerStyle = {
     background: "#0f172a",
     color: "#cbd5e1",
@@ -28,29 +30,44 @@
 
   const textStyle = {
     fontSize: "14px",
-    lineHeight: "1.6",
+    lineHeight: "1.7",
   };
 
   const buttonStyle = {
-    display: "block",
-    width: "fit-content",
-    padding: "10px 16px",
-    borderRadius: "10px",
+    display: "inline-block",
+    padding: "8px 14px",
+    borderRadius: "8px",
     fontWeight: "600",
     textDecoration: "none",
     marginTop: "8px",
+    fontSize: "14px",
   };
 
   const callButton = {
     ...buttonStyle,
     background: "#2563eb",
     color: "white",
+    marginRight: "10px",
   };
 
   const whatsappButton = {
     ...buttonStyle,
     background: "#22c55e",
     color: "white",
+  };
+
+  const quickLinkStyle = {
+    color: "#cbd5e1",
+    textDecoration: "none",
+    display: "block",
+    marginTop: "8px",
+    fontSize: "14px",
+  };
+
+  const emailStyle = {
+    marginTop: "12px",
+    fontSize: "14px",
+    color: "#cbd5e1",
   };
 
   const bottomStyle = {
@@ -63,11 +80,11 @@
   return (
     <div style={footerStyle}>
       <div style={containerStyle}>
-        
         <div style={sectionStyle}>
           <p style={titleStyle}>Nyumbaklin</p>
           <p style={textStyle}>
-            Professional cleaning services in Kampala.  
+            Professional cleaning services in Kampala.
+            <br />
             Book trusted cleaners easily and quickly.
           </p>
         </div>
@@ -75,36 +92,37 @@
         <div style={sectionStyle}>
           <p style={titleStyle}>Contact Us</p>
 
-          {/* CALL BUTTON */}
           <a href="tel:+256750749484" style={callButton}>
             📞 Call Us
           </a>
 
-          {/* WHATSAPP BUTTON */}
           <a
             href="https://wa.me/256781812743"
             target="_blank"
             rel="noopener noreferrer"
             style={whatsappButton}
           >
-            💬 WhatsApp Chat
+            💬 WhatsApp
           </a>
 
-          {/* EMAIL */}
-          <p style={{ marginTop: "10px", fontSize: "14px" }}>
-            📧 nyumbaklin@gmail.com
-          </p>
+          <p style={emailStyle}>📧 nyumbaklin@gmail.com</p>
         </div>
 
         <div style={sectionStyle}>
           <p style={titleStyle}>Quick Links</p>
-          <p style={textStyle}>
-            About Us <br />
-            Privacy Policy <br />
-            Terms & Conditions
-          </p>
-        </div>
 
+          <Link to="/about-us" style={quickLinkStyle}>
+            About Us
+          </Link>
+
+          <Link to="/privacy-policy" style={quickLinkStyle}>
+            Privacy Policy
+          </Link>
+
+          <Link to="/terms-conditions" style={quickLinkStyle}>
+            Terms & Conditions
+          </Link>
+        </div>
       </div>
 
       <div style={bottomStyle}>
