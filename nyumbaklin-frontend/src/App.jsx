@@ -2,6 +2,7 @@
 import { Routes, Route, useNavigate, Navigate, useLocation, Link } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import CleanerDashboard from "./pages/CleanerDashboard";
 import CleanerMyJobs from "./pages/CleanerMyJobs";
 import CleanerEarnings from "./pages/CleanerEarnings";
@@ -1550,6 +1551,7 @@ function App() {
           }
         />
       </Routes>
+      <Footer />
     </Layout>
   );
 }
