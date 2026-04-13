@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -9,27 +9,69 @@ function CleanerDashboard() {
   const [prevJobsCount, setPrevJobsCount] = useState(0);
 
   const token = localStorage.getItem("token");
+  const audioReadyRef = useRef(false);
+
+  // ================= ENABLE AUDIO =================
+  const enableAudio = () => {
+    audioReadyRef.current = true;
+  };
+
+  // ================= PLAY NOTIFICATION SOUND =================
+  const playNotificationSound = () => {
+    if (!audioReadyRef.current) return;
+
+    try {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) return;
+
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime + 0.35
+      );
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.35);
+
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch (error) {
+      console.error("Notification sound failed:", error);
+    }
+  };
 
   // ================= FETCH JOBS =================
   const fetchJobs = () => {
-  fetch(`${API_URL}/cleaner/available-jobs`, {
-    headers: { Authorization: "Bearer " + token },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      const newJobs = Array.isArray(data) ? data : [];
-
-      // 🔔 PLAY SOUND IF NEW JOBS ARRIVED
-      if (newJobs.length > prevJobsCount && prevJobsCount !== 0) {
-        const audio = new Audio("/notification.mp3");
-        audio.play().catch(() => {});
-      }
-
-      setPrevJobsCount(newJobs.length);
-      setJobs(newJobs);
+    fetch(`${API_URL}/cleaner/available-jobs`, {
+      headers: { Authorization: "Bearer " + token },
     })
-    .catch((err) => console.error(err));
-};
+      .then((res) => res.json())
+      .then((data) => {
+        const newJobs = Array.isArray(data) ? data : [];
+
+        // 🔔 PLAY SOUND IF NEW JOBS ARRIVED
+        if (newJobs.length > prevJobsCount && prevJobsCount !== 0) {
+          playNotificationSound();
+        }
+
+        setPrevJobsCount(newJobs.length);
+        setJobs(newJobs);
+      })
+      .catch((err) => console.error(err));
+  };
 
   // ================= FETCH SUBSCRIPTION =================
   const fetchSubscription = async () => {
@@ -92,7 +134,20 @@ function CleanerDashboard() {
   useEffect(() => {
     fetchJobs();
     fetchSubscription();
-  }, []);
+
+    const interval = setInterval(() => {
+      fetchJobs();
+    }, 5000);
+
+    window.addEventListener("click", enableAudio);
+    window.addEventListener("keydown", enableAudio);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("click", enableAudio);
+      window.removeEventListener("keydown", enableAudio);
+    };
+  }, [prevJobsCount]);
 
   // ================= STYLES =================
   const pageStyle = {
@@ -138,15 +193,13 @@ function CleanerDashboard() {
     fontSize: "12px",
     fontWeight: "bold",
     color: "white",
-    background:
-      type === "premium" ? "#16a34a" : "#6b7280",
+    background: type === "premium" ? "#16a34a" : "#6b7280",
   });
 
   // ================= UI =================
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
-
         {/* 🔥 SUBSCRIPTION CARD */}
         <div style={card}>
           <h2>💎 Subscription</h2>
@@ -159,12 +212,16 @@ function CleanerDashboard() {
                 </span>
               </div>
 
-              <p><b>Status:</b> {subscription.subscription_status || "inactive"}</p>
+              <p>
+                <b>Status:</b> {subscription.subscription_status || "inactive"}
+              </p>
 
               {subscription.subscription_expiry && (
                 <p>
                   <b>Expires:</b>{" "}
-                  {new Date(subscription.subscription_expiry).toLocaleDateString()}
+                  {new Date(
+                    subscription.subscription_expiry
+                  ).toLocaleDateString()}
                 </p>
               )}
             </>
@@ -192,6 +249,9 @@ function CleanerDashboard() {
         {/* JOBS */}
         <div style={card}>
           <h2>Available Jobs ({jobs.length})</h2>
+          <p style={{ color: "#6b7280", fontSize: "14px", marginTop: "5px" }}>
+            Tap anywhere on this page once to enable notification sound.
+          </p>
 
           {jobs.length === 0 ? (
             <p>No jobs available</p>
@@ -220,7 +280,6 @@ function CleanerDashboard() {
             ))
           )}
         </div>
-
       </div>
     </div>
   );
