@@ -1550,6 +1550,12 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+<Route path="/about" element={<div style={{ padding: "40px" }}>About Nyumbaklin - We connect customers with trusted cleaners in Kampala.</div>} />
+
+<Route path="/privacy" element={<div style={{ padding: "40px" }}>Privacy Policy - Your data is safe with us.</div>} />
+
+<Route path="/terms" element={<div style={{ padding: "40px" }}>Terms & Conditions - Use Nyumbaklin responsibly.</div>} />
       </Routes>
       <Footer />
     </Layout>
