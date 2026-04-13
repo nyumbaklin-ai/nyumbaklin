@@ -6,72 +6,111 @@ function CleanerDashboard() {
   const [jobs, setJobs] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [loadingSub, setLoadingSub] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(false);
 
   const token = localStorage.getItem("token");
 
-  const audioReadyRef = useRef(false);
-  const prevJobsCountRef = useRef(0);
+  const prevJobIdsRef = useRef([]);
   const audioContextRef = useRef(null);
+  const enablingAudioRef = useRef(false);
+
+  // ================= GET / CREATE AUDIO CONTEXT =================
+  const getAudioContext = () => {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) return null;
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextClass();
+    }
+
+    return audioContextRef.current;
+  };
 
   // ================= ENABLE AUDIO =================
   const enableAudio = async () => {
-    audioReadyRef.current = true;
+    if (enablingAudioRef.current) return;
 
     try {
-      const AudioContextClass =
-        window.AudioContext || window.webkitAudioContext;
+      enablingAudioRef.current = true;
 
-      if (!AudioContextClass) return;
-
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContextClass();
-      }
-
-      if (audioContextRef.current.state === "suspended") {
-        await audioContextRef.current.resume();
-      }
-    } catch (error) {
-      console.error("Audio enable failed:", error);
-    }
-  };
-
-  // ================= PLAY NOTIFICATION SOUND =================
-  const playNotificationSound = async () => {
-    if (!audioReadyRef.current) return;
-
-    try {
-      const AudioContextClass =
-        window.AudioContext || window.webkitAudioContext;
-
-      if (!AudioContextClass) return;
-
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContextClass();
-      }
-
-      const audioContext = audioContextRef.current;
+      const audioContext = getAudioContext();
+      if (!audioContext) return;
 
       if (audioContext.state === "suspended") {
         await audioContext.resume();
       }
 
+      // Tiny silent/near-silent warm-up beep to help mobile browsers fully unlock audio
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
       oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
 
-      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(
-        0.001,
-        audioContext.currentTime + 0.35
+        0.00001,
+        audioContext.currentTime + 0.05
       );
 
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
 
       oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.35);
+      oscillator.stop(audioContext.currentTime + 0.05);
+
+      setAudioEnabled(true);
+    } catch (error) {
+      console.error("Audio enable failed:", error);
+    } finally {
+      enablingAudioRef.current = false;
+    }
+  };
+
+  // ================= PLAY NOTIFICATION SOUND =================
+  const playNotificationSound = async () => {
+    if (!audioEnabled) return;
+
+    try {
+      const audioContext = getAudioContext();
+      if (!audioContext) return;
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+
+      const now = audioContext.currentTime;
+
+      const oscillator1 = audioContext.createOscillator();
+      const gainNode1 = audioContext.createGain();
+
+      oscillator1.type = "sine";
+      oscillator1.frequency.setValueAtTime(880, now);
+
+      gainNode1.gain.setValueAtTime(0.18, now);
+      gainNode1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      oscillator1.connect(gainNode1);
+      gainNode1.connect(audioContext.destination);
+
+      oscillator1.start(now);
+      oscillator1.stop(now + 0.18);
+
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode2 = audioContext.createGain();
+
+      oscillator2.type = "sine";
+      oscillator2.frequency.setValueAtTime(988, now + 0.2);
+
+      gainNode2.gain.setValueAtTime(0.14, now + 0.2);
+      gainNode2.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+      oscillator2.connect(gainNode2);
+      gainNode2.connect(audioContext.destination);
+
+      oscillator2.start(now + 0.2);
+      oscillator2.stop(now + 0.38);
     } catch (error) {
       console.error("Notification sound failed:", error);
     }
@@ -87,15 +126,20 @@ function CleanerDashboard() {
       const data = await res.json();
       const newJobs = Array.isArray(data) ? data : [];
 
-      // 🔔 PLAY SOUND IF NEW JOBS ARRIVED
-      if (
-        prevJobsCountRef.current > 0 &&
-        newJobs.length > prevJobsCountRef.current
-      ) {
+      const currentJobIds = newJobs.map((job) => job.id);
+      const previousJobIds = prevJobIdsRef.current;
+
+      const hasNewJob =
+        previousJobIds.length > 0 &&
+        currentJobIds.some((id) => !previousJobIds.includes(id));
+
+      // Also allow sound when going from 0 jobs to jobs, but not on first page load
+      const hadPreviousFetch = previousJobIds.length > 0 || jobs.length > 0;
+      if (hadPreviousFetch && hasNewJob) {
         playNotificationSound();
       }
 
-      prevJobsCountRef.current = newJobs.length;
+      prevJobIdsRef.current = currentJobIds;
       setJobs(newJobs);
     } catch (err) {
       console.error("Error fetching jobs:", err);
@@ -162,11 +206,42 @@ function CleanerDashboard() {
 
   // ================= INITIAL LOAD + POLLING =================
   useEffect(() => {
-    fetchJobs();
+    let isFirstFetch = true;
+
+    const loadJobs = async () => {
+      try {
+        const res = await fetch(`${API_URL}/cleaner/available-jobs`, {
+          headers: { Authorization: "Bearer " + token },
+        });
+
+        const data = await res.json();
+        const newJobs = Array.isArray(data) ? data : [];
+        const currentJobIds = newJobs.map((job) => job.id);
+
+        if (!isFirstFetch) {
+          const previousJobIds = prevJobIdsRef.current;
+          const hasNewJob = currentJobIds.some(
+            (id) => !previousJobIds.includes(id)
+          );
+
+          if (hasNewJob) {
+            playNotificationSound();
+          }
+        }
+
+        prevJobIdsRef.current = currentJobIds;
+        setJobs(newJobs);
+        isFirstFetch = false;
+      } catch (err) {
+        console.error("Error fetching jobs:", err);
+      }
+    };
+
+    loadJobs();
     fetchSubscription();
 
     const interval = setInterval(() => {
-      fetchJobs();
+      loadJobs();
     }, 5000);
 
     window.addEventListener("click", enableAudio);
@@ -179,7 +254,10 @@ function CleanerDashboard() {
       window.removeEventListener("keydown", enableAudio);
       window.removeEventListener("touchstart", enableAudio);
 
-      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      if (
+        audioContextRef.current &&
+        audioContextRef.current.state !== "closed"
+      ) {
         audioContextRef.current.close();
       }
     };
@@ -263,7 +341,14 @@ function CleanerDashboard() {
             </>
           )}
 
-          <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginTop: "10px",
+              flexWrap: "wrap",
+            }}
+          >
             <button
               style={{ ...button, background: "#16a34a" }}
               onClick={() => upgrade("weekly")}
@@ -286,7 +371,9 @@ function CleanerDashboard() {
         <div style={card}>
           <h2>Available Jobs ({jobs.length})</h2>
           <p style={{ color: "#6b7280", fontSize: "14px", marginTop: "5px" }}>
-            Tap anywhere on this page once to enable notification sound.
+            {audioEnabled
+              ? "✅ Notification sound is enabled."
+              : "Tap anywhere on this page once to enable notification sound."}
           </p>
 
           {jobs.length === 0 ? (
