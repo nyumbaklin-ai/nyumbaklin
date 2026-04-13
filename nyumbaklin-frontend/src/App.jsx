@@ -1555,8 +1555,8 @@ function App() {
         />
 
 <Route path="/about-us" element={<AboutUs />} />
-<Route path="/privacy" element={<PrivacyPolicy />} />
-<Route path="/terms" element={<TermsConditions />} />
+<Route path="/privacy-policy" element={<PrivacyPolicy />} />
+<Route path="/terms and conditions" element={<TermsConditions />} />
       </Routes>
       <Footer />
     </Layout>
