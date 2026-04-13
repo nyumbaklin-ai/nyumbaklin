@@ -6,18 +6,30 @@ function CleanerDashboard() {
   const [jobs, setJobs] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [loadingSub, setLoadingSub] = useState(false);
+  const [prevJobsCount, setPrevJobsCount] = useState(0);
 
   const token = localStorage.getItem("token");
 
   // ================= FETCH JOBS =================
   const fetchJobs = () => {
-    fetch(`${API_URL}/cleaner/available-jobs`, {
-      headers: { Authorization: "Bearer " + token },
+  fetch(`${API_URL}/cleaner/available-jobs`, {
+    headers: { Authorization: "Bearer " + token },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      const newJobs = Array.isArray(data) ? data : [];
+
+      // 🔔 PLAY SOUND IF NEW JOBS ARRIVED
+      if (newJobs.length > prevJobsCount && prevJobsCount !== 0) {
+        const audio = new Audio("/notification.mp3");
+        audio.play().catch(() => {});
+      }
+
+      setPrevJobsCount(newJobs.length);
+      setJobs(newJobs);
     })
-      .then((res) => res.json())
-      .then((data) => setJobs(Array.isArray(data) ? data : []))
-      .catch((err) => console.error(err));
-  };
+    .catch((err) => console.error(err));
+};
 
   // ================= FETCH SUBSCRIPTION =================
   const fetchSubscription = async () => {
