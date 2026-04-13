@@ -9,6 +9,7 @@ import CleanerEarnings from "./pages/CleanerEarnings";
 import CustomerBooking from "./pages/CustomerBooking";
 import CustomerMyBookings from "./pages/CustomerMyBookings";
 import Profile from "./pages/Profile";
+import AboutUs from "./pages/AboutUs";
 
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("API_URL:", API_URL);
@@ -1551,7 +1552,7 @@ function App() {
           }
         />
 
-<Route path="/about-us" element={<div style={{ padding: "40px" }}>About Nyumbaklin - We connect customers with trusted cleaners in Kampala.</div>}/>
+<Route path="/about-us" element={<AboutUs />} />
 
 <Route path="/privacy" element={<div style={{ padding: "40px" }}>Privacy Policy - Your data is safe with us.</div>} />
 
