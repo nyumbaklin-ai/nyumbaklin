@@ -6,18 +6,37 @@ function CleanerDashboard() {
   const [jobs, setJobs] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [loadingSub, setLoadingSub] = useState(false);
-  const [prevJobsCount, setPrevJobsCount] = useState(0);
 
   const token = localStorage.getItem("token");
+
   const audioReadyRef = useRef(false);
+  const prevJobsCountRef = useRef(0);
+  const audioContextRef = useRef(null);
 
   // ================= ENABLE AUDIO =================
-  const enableAudio = () => {
+  const enableAudio = async () => {
     audioReadyRef.current = true;
+
+    try {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) return;
+
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+
+      if (audioContextRef.current.state === "suspended") {
+        await audioContextRef.current.resume();
+      }
+    } catch (error) {
+      console.error("Audio enable failed:", error);
+    }
   };
 
   // ================= PLAY NOTIFICATION SOUND =================
-  const playNotificationSound = () => {
+  const playNotificationSound = async () => {
     if (!audioReadyRef.current) return;
 
     try {
@@ -26,7 +45,16 @@ function CleanerDashboard() {
 
       if (!AudioContextClass) return;
 
-      const audioContext = new AudioContextClass();
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+
+      const audioContext = audioContextRef.current;
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -44,33 +72,34 @@ function CleanerDashboard() {
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.35);
-
-      oscillator.onended = () => {
-        audioContext.close();
-      };
     } catch (error) {
       console.error("Notification sound failed:", error);
     }
   };
 
   // ================= FETCH JOBS =================
-  const fetchJobs = () => {
-    fetch(`${API_URL}/cleaner/available-jobs`, {
-      headers: { Authorization: "Bearer " + token },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const newJobs = Array.isArray(data) ? data : [];
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch(`${API_URL}/cleaner/available-jobs`, {
+        headers: { Authorization: "Bearer " + token },
+      });
 
-        // 🔔 PLAY SOUND IF NEW JOBS ARRIVED
-        if (newJobs.length > prevJobsCount && prevJobsCount !== 0) {
-          playNotificationSound();
-        }
+      const data = await res.json();
+      const newJobs = Array.isArray(data) ? data : [];
 
-        setPrevJobsCount(newJobs.length);
-        setJobs(newJobs);
-      })
-      .catch((err) => console.error(err));
+      // 🔔 PLAY SOUND IF NEW JOBS ARRIVED
+      if (
+        prevJobsCountRef.current > 0 &&
+        newJobs.length > prevJobsCountRef.current
+      ) {
+        playNotificationSound();
+      }
+
+      prevJobsCountRef.current = newJobs.length;
+      setJobs(newJobs);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+    }
   };
 
   // ================= FETCH SUBSCRIPTION =================
@@ -131,6 +160,7 @@ function CleanerDashboard() {
     }
   };
 
+  // ================= INITIAL LOAD + POLLING =================
   useEffect(() => {
     fetchJobs();
     fetchSubscription();
@@ -141,13 +171,19 @@ function CleanerDashboard() {
 
     window.addEventListener("click", enableAudio);
     window.addEventListener("keydown", enableAudio);
+    window.addEventListener("touchstart", enableAudio);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("click", enableAudio);
       window.removeEventListener("keydown", enableAudio);
+      window.removeEventListener("touchstart", enableAudio);
+
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+        audioContextRef.current.close();
+      }
     };
-  }, [prevJobsCount]);
+  }, []);
 
   // ================= STYLES =================
   const pageStyle = {
@@ -227,7 +263,7 @@ function CleanerDashboard() {
             </>
           )}
 
-          <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+          <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
             <button
               style={{ ...button, background: "#16a34a" }}
               onClick={() => upgrade("weekly")}
