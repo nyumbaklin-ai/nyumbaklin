@@ -6,13 +6,28 @@ const app = express();
 const pool = require("./config/db");
 
 // Middleware
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+  "https://nyumbaklin-frontend.onrender.com",
+  "https://www.nyumbaklin.com",
+  "https://nyumbaklin.com",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL,
-      "https://nyumbaklin-frontend.onrender.com",
-    ].filter(Boolean),
+    origin: function (origin, callback) {
+      // allow requests with no origin like mobile apps, curl, postman
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
@@ -153,5 +168,6 @@ const PORT = process.env.PORT || 5000;
 // Start Server
 app.listen(PORT, async () => {
   console.log("🔥 Nyumbaklin server running on port", PORT);
+  console.log("✅ Allowed CORS origins:", allowedOrigins);
   await ensureDatabaseUpdates();
 });
