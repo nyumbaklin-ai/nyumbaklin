@@ -104,24 +104,32 @@ function CleanerDashboard() {
         }
       };
 
-      // Repeat sound 3 times like a stronger ride-alert style
+            // Repeat sound 5 times and keep it longer
       await playOnce();
 
       setTimeout(() => {
         playOnce();
-      }, 900);
+      }, 700);
 
       setTimeout(() => {
         playOnce();
-      }, 1800);
+      }, 1400);
+
+      setTimeout(() => {
+        playOnce();
+      }, 2100);
+
+      setTimeout(() => {
+        playOnce();
+      }, 2800);
 
       if (navigator.vibrate) {
-        navigator.vibrate([400, 150, 400, 150, 400]);
+        navigator.vibrate([500, 150, 500, 150, 500, 150, 500]);
       }
 
       setTimeout(() => {
         isPlayingNotificationRef.current = false;
-      }, 3000);
+      }, 4300);
     } catch (error) {
       console.error("Notification sound failed:", error);
       isPlayingNotificationRef.current = false;
