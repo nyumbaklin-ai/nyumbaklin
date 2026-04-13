@@ -16,6 +16,7 @@ function CleanerDashboard() {
   const audioEnabledRef = useRef(false);
   const hasLoadedOnceRef = useRef(false);
   const audioRef = useRef(null);
+  const isPlayingNotificationRef = useRef(false);
 
   // ================= KEEP AUDIO STATE IN REF =================
   useEffect(() => {
@@ -65,6 +66,7 @@ function CleanerDashboard() {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       audioRef.current.muted = false;
+      audioRef.current.volume = 1;
 
       setAudioEnabled(true);
     } catch (error) {
@@ -77,25 +79,52 @@ function CleanerDashboard() {
   // ================= PLAY NOTIFICATION SOUND =================
   const playNotificationSound = async () => {
     if (!audioEnabledRef.current) return;
+    if (isPlayingNotificationRef.current) return;
 
     try {
+      isPlayingNotificationRef.current = true;
+
       if (!audioRef.current) {
         audioRef.current = new Audio("/nyumbaklin-notification.wav");
         audioRef.current.preload = "auto";
       }
 
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current.muted = false;
-      audioRef.current.volume = 1;
+      const playOnce = async () => {
+        if (!audioRef.current) return;
 
-      await audioRef.current.play();
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current.muted = false;
+        audioRef.current.volume = 1;
+
+        try {
+          await audioRef.current.play();
+        } catch (error) {
+          console.error("Single notification play failed:", error);
+        }
+      };
+
+      // Repeat sound 3 times like a stronger ride-alert style
+      await playOnce();
+
+      setTimeout(() => {
+        playOnce();
+      }, 900);
+
+      setTimeout(() => {
+        playOnce();
+      }, 1800);
 
       if (navigator.vibrate) {
-        navigator.vibrate([300, 100, 300]);
+        navigator.vibrate([400, 150, 400, 150, 400]);
       }
+
+      setTimeout(() => {
+        isPlayingNotificationRef.current = false;
+      }, 3000);
     } catch (error) {
       console.error("Notification sound failed:", error);
+      isPlayingNotificationRef.current = false;
     }
   };
 
@@ -192,6 +221,7 @@ function CleanerDashboard() {
   useEffect(() => {
     audioRef.current = new Audio("/nyumbaklin-notification.wav");
     audioRef.current.preload = "auto";
+    audioRef.current.volume = 1;
 
     fetchJobs();
     fetchSubscription();
