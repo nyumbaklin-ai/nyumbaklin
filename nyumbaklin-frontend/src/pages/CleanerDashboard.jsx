@@ -76,52 +76,44 @@ function CleanerDashboard() {
   };
 
   // ================= PLAY NOTIFICATION SOUND =================
-  const playNotificationSound = async () => {
-    if (!audioEnabledRef.current) return;
+const playNotificationSound = async () => {
+  if (!audioEnabledRef.current) return;
 
-    try {
-      const audioContext = getAudioContext();
-      if (!audioContext) return;
+  try {
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
 
-      if (audioContext.state === "suspended") {
-        await audioContext.resume();
-      }
-
-      const now = audioContext.currentTime;
-
-      const oscillator1 = audioContext.createOscillator();
-      const gainNode1 = audioContext.createGain();
-
-      oscillator1.type = "sine";
-      oscillator1.frequency.setValueAtTime(880, now);
-
-      gainNode1.gain.setValueAtTime(0.18, now);
-      gainNode1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-
-      oscillator1.connect(gainNode1);
-      gainNode1.connect(audioContext.destination);
-
-      oscillator1.start(now);
-      oscillator1.stop(now + 0.18);
-
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode2 = audioContext.createGain();
-
-      oscillator2.type = "sine";
-      oscillator2.frequency.setValueAtTime(988, now + 0.2);
-
-      gainNode2.gain.setValueAtTime(0.14, now + 0.2);
-      gainNode2.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
-
-      oscillator2.connect(gainNode2);
-      gainNode2.connect(audioContext.destination);
-
-      oscillator2.start(now + 0.2);
-      oscillator2.stop(now + 0.38);
-    } catch (error) {
-      console.error("Notification sound failed:", error);
+    if (audioContext.state === "suspended") {
+      await audioContext.resume();
     }
-  };
+
+    const now = audioContext.currentTime;
+
+    // 🔊 MUCH STRONGER SOUND
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = "square"; // stronger than sine
+    oscillator.frequency.setValueAtTime(1000, now);
+
+    gainNode.gain.setValueAtTime(0.5, now); // MUCH louder
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8); // longer
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + 0.8);
+
+    // 📳 VIBRATION (VERY IMPORTANT FOR PHONES)
+    if (navigator.vibrate) {
+      navigator.vibrate([300, 100, 300]); // vibrate twice
+    }
+
+  } catch (error) {
+    console.error("Notification sound failed:", error);
+  }
+};
 
   // ================= FETCH JOBS =================
   const fetchJobs = async () => {
