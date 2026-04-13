@@ -15,6 +15,7 @@ function CleanerDashboard() {
   const enablingAudioRef = useRef(false);
   const audioEnabledRef = useRef(false);
   const hasLoadedOnceRef = useRef(false);
+  const audioRef = useRef(null);
 
   // ================= KEEP AUDIO STATE IN REF =================
   useEffect(() => {
@@ -42,30 +43,28 @@ function CleanerDashboard() {
       enablingAudioRef.current = true;
 
       const audioContext = getAudioContext();
-      if (!audioContext) return;
-
-      if (audioContext.state === "suspended") {
+      if (audioContext && audioContext.state === "suspended") {
         await audioContext.resume();
       }
 
-      // Small warm-up beep to unlock mobile audio
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/nyumbaklin-notification.wav");
+        audioRef.current.preload = "auto";
+      }
 
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+      // Silent unlock try for mobile browsers
+      audioRef.current.muted = true;
+      audioRef.current.currentTime = 0;
 
-      gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.00001,
-        audioContext.currentTime + 0.05
-      );
+      try {
+        await audioRef.current.play();
+      } catch (error) {
+        console.error("Silent unlock play failed:", error);
+      }
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.05);
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.muted = false;
 
       setAudioEnabled(true);
     } catch (error) {
@@ -76,44 +75,29 @@ function CleanerDashboard() {
   };
 
   // ================= PLAY NOTIFICATION SOUND =================
-const playNotificationSound = async () => {
-  if (!audioEnabledRef.current) return;
+  const playNotificationSound = async () => {
+    if (!audioEnabledRef.current) return;
 
-  try {
-    const audioContext = getAudioContext();
-    if (!audioContext) return;
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/nyumbaklin-notification.wav");
+        audioRef.current.preload = "auto";
+      }
 
-    if (audioContext.state === "suspended") {
-      await audioContext.resume();
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.muted = false;
+      audioRef.current.volume = 1;
+
+      await audioRef.current.play();
+
+      if (navigator.vibrate) {
+        navigator.vibrate([300, 100, 300]);
+      }
+    } catch (error) {
+      console.error("Notification sound failed:", error);
     }
-
-    const now = audioContext.currentTime;
-
-    // 🔊 MUCH STRONGER SOUND
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.type = "square"; // stronger than sine
-    oscillator.frequency.setValueAtTime(1000, now);
-
-    gainNode.gain.setValueAtTime(0.5, now); // MUCH louder
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8); // longer
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.start(now);
-    oscillator.stop(now + 0.8);
-
-    // 📳 VIBRATION (VERY IMPORTANT FOR PHONES)
-    if (navigator.vibrate) {
-      navigator.vibrate([300, 100, 300]); // vibrate twice
-    }
-
-  } catch (error) {
-    console.error("Notification sound failed:", error);
-  }
-};
+  };
 
   // ================= FETCH JOBS =================
   const fetchJobs = async () => {
@@ -206,6 +190,9 @@ const playNotificationSound = async () => {
 
   // ================= INITIAL LOAD + POLLING =================
   useEffect(() => {
+    audioRef.current = new Audio("/nyumbaklin-notification.wav");
+    audioRef.current.preload = "auto";
+
     fetchJobs();
     fetchSubscription();
 
@@ -230,6 +217,11 @@ const playNotificationSound = async () => {
         audioContextRef.current.state !== "closed"
       ) {
         audioContextRef.current.close();
+      }
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
     };
   }, []);
