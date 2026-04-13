@@ -13,6 +13,13 @@ function CleanerDashboard() {
   const prevJobIdsRef = useRef([]);
   const audioContextRef = useRef(null);
   const enablingAudioRef = useRef(false);
+  const audioEnabledRef = useRef(false);
+  const hasLoadedOnceRef = useRef(false);
+
+  // ================= KEEP AUDIO STATE IN REF =================
+  useEffect(() => {
+    audioEnabledRef.current = audioEnabled;
+  }, [audioEnabled]);
 
   // ================= GET / CREATE AUDIO CONTEXT =================
   const getAudioContext = () => {
@@ -41,7 +48,7 @@ function CleanerDashboard() {
         await audioContext.resume();
       }
 
-      // Tiny silent/near-silent warm-up beep to help mobile browsers fully unlock audio
+      // Small warm-up beep to unlock mobile audio
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -70,7 +77,7 @@ function CleanerDashboard() {
 
   // ================= PLAY NOTIFICATION SOUND =================
   const playNotificationSound = async () => {
-    if (!audioEnabled) return;
+    if (!audioEnabledRef.current) return;
 
     try {
       const audioContext = getAudioContext();
@@ -129,18 +136,19 @@ function CleanerDashboard() {
       const currentJobIds = newJobs.map((job) => job.id);
       const previousJobIds = prevJobIdsRef.current;
 
-      const hasNewJob =
-        previousJobIds.length > 0 &&
-        currentJobIds.some((id) => !previousJobIds.includes(id));
+      if (hasLoadedOnceRef.current) {
+        const hasNewJob = currentJobIds.some(
+          (id) => !previousJobIds.includes(id)
+        );
 
-      // Also allow sound when going from 0 jobs to jobs, but not on first page load
-      const hadPreviousFetch = previousJobIds.length > 0 || jobs.length > 0;
-      if (hadPreviousFetch && hasNewJob) {
-        playNotificationSound();
+        if (hasNewJob) {
+          playNotificationSound();
+        }
       }
 
       prevJobIdsRef.current = currentJobIds;
       setJobs(newJobs);
+      hasLoadedOnceRef.current = true;
     } catch (err) {
       console.error("Error fetching jobs:", err);
     }
@@ -206,53 +214,24 @@ function CleanerDashboard() {
 
   // ================= INITIAL LOAD + POLLING =================
   useEffect(() => {
-    let isFirstFetch = true;
-
-    const loadJobs = async () => {
-      try {
-        const res = await fetch(`${API_URL}/cleaner/available-jobs`, {
-          headers: { Authorization: "Bearer " + token },
-        });
-
-        const data = await res.json();
-        const newJobs = Array.isArray(data) ? data : [];
-        const currentJobIds = newJobs.map((job) => job.id);
-
-        if (!isFirstFetch) {
-          const previousJobIds = prevJobIdsRef.current;
-          const hasNewJob = currentJobIds.some(
-            (id) => !previousJobIds.includes(id)
-          );
-
-          if (hasNewJob) {
-            playNotificationSound();
-          }
-        }
-
-        prevJobIdsRef.current = currentJobIds;
-        setJobs(newJobs);
-        isFirstFetch = false;
-      } catch (err) {
-        console.error("Error fetching jobs:", err);
-      }
-    };
-
-    loadJobs();
+    fetchJobs();
     fetchSubscription();
 
     const interval = setInterval(() => {
-      loadJobs();
-    }, 5000);
+      fetchJobs();
+    }, 2000);
 
     window.addEventListener("click", enableAudio);
     window.addEventListener("keydown", enableAudio);
     window.addEventListener("touchstart", enableAudio);
+    window.addEventListener("pointerdown", enableAudio);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("click", enableAudio);
       window.removeEventListener("keydown", enableAudio);
       window.removeEventListener("touchstart", enableAudio);
+      window.removeEventListener("pointerdown", enableAudio);
 
       if (
         audioContextRef.current &&
@@ -312,7 +291,7 @@ function CleanerDashboard() {
 
   // ================= UI =================
   return (
-    <div style={pageStyle}>
+    <div style={pageStyle} onClick={enableAudio} onTouchStart={enableAudio}>
       <div style={containerStyle}>
         {/* 🔥 SUBSCRIPTION CARD */}
         <div style={card}>
@@ -370,11 +349,27 @@ function CleanerDashboard() {
         {/* JOBS */}
         <div style={card}>
           <h2>Available Jobs ({jobs.length})</h2>
+
           <p style={{ color: "#6b7280", fontSize: "14px", marginTop: "5px" }}>
             {audioEnabled
               ? "✅ Notification sound is enabled."
-              : "Tap anywhere on this page once to enable notification sound."}
+              : "Tap the button below once to enable notification sound."}
           </p>
+
+          {!audioEnabled && (
+            <button
+              style={{
+                ...button,
+                background: "#111827",
+                marginTop: "10px",
+                marginBottom: "15px",
+              }}
+              onClick={enableAudio}
+              onTouchStart={enableAudio}
+            >
+              Enable Sound
+            </button>
+          )}
 
           {jobs.length === 0 ? (
             <p>No jobs available</p>
