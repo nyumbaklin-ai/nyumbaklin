@@ -11,6 +11,7 @@ import CustomerMyBookings from "./pages/CustomerMyBookings";
 import Profile from "./pages/Profile";
 import AboutUs from "./pages/AboutUs";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsConditions from "./pages/TermsConditions";
 
 const API_URL = import.meta.env.VITE_API_URL;
 console.log("API_URL:", API_URL);
@@ -1555,7 +1556,7 @@ function App() {
 
 <Route path="/about-us" element={<AboutUs />} />
 <Route path="/privacy" element={<PrivacyPolicy />} />
-<Route path="/terms" element={<div style={{ padding: "40px" }}>Terms & Conditions - Use Nyumbaklin responsibly.</div>} />
+<Route path="/terms" element={<TermsConditions />} />
       </Routes>
       <Footer />
     </Layout>
