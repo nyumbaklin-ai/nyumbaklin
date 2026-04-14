@@ -12,6 +12,8 @@ function CustomerBooking() {
   const [area, setArea] = useState("");
   const [customArea, setCustomArea] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pay_after");
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [locationMessage, setLocationMessage] = useState("");
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -92,6 +94,48 @@ function CustomerBooking() {
     if (service === "Other") return Number(customPrice);
 
     return 0;
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("GPS is not supported on this device/browser");
+      return;
+    }
+
+    setGettingLocation(true);
+    setLocationMessage("Getting your current location...");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude.toFixed(6);
+        const longitude = position.coords.longitude.toFixed(6);
+
+        setArea("Other");
+        setCustomArea(`GPS: ${latitude}, ${longitude}`);
+        setLocationMessage("✅ GPS location added. You can still edit it if needed.");
+        setGettingLocation(false);
+      },
+      (error) => {
+        console.error("Location error:", error);
+
+        if (error.code === 1) {
+          setLocationMessage("Location permission denied. Please allow GPS and try again.");
+        } else if (error.code === 2) {
+          setLocationMessage("Unable to detect your location right now.");
+        } else if (error.code === 3) {
+          setLocationMessage("Location request timed out. Please try again.");
+        } else {
+          setLocationMessage("Failed to get location.");
+        }
+
+        setGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   };
 
   const handleBooking = async (e) => {
@@ -247,6 +291,14 @@ function CustomerBooking() {
     padding: "16px",
   };
 
+  const gpsBoxStyle = {
+    marginTop: "12px",
+    background: "#ecfeff",
+    border: "1px solid #a5f3fc",
+    borderRadius: "16px",
+    padding: "14px",
+  };
+
   const noteStyle = {
     fontSize: "15px",
     color: "#64748b",
@@ -266,6 +318,20 @@ function CustomerBooking() {
     fontWeight: "700",
     cursor: "pointer",
     boxShadow: "0 14px 28px rgba(37, 99, 235, 0.25)",
+  };
+
+  const gpsButtonStyle = {
+    width: "100%",
+    background: "linear-gradient(90deg, #0891b2, #0e7490)",
+    color: "#ffffff",
+    border: "none",
+    padding: "14px 16px",
+    borderRadius: "14px",
+    fontSize: "15px",
+    fontWeight: "700",
+    cursor: "pointer",
+    marginBottom: "14px",
+    boxShadow: "0 10px 22px rgba(8, 145, 178, 0.22)",
   };
 
   return (
@@ -396,6 +462,31 @@ function CustomerBooking() {
           <div>
             <p style={sectionTitleStyle}>Select Area</p>
 
+            <button
+              type="button"
+              style={gpsButtonStyle}
+              onClick={handleUseCurrentLocation}
+              disabled={gettingLocation}
+            >
+              {gettingLocation ? "Getting Location..." : "📍 Use My Current Location"}
+            </button>
+
+            {locationMessage && (
+              <div style={gpsBoxStyle}>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#155e75",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    lineHeight: "1.6",
+                  }}
+                >
+                  {locationMessage}
+                </p>
+              </div>
+            )}
+
             <select
               value={area}
               onChange={(e) => setArea(e.target.value)}
@@ -410,7 +501,7 @@ function CustomerBooking() {
             {area === "Other" && (
               <input
                 type="text"
-                placeholder="Enter your area"
+                placeholder="Enter your area or GPS location"
                 value={customArea}
                 onChange={(e) => setCustomArea(e.target.value)}
                 style={inputStyle}
@@ -481,7 +572,7 @@ function CustomerBooking() {
                     fontWeight: "800",
                   }}
                 >
-                  📞 0781812743 (nyumbaklin payments)
+                  📞 0781812743 (Nyumbaklin Payments)
                 </p>
 
                 <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
