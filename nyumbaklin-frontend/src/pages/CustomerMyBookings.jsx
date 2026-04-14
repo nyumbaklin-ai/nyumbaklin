@@ -167,6 +167,26 @@ function CustomerMyBookings() {
     return phone.replace(/[^\d]/g, "");
   };
 
+  const parseGpsAddress = (address) => {
+    if (!address || typeof address !== "string") return null;
+
+    const match = address.match(
+      /^GPS:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)(?:\s*\(Accuracy:\s*(\d+)m\))?$/i
+    );
+
+    if (!match) return null;
+
+    return {
+      latitude: match[1],
+      longitude: match[2],
+      accuracy: match[3] || "",
+    };
+  };
+
+  const getGoogleMapsLink = (latitude, longitude) => {
+    return `https://www.google.com/maps?q=${latitude},${longitude}`;
+  };
+
   const pageStyle = {
     minHeight: "100vh",
     background: "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
@@ -252,6 +272,59 @@ function CustomerMyBookings() {
     borderRadius: "14px",
     background: "#f0fdf4",
     border: "1px solid #bbf7d0",
+  };
+
+  const gpsLocationBoxStyle = {
+    marginBottom: "16px",
+    padding: "14px",
+    borderRadius: "14px",
+    background: "#ecfeff",
+    border: "1px solid #a5f3fc",
+  };
+
+  const gpsBadgeStyle = {
+    display: "inline-block",
+    background: "#cffafe",
+    color: "#155e75",
+    padding: "6px 12px",
+    borderRadius: "999px",
+    fontWeight: "700",
+    fontSize: "13px",
+    marginBottom: "12px",
+  };
+
+  const gpsGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gap: "12px",
+    marginTop: "8px",
+  };
+
+  const gpsCardStyle = {
+    background: "white",
+    border: "1px solid #bae6fd",
+    borderRadius: "12px",
+    padding: "12px",
+  };
+
+  const gpsSubTextStyle = {
+    marginTop: "10px",
+    color: "#155e75",
+    fontSize: "14px",
+    lineHeight: "1.6",
+    wordBreak: "break-word",
+  };
+
+  const mapLinkStyle = {
+    display: "inline-block",
+    marginTop: "12px",
+    background: "#0f766e",
+    color: "white",
+    textDecoration: "none",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    fontWeight: "700",
+    fontSize: "14px",
   };
 
   const statusTextStyle = {
@@ -344,6 +417,7 @@ function CustomerMyBookings() {
               const isPaid = b.payment_status === "paid";
               const cleanerPhone = b.cleaner_phone || "";
               const whatsappPhone = formatPhoneForWhatsApp(cleanerPhone);
+              const gpsLocation = parseGpsAddress(b.address);
 
               return (
                 <div key={b.id} style={bookingCardStyle}>
@@ -388,12 +462,51 @@ function CustomerMyBookings() {
                     </div>
                   </div>
 
-                  <div style={locationBoxStyle}>
-                    <div style={labelStyle}>📍 Location</div>
-                    <div style={valueStyle}>
-                      {b.address || "Location not available"}
+                  {gpsLocation ? (
+                    <div style={gpsLocationBoxStyle}>
+                      <div style={labelStyle}>📍 Location</div>
+                      <div style={gpsBadgeStyle}>GPS Location</div>
+
+                      <div style={gpsGridStyle}>
+                        <div style={gpsCardStyle}>
+                          <div style={labelStyle}>Latitude</div>
+                          <div style={valueStyle}>{gpsLocation.latitude}</div>
+                        </div>
+
+                        <div style={gpsCardStyle}>
+                          <div style={labelStyle}>Longitude</div>
+                          <div style={valueStyle}>{gpsLocation.longitude}</div>
+                        </div>
+
+                        {gpsLocation.accuracy && (
+                          <div style={gpsCardStyle}>
+                            <div style={labelStyle}>Accuracy</div>
+                            <div style={valueStyle}>{gpsLocation.accuracy} meters</div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={gpsSubTextStyle}>
+                        This location was captured from your device GPS.
+                      </div>
+
+                      <a
+                        href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={mapLinkStyle}
+                      >
+                        Open in Google Maps
+                      </a>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={locationBoxStyle}>
+                      <div style={labelStyle}>📍 Location</div>
+                      <div style={{ ...valueStyle, wordBreak: "break-word" }}>
+                        {b.address || "Location not available"}
+                      </div>
+                    </div>
+                  )}
 
                   <div style={statusTextStyle}>{getStatusMessage(b.status)}</div>
 
