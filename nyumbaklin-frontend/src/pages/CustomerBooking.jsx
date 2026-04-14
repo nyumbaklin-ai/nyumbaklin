@@ -481,7 +481,7 @@ function CustomerBooking() {
                     fontWeight: "800",
                   }}
                 >
-                  📞 0781812743
+                  📞 0781812743 (nyumbaklin payments)
                 </p>
 
                 <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
