@@ -453,7 +453,15 @@ router.get("/my-bookings-simple", auth, async (req, res) => {
 // ================= BOOK CLEANING SERVICE =================
 router.post("/book-service", auth, async (req, res) => {
   try {
-    const { service, booking_date, price, address } = req.body;
+    const {
+      service,
+      booking_date,
+      price,
+      address,
+      payment_method,
+      gps_readable_location,
+    } = req.body;
+
     const email = req.user.email;
 
     if (!service || !booking_date || !price || !address) {
@@ -462,11 +470,28 @@ router.post("/book-service", auth, async (req, res) => {
 
     const result = await pool.query(
       `
-      INSERT INTO bookings (email, service, booking_date, address, price, status)
-      VALUES ($1,$2,$3,$4,$5,'pending')
+      INSERT INTO bookings (
+        email,
+        service,
+        booking_date,
+        address,
+        price,
+        status,
+        payment_method,
+        gps_readable_location
+      )
+      VALUES ($1,$2,$3,$4,$5,'pending',$6,$7)
       RETURNING *
       `,
-      [email, service, booking_date, address, price]
+      [
+        email,
+        service,
+        booking_date,
+        address,
+        price,
+        payment_method || "pay_after",
+        gps_readable_location || null,
+      ]
     );
 
     res.status(201).json({
