@@ -16,6 +16,7 @@ function CustomerBooking() {
   const [locationMessage, setLocationMessage] = useState("");
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [gpsTimestamp, setGpsTimestamp] = useState("");
+  const [gpsReadableLocation, setGpsReadableLocation] = useState("");
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -74,6 +75,43 @@ function CustomerBooking() {
     "Other",
   ];
 
+  const getReadableLocationFromCoordinates = async (latitude, longitude) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(
+          latitude
+        )}&lon=${encodeURIComponent(longitude)}`,
+        {
+          headers: {
+            Accept: "application/json",
+            "Accept-Language": "en",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return "";
+      }
+
+      const data = await response.json();
+      const address = data.address || {};
+
+      const parts = [
+        address.road,
+        address.neighbourhood,
+        address.suburb,
+        address.city_district,
+        address.city || address.town || address.village,
+      ].filter(Boolean);
+
+      const uniqueParts = [...new Set(parts)];
+      return uniqueParts.slice(0, 3).join(", ");
+    } catch (error) {
+      console.error("Readable location error:", error);
+      return "";
+    }
+  };
+
   const getPrice = () => {
     if (service === "House Cleaning") {
       if (roomSize === "1-2") return 33000;
@@ -113,8 +151,9 @@ function CustomerBooking() {
     setLocationMessage("Getting your current location... Please allow GPS access.");
     setGpsAccuracy(null);
     setGpsTimestamp("");
+    setGpsReadableLocation("");
 
-    const savePosition = (position) => {
+    const savePosition = async (position) => {
       const latitude = position.coords.latitude.toFixed(6);
       const longitude = position.coords.longitude.toFixed(6);
       const accuracy =
@@ -143,6 +182,15 @@ function CustomerBooking() {
         setLocationMessage("✅ GPS location added. You can still edit it if needed.");
       }
 
+      const readableLocation = await getReadableLocationFromCoordinates(
+        latitude,
+        longitude
+      );
+
+      if (readableLocation) {
+        setGpsReadableLocation(readableLocation);
+      }
+
       setGettingLocation(false);
     };
 
@@ -152,7 +200,9 @@ function CustomerBooking() {
       if (error.code === 1) {
         setLocationMessage("Location permission denied. Please allow GPS and try again.");
       } else if (error.code === 2) {
-        setLocationMessage("Unable to detect your location right now. Please move to an open area and try again.");
+        setLocationMessage(
+          "Unable to detect your location right now. Please move to an open area and try again."
+        );
       } else if (error.code === 3) {
         setLocationMessage("Location request timed out. Please try again.");
       } else {
@@ -168,15 +218,11 @@ function CustomerBooking() {
         if (error.code === 3) {
           setLocationMessage("GPS is taking long. Retrying with normal accuracy...");
 
-          navigator.geolocation.getCurrentPosition(
-            savePosition,
-            handleFinalError,
-            {
-              enableHighAccuracy: false,
-              timeout: 15000,
-              maximumAge: 60000,
-            }
-          );
+          navigator.geolocation.getCurrentPosition(savePosition, handleFinalError, {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 60000,
+          });
         } else {
           handleFinalError(error);
         }
@@ -561,6 +607,19 @@ function CustomerBooking() {
                     Captured: {gpsTimestamp}
                   </p>
                 )}
+
+                {gpsReadableLocation && (
+                  <p
+                    style={{
+                      margin: "4px 0 0 0",
+                      color: "#164e63",
+                      fontSize: "13px",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    Approx area: {gpsReadableLocation}
+                  </p>
+                )}
               </div>
             )}
 
@@ -575,6 +634,7 @@ function CustomerBooking() {
                   setLocationMessage("");
                   setGpsAccuracy(null);
                   setGpsTimestamp("");
+                  setGpsReadableLocation("");
                 }
               }}
               style={selectStyle}
@@ -684,13 +744,9 @@ function CustomerBooking() {
               </div>
             )}
 
-            <p style={noteStyle}>
-              Pay after service is safer and builds trust.
-            </p>
+            <p style={noteStyle}>Pay after service is safer and builds trust.</p>
 
-            <p style={noteStyle}>
-              Prices include cleaner transport within Kampala.
-            </p>
+            <p style={noteStyle}>Prices include cleaner transport within Kampala.</p>
 
             <p style={noteStyle}>
               Customer provides cleaning materials unless agreed otherwise.
