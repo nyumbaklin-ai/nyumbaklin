@@ -53,7 +53,6 @@ function CleanerDashboard() {
         audioRef.current.preload = "auto";
       }
 
-      // Silent unlock try for mobile browsers
       audioRef.current.muted = true;
       audioRef.current.currentTime = 0;
 
@@ -104,7 +103,6 @@ function CleanerDashboard() {
         }
       };
 
-            // Repeat sound 5 times and keep it longer
       await playOnce();
 
       setTimeout(() => {
@@ -136,6 +134,27 @@ function CleanerDashboard() {
     }
   };
 
+  // ================= GPS HELPERS =================
+  const parseGpsAddress = (address) => {
+    if (!address || typeof address !== "string") return null;
+
+    const match = address.match(
+      /^GPS:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)(?:\s*\(Accuracy:\s*(\d+)m\))?$/i
+    );
+
+    if (!match) return null;
+
+    return {
+      latitude: match[1],
+      longitude: match[2],
+      accuracy: match[3] || "",
+    };
+  };
+
+  const getGoogleMapsLink = (latitude, longitude) => {
+    return `https://www.google.com/maps?q=${latitude},${longitude}`;
+  };
+
   // ================= FETCH JOBS =================
   const fetchJobs = async () => {
     try {
@@ -150,9 +169,7 @@ function CleanerDashboard() {
       const previousJobIds = prevJobIdsRef.current;
 
       if (hasLoadedOnceRef.current) {
-        const hasNewJob = currentJobIds.some(
-          (id) => !previousJobIds.includes(id)
-        );
+        const hasNewJob = currentJobIds.some((id) => !previousJobIds.includes(id));
 
         if (hasNewJob) {
           playNotificationSound();
@@ -250,10 +267,7 @@ function CleanerDashboard() {
       window.removeEventListener("touchstart", enableAudio);
       window.removeEventListener("pointerdown", enableAudio);
 
-      if (
-        audioContextRef.current &&
-        audioContextRef.current.state !== "closed"
-      ) {
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close();
       }
 
@@ -311,11 +325,70 @@ function CleanerDashboard() {
     background: type === "premium" ? "#16a34a" : "#6b7280",
   });
 
+  const gpsBoxStyle = {
+    marginTop: "10px",
+    marginBottom: "10px",
+    padding: "12px",
+    background: "#ecfeff",
+    border: "1px solid #a5f3fc",
+    borderRadius: "12px",
+  };
+
+  const gpsBadgeStyle = {
+    display: "inline-block",
+    background: "#cffafe",
+    color: "#155e75",
+    padding: "6px 12px",
+    borderRadius: "999px",
+    fontWeight: "700",
+    fontSize: "13px",
+    marginBottom: "10px",
+  };
+
+  const gpsGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+    gap: "10px",
+    marginTop: "8px",
+  };
+
+  const gpsItemStyle = {
+    background: "white",
+    border: "1px solid #bae6fd",
+    borderRadius: "10px",
+    padding: "10px",
+  };
+
+  const gpsLabelStyle = {
+    color: "#6b7280",
+    fontSize: "12px",
+    marginBottom: "4px",
+    fontWeight: "600",
+  };
+
+  const gpsValueStyle = {
+    color: "#111827",
+    fontSize: "15px",
+    fontWeight: "700",
+    wordBreak: "break-word",
+  };
+
+  const mapButtonStyle = {
+    display: "inline-block",
+    marginTop: "12px",
+    background: "#0f766e",
+    color: "white",
+    textDecoration: "none",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    fontWeight: "700",
+    fontSize: "14px",
+  };
+
   // ================= UI =================
   return (
     <div style={pageStyle} onClick={enableAudio} onTouchStart={enableAudio}>
       <div style={containerStyle}>
-        {/* 🔥 SUBSCRIPTION CARD */}
         <div style={card}>
           <h2>💎 Subscription</h2>
 
@@ -334,9 +407,7 @@ function CleanerDashboard() {
               {subscription.subscription_expiry && (
                 <p>
                   <b>Expires:</b>{" "}
-                  {new Date(
-                    subscription.subscription_expiry
-                  ).toLocaleDateString()}
+                  {new Date(subscription.subscription_expiry).toLocaleDateString()}
                 </p>
               )}
             </>
@@ -368,7 +439,6 @@ function CleanerDashboard() {
           </div>
         </div>
 
-        {/* JOBS */}
         <div style={card}>
           <h2>Available Jobs ({jobs.length})</h2>
 
@@ -396,28 +466,85 @@ function CleanerDashboard() {
           {jobs.length === 0 ? (
             <p>No jobs available</p>
           ) : (
-            jobs.map((job) => (
-              <div key={job.id} style={jobCard}>
-                <h3 style={{ marginBottom: "5px" }}>{job.service}</h3>
+            jobs.map((job) => {
+              const gpsLocation = parseGpsAddress(job.address);
 
-                <p>📧 {job.email}</p>
-                <p>📅 {new Date(job.booking_date).toLocaleDateString()}</p>
-                <p>💰 UGX {Number(job.price).toLocaleString()}</p>
-                <p>📍 {job.address || "No location"}</p>
+              return (
+                <div key={job.id} style={jobCard}>
+                  <h3 style={{ marginBottom: "5px" }}>{job.service}</h3>
 
-                <button
-                  style={{
-                    ...button,
-                    background: "#111827",
-                    width: "100%",
-                    marginTop: "10px",
-                  }}
-                  onClick={() => acceptJob(job.id)}
-                >
-                  Accept Job
-                </button>
-              </div>
-            ))
+                  <p>📧 {job.email}</p>
+                  <p>📅 {new Date(job.booking_date).toLocaleDateString()}</p>
+                  <p>💰 UGX {Number(job.price).toLocaleString()}</p>
+
+                  {gpsLocation ? (
+                    <div style={gpsBoxStyle}>
+                      <div style={{ ...gpsLabelStyle, marginBottom: "8px", fontSize: "13px" }}>
+                        📍 Customer Location
+                      </div>
+
+                      <div style={gpsBadgeStyle}>GPS Location</div>
+
+                      <div style={gpsGridStyle}>
+                        <div style={gpsItemStyle}>
+                          <div style={gpsLabelStyle}>Latitude</div>
+                          <div style={gpsValueStyle}>{gpsLocation.latitude}</div>
+                        </div>
+
+                        <div style={gpsItemStyle}>
+                          <div style={gpsLabelStyle}>Longitude</div>
+                          <div style={gpsValueStyle}>{gpsLocation.longitude}</div>
+                        </div>
+
+                        {gpsLocation.accuracy && (
+                          <div style={gpsItemStyle}>
+                            <div style={gpsLabelStyle}>Accuracy</div>
+                            <div style={gpsValueStyle}>{gpsLocation.accuracy} meters</div>
+                          </div>
+                        )}
+                      </div>
+
+                      <p
+                        style={{
+                          color: "#155e75",
+                          fontSize: "14px",
+                          marginTop: "10px",
+                          marginBottom: "0",
+                          lineHeight: "1.5",
+                        }}
+                      >
+                        This job uses the customer&apos;s GPS location.
+                      </p>
+
+                      <a
+                        href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={mapButtonStyle}
+                      >
+                        Open in Google Maps
+                      </a>
+                    </div>
+                  ) : (
+                    <p style={{ wordBreak: "break-word" }}>
+                      📍 {job.address || "No location"}
+                    </p>
+                  )}
+
+                  <button
+                    style={{
+                      ...button,
+                      background: "#111827",
+                      width: "100%",
+                      marginTop: "10px",
+                    }}
+                    onClick={() => acceptJob(job.id)}
+                  >
+                    Accept Job
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
