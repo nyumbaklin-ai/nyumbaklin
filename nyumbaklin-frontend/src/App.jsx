@@ -772,6 +772,26 @@ function Dashboard() {
     };
   };
 
+  const parseGpsAddress = (address) => {
+  if (!address || typeof address !== "string") return null;
+
+  const match = address.match(
+    /^GPS:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)(?:\s*\(Accuracy:\s*(\d+)m\))?$/i
+  );
+
+  if (!match) return null;
+
+  return {
+    latitude: match[1],
+    longitude: match[2],
+    accuracy: match[3] || "",
+  };
+};
+
+const getGoogleMapsLink = (latitude, longitude) => {
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
+};
+
   const filteredUsers = users.filter((user) => {
     const emailText = user.email ? user.email.toLowerCase() : "";
     const phoneText = user.phone ? user.phone.toLowerCase() : "";
@@ -888,6 +908,52 @@ function Dashboard() {
     minWidth: "180px",
     background: "#ffffff",
   };
+
+const adminGpsBoxStyle = {
+  background: "#ecfeff",
+  border: "1px solid #a5f3fc",
+  borderRadius: "12px",
+  padding: "10px",
+  minWidth: "210px",
+};
+
+const adminGpsBadgeStyle = {
+  display: "inline-block",
+  background: "#cffafe",
+  color: "#155e75",
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: "700",
+  marginBottom: "8px",
+};
+
+const adminGpsLabelStyle = {
+  color: "#64748b",
+  fontSize: "12px",
+  marginBottom: "2px",
+  fontWeight: "600",
+};
+
+const adminGpsValueStyle = {
+  color: "#0f172a",
+  fontSize: "14px",
+  fontWeight: "700",
+  marginBottom: "8px",
+  wordBreak: "break-word",
+};
+
+const adminGpsMapLinkStyle = {
+  display: "inline-block",
+  marginTop: "6px",
+  background: "#0f766e",
+  color: "white",
+  textDecoration: "none",
+  padding: "8px 12px",
+  borderRadius: "8px",
+  fontWeight: "700",
+  fontSize: "12px",
+};
 
   return (
     <div style={pageStyle}>
@@ -1235,6 +1301,7 @@ function Dashboard() {
                 const paymentMethod = booking.payment_method || "cash";
                 const paymentStatus = booking.payment_status || "unpaid";
                 const cleanerPayoutStatus = booking.cleaner_payout_status || "unpaid";
+                const gpsLocation = parseGpsAddress(booking.address);
 
                 return (
                   <tr key={booking.id} style={{ background: "#fff" }}>
@@ -1242,7 +1309,37 @@ function Dashboard() {
                     <td style={tableCellStyle}>{booking.email}</td>
                     <td style={tableCellStyle}>{booking.customer_phone || "Not provided"}</td>
                     <td style={tableCellStyle}>{booking.service}</td>
-                    <td style={tableCellStyle}>{booking.address || "Not provided"}</td>
+                    <td style={tableCellStyle}>
+  {gpsLocation ? (
+    <div style={adminGpsBoxStyle}>
+      <div style={adminGpsBadgeStyle}>GPS Location</div>
+
+      <div style={adminGpsLabelStyle}>Latitude</div>
+      <div style={adminGpsValueStyle}>{gpsLocation.latitude}</div>
+
+      <div style={adminGpsLabelStyle}>Longitude</div>
+      <div style={adminGpsValueStyle}>{gpsLocation.longitude}</div>
+
+      {gpsLocation.accuracy && (
+        <>
+          <div style={adminGpsLabelStyle}>Accuracy</div>
+          <div style={adminGpsValueStyle}>{gpsLocation.accuracy} meters</div>
+        </>
+      )}
+
+      <a
+        href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
+        target="_blank"
+        rel="noreferrer"
+        style={adminGpsMapLinkStyle}
+      >
+        Open in Google Maps
+      </a>
+    </div>
+  ) : (
+    booking.address || "Not provided"
+  )}
+</td>
                     <td style={tableCellStyle}>
                       <span
                         style={{
