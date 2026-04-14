@@ -89,6 +89,26 @@ function CleanerMyJobs() {
     return phone.replace(/[^\d]/g, "");
   };
 
+  const parseGpsAddress = (address) => {
+    if (!address || typeof address !== "string") return null;
+
+    const match = address.match(
+      /^GPS:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)(?:\s*\(Accuracy:\s*(\d+)m\))?$/i
+    );
+
+    if (!match) return null;
+
+    return {
+      latitude: match[1],
+      longitude: match[2],
+      accuracy: match[3] || "",
+    };
+  };
+
+  const getGoogleMapsLink = (latitude, longitude) => {
+    return `https://www.google.com/maps?q=${latitude},${longitude}`;
+  };
+
   const getStatusBadge = (status) => {
     if (status === "accepted") {
       return { text: "Accepted", style: { background: "#dbeafe", color: "#1d4ed8" } };
@@ -168,6 +188,65 @@ function CleanerMyJobs() {
     border: "1px solid #bbf7d0",
   };
 
+  const gpsBoxStyle = {
+    marginBottom: "16px",
+    padding: "12px",
+    borderRadius: "12px",
+    background: "#ecfeff",
+    border: "1px solid #a5f3fc",
+  };
+
+  const gpsBadgeStyle = {
+    display: "inline-block",
+    background: "#cffafe",
+    color: "#155e75",
+    padding: "6px 12px",
+    borderRadius: "999px",
+    fontWeight: "700",
+    fontSize: "13px",
+    marginBottom: "10px",
+  };
+
+  const gpsGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+    gap: "10px",
+    marginTop: "8px",
+  };
+
+  const gpsItemStyle = {
+    background: "white",
+    border: "1px solid #bae6fd",
+    borderRadius: "10px",
+    padding: "10px",
+  };
+
+  const gpsLabelStyle = {
+    color: "#6b7280",
+    fontSize: "12px",
+    marginBottom: "4px",
+    fontWeight: "600",
+  };
+
+  const gpsValueStyle = {
+    color: "#111827",
+    fontSize: "15px",
+    fontWeight: "700",
+    wordBreak: "break-word",
+  };
+
+  const mapButtonStyle = {
+    display: "inline-block",
+    marginTop: "12px",
+    background: "#0f766e",
+    color: "white",
+    textDecoration: "none",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    fontWeight: "700",
+    fontSize: "14px",
+  };
+
   const badgeBaseStyle = {
     display: "inline-block",
     padding: "6px 12px",
@@ -200,6 +279,7 @@ function CleanerMyJobs() {
     display: "flex",
     gap: "10px",
     marginTop: "10px",
+    flexWrap: "wrap",
   };
 
   const contactLinkStyle = {
@@ -221,6 +301,7 @@ function CleanerMyJobs() {
           {jobs.map((job) => {
             const badge = getStatusBadge(job.status);
             const whatsappPhone = formatPhoneForWhatsApp(job.customer_phone);
+            const gpsLocation = parseGpsAddress(job.address);
 
             return (
               <div key={job.id} style={jobCardStyle}>
@@ -234,12 +315,58 @@ function CleanerMyJobs() {
                   UGX {Number(job.price).toLocaleString()}
                 </div>
 
-                <div style={locationBoxStyle}>
-                  <div style={labelStyle}>📍 Location</div>
-                  <div style={{ ...valueStyle, marginBottom: 0, color: "#166534" }}>
-                    {job.address ? job.address : "Location not available"}
+                {gpsLocation ? (
+                  <div style={gpsBoxStyle}>
+                    <div style={labelStyle}>📍 Customer Location</div>
+                    <div style={gpsBadgeStyle}>GPS Location</div>
+
+                    <div style={gpsGridStyle}>
+                      <div style={gpsItemStyle}>
+                        <div style={gpsLabelStyle}>Latitude</div>
+                        <div style={gpsValueStyle}>{gpsLocation.latitude}</div>
+                      </div>
+
+                      <div style={gpsItemStyle}>
+                        <div style={gpsLabelStyle}>Longitude</div>
+                        <div style={gpsValueStyle}>{gpsLocation.longitude}</div>
+                      </div>
+
+                      {gpsLocation.accuracy && (
+                        <div style={gpsItemStyle}>
+                          <div style={gpsLabelStyle}>Accuracy</div>
+                          <div style={gpsValueStyle}>{gpsLocation.accuracy} meters</div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        color: "#155e75",
+                        fontSize: "14px",
+                        marginTop: "10px",
+                        lineHeight: "1.5",
+                      }}
+                    >
+                      This job uses the customer&apos;s GPS location.
+                    </div>
+
+                    <a
+                      href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={mapButtonStyle}
+                    >
+                      Open in Google Maps
+                    </a>
                   </div>
-                </div>
+                ) : (
+                  <div style={locationBoxStyle}>
+                    <div style={labelStyle}>📍 Location</div>
+                    <div style={{ ...valueStyle, marginBottom: 0, color: "#166534" }}>
+                      {job.address ? job.address : "Location not available"}
+                    </div>
+                  </div>
+                )}
 
                 <div style={labelStyle}>📦 Status</div>
                 <div style={{ ...badgeBaseStyle, ...badge.style }}>
