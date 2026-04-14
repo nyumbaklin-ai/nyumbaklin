@@ -92,12 +92,12 @@ function Footer() {
         <div style={sectionStyle}>
           <p style={titleStyle}>Contact Us</p>
 
-          <a href="tel:+256750749484" style={callButton}>
+          <a href="tel:+256781812743" style={callButton}>
             📞 Call Us
           </a>
 
           <a
-            href="https://wa.me/256781812743"
+            href="https://wa.me/256750749484"
             target="_blank"
             rel="noopener noreferrer"
             style={whatsappButton}
