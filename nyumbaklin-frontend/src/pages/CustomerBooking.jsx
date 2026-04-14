@@ -14,6 +14,8 @@ function CustomerBooking() {
   const [paymentMethod, setPaymentMethod] = useState("pay_after");
   const [gettingLocation, setGettingLocation] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
+  const [gpsAccuracy, setGpsAccuracy] = useState(null);
+  const [gpsTimestamp, setGpsTimestamp] = useState("");
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -98,37 +100,86 @@ function CustomerBooking() {
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert("GPS is not supported on this device/browser");
+      setLocationMessage("GPS is not supported on this device/browser.");
+      return;
+    }
+
+    if (!window.isSecureContext && window.location.hostname !== "localhost") {
+      setLocationMessage("GPS needs HTTPS or localhost to work on this device.");
       return;
     }
 
     setGettingLocation(true);
-    setLocationMessage("Getting your current location...");
+    setLocationMessage("Getting your current location... Please allow GPS access.");
+    setGpsAccuracy(null);
+    setGpsTimestamp("");
+
+    const savePosition = (position) => {
+      const latitude = position.coords.latitude.toFixed(6);
+      const longitude = position.coords.longitude.toFixed(6);
+      const accuracy =
+        typeof position.coords.accuracy === "number"
+          ? Math.round(position.coords.accuracy)
+          : null;
+
+      const capturedTime = new Date(position.timestamp).toLocaleString();
+
+      setArea("Other");
+      setCustomArea(
+        accuracy
+          ? `GPS: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`
+          : `GPS: ${latitude}, ${longitude}`
+      );
+      setGpsAccuracy(accuracy);
+      setGpsTimestamp(capturedTime);
+
+      if (accuracy && accuracy <= 50) {
+        setLocationMessage("✅ GPS location added successfully.");
+      } else if (accuracy && accuracy > 50) {
+        setLocationMessage(
+          "✅ GPS location added, but accuracy is a bit low. You can edit the location if needed."
+        );
+      } else {
+        setLocationMessage("✅ GPS location added. You can still edit it if needed.");
+      }
+
+      setGettingLocation(false);
+    };
+
+    const handleFinalError = (error) => {
+      console.error("Location error:", error);
+
+      if (error.code === 1) {
+        setLocationMessage("Location permission denied. Please allow GPS and try again.");
+      } else if (error.code === 2) {
+        setLocationMessage("Unable to detect your location right now. Please move to an open area and try again.");
+      } else if (error.code === 3) {
+        setLocationMessage("Location request timed out. Please try again.");
+      } else {
+        setLocationMessage("Failed to get location.");
+      }
+
+      setGettingLocation(false);
+    };
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const latitude = position.coords.latitude.toFixed(6);
-        const longitude = position.coords.longitude.toFixed(6);
-
-        setArea("Other");
-        setCustomArea(`GPS: ${latitude}, ${longitude}`);
-        setLocationMessage("✅ GPS location added. You can still edit it if needed.");
-        setGettingLocation(false);
-      },
+      savePosition,
       (error) => {
-        console.error("Location error:", error);
+        if (error.code === 3) {
+          setLocationMessage("GPS is taking long. Retrying with normal accuracy...");
 
-        if (error.code === 1) {
-          setLocationMessage("Location permission denied. Please allow GPS and try again.");
-        } else if (error.code === 2) {
-          setLocationMessage("Unable to detect your location right now.");
-        } else if (error.code === 3) {
-          setLocationMessage("Location request timed out. Please try again.");
+          navigator.geolocation.getCurrentPosition(
+            savePosition,
+            handleFinalError,
+            {
+              enableHighAccuracy: false,
+              timeout: 15000,
+              maximumAge: 60000,
+            }
+          );
         } else {
-          setLocationMessage("Failed to get location.");
+          handleFinalError(error);
         }
-
-        setGettingLocation(false);
       },
       {
         enableHighAccuracy: true,
@@ -484,12 +535,48 @@ function CustomerBooking() {
                 >
                   {locationMessage}
                 </p>
+
+                {gpsAccuracy && (
+                  <p
+                    style={{
+                      margin: "8px 0 0 0",
+                      color: "#164e63",
+                      fontSize: "13px",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    Accuracy: about {gpsAccuracy} meters
+                  </p>
+                )}
+
+                {gpsTimestamp && (
+                  <p
+                    style={{
+                      margin: "4px 0 0 0",
+                      color: "#164e63",
+                      fontSize: "13px",
+                      lineHeight: "1.6",
+                    }}
+                  >
+                    Captured: {gpsTimestamp}
+                  </p>
+                )}
               </div>
             )}
 
             <select
               value={area}
-              onChange={(e) => setArea(e.target.value)}
+              onChange={(e) => {
+                const selectedArea = e.target.value;
+                setArea(selectedArea);
+
+                if (selectedArea !== "Other") {
+                  setCustomArea("");
+                  setLocationMessage("");
+                  setGpsAccuracy(null);
+                  setGpsTimestamp("");
+                }
+              }}
               style={selectStyle}
             >
               <option value="">Select area</option>
@@ -501,7 +588,7 @@ function CustomerBooking() {
             {area === "Other" && (
               <input
                 type="text"
-                placeholder="Enter your area or GPS location"
+                placeholder="Enter your area, landmark, or GPS location"
                 value={customArea}
                 onChange={(e) => setCustomArea(e.target.value)}
                 style={inputStyle}
