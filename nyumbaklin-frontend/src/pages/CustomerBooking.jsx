@@ -22,12 +22,52 @@ function CustomerBooking() {
     service === "Office Cleaning";
 
   const kampalaAreas = [
-    "Ntinda","Kisaasi","Najjera","Kyaliwajjala","Bukoto","Bugolobi","Kibuli","Muyenga",
-    "Kansanga","Makindye","Rubaga","Mengo","Nansana","Wakiso","Kawempe","Bwaise",
-    "Kireka","Namugongo","Seeta","Gayaza","Entebbe","Nakawa","Banda","Kasubi",
-    "Munyonyo","Bunga","Luzira","Najjanankumbi","Lubowa","Zzana","Kitintale",
-    "Kulambiro","Naalya","Kyebando","Kamwokya","Kololo","Acacia","Wandegeya",
-    "Makerere","Mulago","Old Kampala","Kabalagala","Bukasa","Sonde","Mukono","Other"
+    "Ntinda",
+    "Kisaasi",
+    "Najjera",
+    "Kyaliwajjala",
+    "Bukoto",
+    "Bugolobi",
+    "Kibuli",
+    "Muyenga",
+    "Kansanga",
+    "Makindye",
+    "Rubaga",
+    "Mengo",
+    "Nansana",
+    "Wakiso",
+    "Kawempe",
+    "Bwaise",
+    "Kireka",
+    "Namugongo",
+    "Seeta",
+    "Gayaza",
+    "Entebbe",
+    "Nakawa",
+    "Banda",
+    "Kasubi",
+    "Munyonyo",
+    "Bunga",
+    "Luzira",
+    "Najjanankumbi",
+    "Lubowa",
+    "Zzana",
+    "Kitintale",
+    "Kulambiro",
+    "Naalya",
+    "Kyebando",
+    "Kamwokya",
+    "Kololo",
+    "Acacia",
+    "Wandegeya",
+    "Makerere",
+    "Mulago",
+    "Old Kampala",
+    "Kabalagala",
+    "Bukasa",
+    "Sonde",
+    "Mukono",
+    "Other",
   ];
 
   const getPrice = () => {
@@ -101,7 +141,7 @@ function CustomerBooking() {
         alert(
           paymentMethod === "pay_after"
             ? "✅ Booking successful! Pay after service."
-            : "✅ Booking successful!"
+            : "✅ Booking received! Your Mobile Money payment will be verified before confirmation."
         );
         navigate("/my-bookings");
       } else {
@@ -195,6 +235,14 @@ function CustomerBooking() {
     marginTop: "14px",
     background: "#eff6ff",
     border: "1px solid #bfdbfe",
+    borderRadius: "16px",
+    padding: "16px",
+  };
+
+  const momoBoxStyle = {
+    marginTop: "16px",
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
     borderRadius: "16px",
     padding: "16px",
   };
@@ -403,6 +451,60 @@ function CustomerBooking() {
               />
               Pay with Mobile Money
             </label>
+
+            {paymentMethod === "momo" && (
+              <div style={momoBoxStyle}>
+                <p
+                  style={{
+                    margin: "0 0 10px 0",
+                    color: "#9a3412",
+                    fontSize: "16px",
+                    fontWeight: "700",
+                  }}
+                >
+                  📲 Mobile Money Payment Instructions
+                </p>
+
+                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
+                  1. Go to your Mobile Money menu on MTN or Airtel.
+                </p>
+
+                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
+                  2. Send the full booking amount to:
+                </p>
+
+                <p
+                  style={{
+                    margin: "0 0 10px 0",
+                    color: "#0f172a",
+                    fontSize: "18px",
+                    fontWeight: "800",
+                  }}
+                >
+                  📞 0781812743
+                </p>
+
+                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
+                  3. Use your phone number or name as payment reference.
+                </p>
+
+                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
+                  4. After sending money, click <strong>Book Service</strong> to submit your booking.
+                </p>
+
+                <p
+                  style={{
+                    margin: "12px 0 0 0",
+                    color: "#b91c1c",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    lineHeight: "1.6",
+                  }}
+                >
+                  ⚠️ Bookings paid by Mobile Money are confirmed after payment verification.
+                </p>
+              </div>
+            )}
 
             <p style={noteStyle}>
               Pay after service is safer and builds trust.
