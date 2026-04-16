@@ -82,57 +82,12 @@ const normalizeCleanerSubscription = async (cleaner) => {
   return cleaner;
 };
 
-// ================= CLEANER REGISTER =================
+// ================= CLEANER REGISTER DISABLED =================
 router.post("/register", async (req, res) => {
-  const email = normalizeEmail(req.body.email);
-  const password = String(req.body.password || "");
-  const phone = normalizeText(req.body.phone) || null;
-
-  try {
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-
-    const existingUser = await pool.query(
-      "SELECT id FROM customers WHERE email=$1",
-      [email]
-    );
-
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: "Email already registered" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await pool.query(
-      `
-      INSERT INTO customers
-      (name, email, password, role, phone, subscription_type, subscription_status, subscription_expiry)
-      VALUES ($1, $2, $3, 'cleaner', $4, $5, $6, $7)
-      `,
-      [
-        "Cleaner",
-        email,
-        hashedPassword,
-        phone,
-        "ordinary",
-        "inactive",
-        null,
-      ]
-    );
-
-    res.json({
-      message: "Cleaner registered successfully",
-      role: "cleaner",
-    });
-  } catch (error) {
-    console.error("Cleaner registration error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+  return res.status(403).json({
+    message:
+      "Public cleaner registration is disabled. Please visit the Nyumbaklin office for physical verification and account approval.",
+  });
 });
 
 // ================= UPGRADE SUBSCRIPTION =================
