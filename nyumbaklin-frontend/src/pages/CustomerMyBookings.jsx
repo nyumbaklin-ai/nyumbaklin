@@ -484,6 +484,12 @@ function CustomerMyBookings() {
                             <div style={valueStyle}>{gpsLocation.accuracy} meters</div>
                           </div>
                         )}
+                        {b.gps_readable_location && (
+  <div style={gpsCardStyle}>
+    <div style={labelStyle}>Approx Area</div>
+    <div style={valueStyle}>{b.gps_readable_location}</div>
+  </div>
+)}
                       </div>
 
                       <div style={gpsSubTextStyle}>
