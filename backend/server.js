@@ -1,9 +1,14 @@
 ﻿const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const app = express();
 const pool = require("./config/db");
+
+// Trust proxy for Render / production reverse proxy
+app.set("trust proxy", 1);
 
 // Hide Express signature
 app.disable("x-powered-by");
@@ -16,6 +21,32 @@ const allowedOrigins = [
   "https://www.nyumbaklin.com",
   "https://nyumbaklin.com",
 ].filter(Boolean);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many attempts. Please wait a few minutes and try again.",
+  },
+});
+
+const adminSetupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many admin setup attempts. Please try again later.",
+  },
+});
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
 app.use(
   cors({
@@ -41,6 +72,12 @@ app.use(express.json({ limit: "1mb" }));
 const customerRoutes = require("./routes/customerRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const cleanerRoutes = require("./routes/cleanerRoutes");
+
+// Rate limit only sensitive auth/setup routes
+app.use("/customers/login", authLimiter);
+app.use("/customers/register", authLimiter);
+app.use("/cleaner/register", authLimiter);
+app.use("/customers/setup-admin", adminSetupLimiter);
 
 // Ensure required DB updates exist
 async function ensureDatabaseUpdates() {
@@ -98,6 +135,20 @@ app.use("/cleaner", cleanerRoutes);
 // Health route
 app.get("/", (req, res) => {
   res.send("Nyumbaklin backend is running");
+});
+
+// CORS / unexpected error handler
+app.use((err, req, res, next) => {
+  if (err && err.message === "Not allowed by CORS") {
+    return res.status(403).json({ message: "Not allowed by CORS" });
+  }
+
+  if (err) {
+    console.error("Server error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+
+  next();
 });
 
 // Server Port
