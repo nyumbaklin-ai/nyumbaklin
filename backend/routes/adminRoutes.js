@@ -4,11 +4,13 @@ const router = express.Router();
 const { auth, adminOnly } = require("../middleware/auth");
 const pool = require("../config/db");
 
+const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
+
 // ================= ADMIN DASHBOARD =================
 router.get("/dashboard", auth, adminOnly, (req, res) => {
   res.json({
     message: "Welcome to Admin Dashboard",
-    user: req.user
+    user: req.user,
   });
 });
 
@@ -74,9 +76,7 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
 // ================= ADMIN STATS =================
 router.get("/stats", auth, adminOnly, async (req, res) => {
   try {
-    const totalUsers = await pool.query(
-      "SELECT COUNT(*) FROM customers"
-    );
+    const totalUsers = await pool.query("SELECT COUNT(*) FROM customers");
 
     const totalCustomers = await pool.query(
       "SELECT COUNT(*) FROM customers WHERE role='customer'"
@@ -86,9 +86,7 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
       "SELECT COUNT(*) FROM customers WHERE role='cleaner'"
     );
 
-    const totalBookings = await pool.query(
-      "SELECT COUNT(*) FROM bookings"
-    );
+    const totalBookings = await pool.query("SELECT COUNT(*) FROM bookings");
 
     const completedJobs = await pool.query(
       "SELECT COUNT(*) FROM bookings WHERE status='completed'"
@@ -104,7 +102,7 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
       totalCleaners: totalCleaners.rows[0].count,
       totalBookings: totalBookings.rows[0].count,
       completedJobs: completedJobs.rows[0].count,
-      totalRevenue: totalRevenue.rows[0].revenue
+      totalRevenue: totalRevenue.rows[0].revenue,
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
@@ -116,6 +114,10 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
 router.delete("/delete-user/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
 
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
+
   try {
     const userResult = await pool.query(
       "SELECT id, role FROM customers WHERE id=$1",
@@ -123,24 +125,21 @@ router.delete("/delete-user/:id", auth, adminOnly, async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).send("User not found");
+      return res.status(404).json({ message: "User not found" });
     }
 
     const user = userResult.rows[0];
 
     if (user.role === "admin") {
-      return res.status(403).send("You cannot delete another admin");
+      return res.status(403).json({ message: "You cannot delete another admin" });
     }
 
-    await pool.query(
-      "DELETE FROM customers WHERE id=$1",
-      [id]
-    );
+    await pool.query("DELETE FROM customers WHERE id=$1", [id]);
 
-    res.send("User deleted successfully");
+    res.json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Delete user error:", error);
-    res.status(500).send("Error deleting user");
+    res.status(500).json({ message: "Error deleting user" });
   }
 });
 
@@ -149,10 +148,14 @@ router.put("/change-role/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
 
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
+
   const allowedRoles = ["customer", "cleaner"];
 
   if (!allowedRoles.includes(role)) {
-    return res.status(400).send("Invalid role");
+    return res.status(400).json({ message: "Invalid role" });
   }
 
   try {
@@ -162,22 +165,19 @@ router.put("/change-role/:id", auth, adminOnly, async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).send("User not found");
+      return res.status(404).json({ message: "User not found" });
     }
 
     if (userResult.rows[0].role === "admin") {
-      return res.status(403).send("You cannot change an admin role");
+      return res.status(403).json({ message: "You cannot change an admin role" });
     }
 
-    await pool.query(
-      "UPDATE customers SET role=$1 WHERE id=$2",
-      [role, id]
-    );
+    await pool.query("UPDATE customers SET role=$1 WHERE id=$2", [role, id]);
 
-    res.send("User role updated successfully");
+    res.json({ message: "User role updated successfully" });
   } catch (error) {
     console.error("Role update error:", error);
-    res.status(500).send("Error updating role");
+    res.status(500).json({ message: "Error updating role" });
   }
 });
 
@@ -185,25 +185,25 @@ router.put("/change-role/:id", auth, adminOnly, async (req, res) => {
 router.delete("/delete-booking/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
 
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
   try {
-    const bookingCheck = await pool.query(
-      "SELECT id FROM bookings WHERE id=$1",
-      [id]
-    );
+    const bookingCheck = await pool.query("SELECT id FROM bookings WHERE id=$1", [
+      id,
+    ]);
 
     if (bookingCheck.rows.length === 0) {
-      return res.status(404).send("Booking not found");
+      return res.status(404).json({ message: "Booking not found" });
     }
 
-    await pool.query(
-      "DELETE FROM bookings WHERE id=$1",
-      [id]
-    );
+    await pool.query("DELETE FROM bookings WHERE id=$1", [id]);
 
-    res.send("Booking deleted successfully");
+    res.json({ message: "Booking deleted successfully" });
   } catch (error) {
     console.error("Delete booking error:", error);
-    res.status(500).send("Error deleting booking");
+    res.status(500).json({ message: "Error deleting booking" });
   }
 });
 
@@ -212,29 +212,29 @@ router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
   const { price } = req.body;
 
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
   if (!price || isNaN(price) || Number(price) < 0) {
-    return res.status(400).send("Invalid price value");
+    return res.status(400).json({ message: "Invalid price value" });
   }
 
   try {
-    const bookingCheck = await pool.query(
-      "SELECT id FROM bookings WHERE id=$1",
-      [id]
-    );
+    const bookingCheck = await pool.query("SELECT id FROM bookings WHERE id=$1", [
+      id,
+    ]);
 
     if (bookingCheck.rows.length === 0) {
-      return res.status(404).send("Booking not found");
+      return res.status(404).json({ message: "Booking not found" });
     }
 
-    await pool.query(
-      "UPDATE bookings SET price=$1 WHERE id=$2",
-      [price, id]
-    );
+    await pool.query("UPDATE bookings SET price=$1 WHERE id=$2", [price, id]);
 
-    res.send("Booking price updated successfully");
+    res.json({ message: "Booking price updated successfully" });
   } catch (error) {
     console.error("Price update error:", error);
-    res.status(500).send("Error updating price");
+    res.status(500).json({ message: "Error updating price" });
   }
 });
 
@@ -243,15 +243,19 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
   const { payment_status, payment_method } = req.body;
 
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
   const allowedPaymentStatuses = ["unpaid", "paid"];
   const allowedPaymentMethods = ["cash", "mobile_money"];
 
   if (!allowedPaymentStatuses.includes(payment_status)) {
-    return res.status(400).send("Invalid payment status");
+    return res.status(400).json({ message: "Invalid payment status" });
   }
 
   if (!allowedPaymentMethods.includes(payment_method)) {
-    return res.status(400).send("Invalid payment method");
+    return res.status(400).json({ message: "Invalid payment method" });
   }
 
   try {
@@ -261,7 +265,7 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
     );
 
     if (bookingCheck.rows.length === 0) {
-      return res.status(404).send("Booking not found");
+      return res.status(404).json({ message: "Booking not found" });
     }
 
     const booking = bookingCheck.rows[0];
@@ -285,10 +289,10 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
       [payment_status, payment_method, commission, cleanerAmount, id]
     );
 
-    res.send("Payment status updated successfully");
+    res.json({ message: "Payment status updated successfully" });
   } catch (error) {
     console.error("Payment status update error:", error);
-    res.status(500).send("Error updating payment status");
+    res.status(500).json({ message: "Error updating payment status" });
   }
 });
 
@@ -296,26 +300,32 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
 router.put("/update-payout-status/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
 
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
   try {
     const bookingCheck = await pool.query(
-      "SELECT id, payment_status, cleaner FROM bookings WHERE id=$1",
+      "SELECT id, payment_status, cleaner, cleaner_payout_status FROM bookings WHERE id=$1",
       [id]
     );
 
     if (bookingCheck.rows.length === 0) {
-      return res.status(404).send("Booking not found");
+      return res.status(404).json({ message: "Booking not found" });
     }
 
     const booking = bookingCheck.rows[0];
 
-    // ❌ Prevent payout if not paid
     if (booking.payment_status !== "paid") {
-      return res.status(400).send("Customer has not paid yet");
+      return res.status(400).json({ message: "Customer has not paid yet" });
     }
 
-    // ❌ Prevent payout if no cleaner
     if (!booking.cleaner) {
-      return res.status(400).send("No cleaner assigned");
+      return res.status(400).json({ message: "No cleaner assigned" });
+    }
+
+    if (booking.cleaner_payout_status === "paid") {
+      return res.status(400).json({ message: "Cleaner payout is already marked as paid" });
     }
 
     await pool.query(
@@ -323,10 +333,10 @@ router.put("/update-payout-status/:id", auth, adminOnly, async (req, res) => {
       [id]
     );
 
-    res.send("Cleaner paid successfully ✅");
+    res.json({ message: "Cleaner paid successfully ✅" });
   } catch (error) {
     console.error("Cleaner payout update error:", error);
-    res.status(500).send("Error updating cleaner payout status");
+    res.status(500).json({ message: "Error updating cleaner payout status" });
   }
 });
 
