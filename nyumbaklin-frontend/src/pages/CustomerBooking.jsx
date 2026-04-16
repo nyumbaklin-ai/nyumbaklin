@@ -241,6 +241,7 @@ function CustomerBooking() {
     const finalService = service === "Other" ? customService.trim() : service;
     const finalPrice = getPrice();
     const finalAddress = area === "Other" ? customArea.trim() : area;
+    const isGpsAddress = finalAddress.startsWith("GPS:");
 
     if (!finalService) return alert("Select service");
     if (needsRoomSelection && !roomSize) return alert("Select rooms");
@@ -273,6 +274,7 @@ function CustomerBooking() {
           price: finalPrice,
           address: finalAddress,
           payment_method: paymentMethod,
+          gps_readable_location: isGpsAddress ? gpsReadableLocation || null : null,
         }),
       });
 
