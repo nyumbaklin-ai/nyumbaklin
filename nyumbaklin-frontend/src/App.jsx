@@ -14,7 +14,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsConditions from "./pages/TermsConditions";
 
 const API_URL = import.meta.env.VITE_API_URL;
-console.log("API_URL:", API_URL);
+
 
 const authPageStyle = {
   minHeight: "100vh",
@@ -396,16 +396,36 @@ function CleanerRegister() {
   );
 }
 
+const getDefaultRouteByRole = (role) => {
+  if (role === "admin") return "/dashboard";
+  if (role === "cleaner") return "/cleaner/dashboard";
+  if (role === "customer") return "/book-service";
+  return "/";
+};
+
 function ProtectedRoute({ children, allowedRole }) {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
 
-  if (!token) {
-    return <Navigate to="/" />;
+  if (!token || !role) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    return <Navigate to="/" replace />;
   }
 
   if (allowedRole && role !== allowedRole) {
-    return <Navigate to="/" />;
+    return <Navigate to={getDefaultRouteByRole(role)} replace />;
+  }
+
+  return children;
+}
+
+function PublicOnlyRoute({ children }) {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+
+  if (token && role) {
+    return <Navigate to={getDefaultRouteByRole(role)} replace />;
   }
 
   return children;
@@ -1595,9 +1615,30 @@ function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/cleaner-register" element={<CleanerRegister />} />
+        <Route
+  path="/"
+  element={
+    <PublicOnlyRoute>
+      <Login />
+    </PublicOnlyRoute>
+  }
+/>
+<Route
+  path="/register"
+  element={
+    <PublicOnlyRoute>
+      <Register />
+    </PublicOnlyRoute>
+  }
+/>
+<Route
+  path="/cleaner-register"
+  element={
+    <PublicOnlyRoute>
+      <CleanerRegister />
+    </PublicOnlyRoute>
+  }
+/>
 
         <Route
           path="/dashboard"
