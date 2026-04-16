@@ -810,6 +810,9 @@ const getGoogleMapsLink = (latitude, longitude) => {
     const emailText = booking.email ? booking.email.toLowerCase() : "";
     const serviceText = booking.service ? booking.service.toLowerCase() : "";
     const addressText = booking.address ? booking.address.toLowerCase() : "";
+    const gpsReadableText = booking.gps_readable_location
+  ? booking.gps_readable_location.toLowerCase()
+  : "";
     const customerPhoneText = booking.customer_phone ? booking.customer_phone.toLowerCase() : "";
     const cleanerPhoneText = booking.cleaner_phone ? booking.cleaner_phone.toLowerCase() : "";
 
@@ -817,6 +820,7 @@ const getGoogleMapsLink = (latitude, longitude) => {
       emailText.includes(bookingSearch.toLowerCase()) ||
       serviceText.includes(bookingSearch.toLowerCase()) ||
       addressText.includes(bookingSearch.toLowerCase()) ||
+      gpsReadableText.includes(bookingSearch.toLowerCase()) ||
       customerPhoneText.includes(bookingSearch.toLowerCase()) ||
       cleanerPhoneText.includes(bookingSearch.toLowerCase());
 
@@ -1326,6 +1330,13 @@ const adminGpsMapLinkStyle = {
           <div style={adminGpsValueStyle}>{gpsLocation.accuracy} meters</div>
         </>
       )}
+
+      {booking.gps_readable_location && (
+  <>
+    <div style={adminGpsLabelStyle}>Approx Area</div>
+    <div style={adminGpsValueStyle}>{booking.gps_readable_location}</div>
+  </>
+)}
 
       <a
         href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
