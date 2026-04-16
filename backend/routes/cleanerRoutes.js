@@ -218,7 +218,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, email, service, status, cleaner, price, booking_date, address
+      SELECT id, email, service, status, cleaner, price, booking_date, address, gps_readable_location
       FROM bookings
       WHERE cleaner IS NULL AND status = 'pending'
       ORDER BY booking_date ASC
@@ -399,6 +399,7 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
         b.price,
         b.booking_date,
         b.address,
+        b.gps_readable_location,
         c.phone AS customer_phone
       FROM bookings b
       LEFT JOIN customers c
