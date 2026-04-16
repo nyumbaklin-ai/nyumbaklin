@@ -555,57 +555,53 @@ const readResponseMessage = async (response, fallbackMessage) => {
   };
 
     const changeUserRole = async (id, currentRole) => {
-    const newRole = window.prompt(
-      "Enter new role for this user (admin, cleaner, customer):",
-      currentRole
+  const newRole = window.prompt(
+    "Enter new role for this user (cleaner or customer):",
+    currentRole
+  );
+
+  if (newRole === null) {
+    return;
+  }
+
+  const cleanedRole = newRole.trim().toLowerCase();
+
+  if (cleanedRole !== "cleaner" && cleanedRole !== "customer") {
+    alert("Please enter a valid role: cleaner or customer");
+    return;
+  }
+
+  if (cleanedRole === currentRole) {
+    alert("This user already has that role");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/admin/change-role/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ role: cleanedRole }),
+    });
+
+    const message = await readResponseMessage(
+      response,
+      response.ok ? "User role updated successfully" : "Error changing user role"
     );
 
-    if (newRole === null) {
-      return;
+    alert(message);
+
+    if (response.ok) {
+      fetchUsers();
+      fetchStats();
     }
-
-    const cleanedRole = newRole.trim().toLowerCase();
-
-    if (
-      cleanedRole !== "admin" &&
-      cleanedRole !== "cleaner" &&
-      cleanedRole !== "customer"
-    ) {
-      alert("Please enter a valid role: admin, cleaner, or customer");
-      return;
-    }
-
-    if (cleanedRole === currentRole) {
-      alert("This user already has that role");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/admin/change-role/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-        body: JSON.stringify({ role: cleanedRole }),
-      });
-
-      const message = await readResponseMessage(
-        response,
-        response.ok ? "User role updated successfully" : "Error changing user role"
-      );
-
-      alert(message);
-
-      if (response.ok) {
-        fetchUsers();
-        fetchStats();
-      }
-    } catch (error) {
-      console.error("Error changing user role:", error);
-      alert("Error changing user role");
-    }
-  };
+  } catch (error) {
+    console.error("Error changing user role:", error);
+    alert("Error changing user role");
+  }
+};
 
     const deleteBooking = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
