@@ -337,6 +337,13 @@ function CleanerMyJobs() {
                           <div style={gpsValueStyle}>{gpsLocation.accuracy} meters</div>
                         </div>
                       )}
+
+                      {job.gps_readable_location && (
+  <div style={gpsItemStyle}>
+    <div style={gpsLabelStyle}>Approx Area</div>
+    <div style={gpsValueStyle}>{job.gps_readable_location}</div>
+  </div>
+)}
                     </div>
 
                     <div
