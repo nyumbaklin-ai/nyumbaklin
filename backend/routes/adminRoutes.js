@@ -44,6 +44,7 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
         b.email,
         b.service,
         b.address,
+        b.gps_readable_location,
         b.status,
         b.cleaner,
         b.price,
