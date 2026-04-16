@@ -5,6 +5,10 @@ const bcrypt = require("bcryptjs");
 const { auth, cleanerOnly } = require("../middleware/auth");
 const pool = require("../config/db");
 
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const normalizeText = (value) => String(value || "").trim();
+const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
+
 // ================= HELPER: GET CURRENT CLEANER =================
 const getCurrentCleaner = async (user) => {
   if (user.id) {
@@ -80,20 +84,26 @@ const normalizeCleanerSubscription = async (cleaner) => {
 
 // ================= CLEANER REGISTER =================
 router.post("/register", async (req, res) => {
-  const { email, password, phone } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const password = String(req.body.password || "");
+  const phone = normalizeText(req.body.phone) || null;
 
   try {
     if (!email || !password) {
-      return res.status(400).send("Email and password are required");
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
     const existingUser = await pool.query(
-      "SELECT * FROM customers WHERE email=$1",
+      "SELECT id FROM customers WHERE email=$1",
       [email]
     );
 
     if (existingUser.rows.length > 0) {
-      return res.status(400).send("Email already registered");
+      return res.status(400).json({ message: "Email already registered" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -108,7 +118,7 @@ router.post("/register", async (req, res) => {
         "Cleaner",
         email,
         hashedPassword,
-        phone || null,
+        phone,
         "ordinary",
         "inactive",
         null,
@@ -121,25 +131,25 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.error("Cleaner registration error:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // ================= UPGRADE SUBSCRIPTION =================
 router.put("/upgrade-subscription", auth, cleanerOnly, async (req, res) => {
-  const { plan } = req.body;
+  const plan = normalizeText(req.body.plan);
 
   try {
     if (!plan || (plan !== "weekly" && plan !== "monthly")) {
-      return res
-        .status(400)
-        .send("Plan is required and must be either weekly or monthly");
+      return res.status(400).json({
+        message: "Plan is required and must be either weekly or monthly",
+      });
     }
 
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -180,7 +190,7 @@ router.put("/upgrade-subscription", auth, cleanerOnly, async (req, res) => {
     });
   } catch (error) {
     console.error("Error upgrading subscription:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -190,7 +200,7 @@ router.get("/subscription-status", auth, cleanerOnly, async (req, res) => {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -198,7 +208,7 @@ router.get("/subscription-status", auth, cleanerOnly, async (req, res) => {
     res.json(cleaner);
   } catch (error) {
     console.error("Error fetching subscription status:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -208,7 +218,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -266,7 +276,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
     res.json(cleanedJobs);
   } catch (error) {
     console.error("Error fetching available jobs:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -274,11 +284,15 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
+  if (!isValidId(jobId)) {
+    return res.status(400).json({ message: "Invalid job id" });
+  }
+
   try {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -287,7 +301,8 @@ router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
       `
       UPDATE bookings
       SET cleaner = $1,
-          status = 'accepted'
+          status = 'accepted',
+          seen = true
       WHERE id = $2
       AND cleaner IS NULL
       RETURNING *
@@ -296,13 +311,13 @@ router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("Job not found or already accepted");
+      return res.status(400).json({ message: "Job not found or already accepted" });
     }
 
-    res.send("Job accepted successfully");
+    res.json({ message: "Job accepted successfully" });
   } catch (error) {
     console.error("Error accepting job:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -310,11 +325,15 @@ router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
 router.put("/start-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
+  if (!isValidId(jobId)) {
+    return res.status(400).json({ message: "Invalid job id" });
+  }
+
   try {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -332,13 +351,13 @@ router.put("/start-job/:id", auth, cleanerOnly, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("Job not found or cannot be started");
+      return res.status(400).json({ message: "Job not found or cannot be started" });
     }
 
-    res.send("Job started");
+    res.json({ message: "Job started" });
   } catch (error) {
     console.error("Error starting job:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -346,11 +365,15 @@ router.put("/start-job/:id", auth, cleanerOnly, async (req, res) => {
 router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
   const jobId = req.params.id;
 
+  if (!isValidId(jobId)) {
+    return res.status(400).json({ message: "Invalid job id" });
+  }
+
   try {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -368,13 +391,13 @@ router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("Job not found or cannot be completed");
+      return res.status(400).json({ message: "Job not found or cannot be completed" });
     }
 
-    res.send("Job completed");
+    res.json({ message: "Job completed" });
   } catch (error) {
     console.error("Error completing job:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -384,7 +407,7 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -423,7 +446,7 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
     res.json(jobs);
   } catch (error) {
     console.error("Error fetching cleaner jobs:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -433,7 +456,7 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -491,7 +514,7 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching cleaner earnings:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -501,7 +524,7 @@ router.get("/earnings-history", auth, cleanerOnly, async (req, res) => {
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
-      return res.status(404).send("Cleaner not found");
+      return res.status(404).json({ message: "Cleaner not found" });
     }
 
     cleaner = await normalizeCleanerSubscription(cleaner);
@@ -526,7 +549,7 @@ router.get("/earnings-history", auth, cleanerOnly, async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error("Error fetching earnings history:", error);
-    res.status(500).send("Server error");
+    res.status(500).json({ message: "Server error" });
   }
 });
 
