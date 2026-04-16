@@ -236,65 +236,76 @@ function CustomerBooking() {
   };
 
   const handleBooking = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const finalService = service === "Other" ? customService.trim() : service;
-    const finalPrice = getPrice();
-    const finalAddress = area === "Other" ? customArea.trim() : area;
-    const isGpsAddress = finalAddress.startsWith("GPS:");
+  const finalService = service === "Other" ? customService.trim() : service;
+  const finalPrice = getPrice();
+  const finalAddress = area === "Other" ? customArea.trim() : area;
+  const isGpsAddress = finalAddress.startsWith("GPS:");
 
-    if (!finalService) return alert("Select service");
-    if (needsRoomSelection && !roomSize) return alert("Select rooms");
+  if (!finalService) return alert("Select service");
+  if (needsRoomSelection && !roomSize) return alert("Select rooms");
 
-    if (service === "Other" && (!customPrice || Number(customPrice) <= 0)) {
-      return alert("Enter valid price");
-    }
+  if (service === "Other" && (!customPrice || Number(customPrice) <= 0)) {
+    return alert("Enter valid price");
+  }
 
-    if (!area) return alert("Select location");
+  if (!area) return alert("Select location");
 
-    if (area === "Other" && !customArea.trim()) {
-      return alert("Enter location");
-    }
+  if (area === "Other" && !customArea.trim()) {
+    return alert("Enter location");
+  }
 
-    if (!date) return alert("Select date");
+  if (!date) return alert("Select date");
+
+  try {
+    const response = await fetch(`${API_URL}/customers/book-service`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        service:
+          service === "Other"
+            ? finalService
+            : `${finalService} (${roomSize} rooms)`,
+        booking_date: date,
+        price: finalPrice,
+        address: finalAddress,
+        payment_method: paymentMethod,
+        gps_readable_location: isGpsAddress ? gpsReadableLocation || null : null,
+      }),
+    });
+
+    let data = {};
 
     try {
-      const response = await fetch(`${API_URL}/customers/book-service`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-        body: JSON.stringify({
-          service:
-            service === "Other"
-              ? finalService
-              : `${finalService} (${roomSize} rooms)`,
-          booking_date: date,
-          price: finalPrice,
-          address: finalAddress,
-          payment_method: paymentMethod,
-          gps_readable_location: isGpsAddress ? gpsReadableLocation || null : null,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert(
-          paymentMethod === "pay_after"
-            ? "✅ Booking successful! Pay after service."
-            : "✅ Booking received! Your Mobile Money payment will be verified before confirmation."
-        );
-        navigate("/my-bookings");
-      } else {
-        alert(data.message || "Booking failed");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Error occurred");
+      data = await response.json();
+    } catch {
+      data = {};
     }
-  };
+
+    if (response.ok) {
+      alert(
+        paymentMethod === "pay_after"
+          ? "✅ Booking successful! Pay after service."
+          : "✅ Booking received! Your Mobile Money payment will be verified before confirmation."
+      );
+      navigate("/my-bookings");
+    } else {
+      alert(data.message || "Booking failed. Please try again.");
+    }
+  } catch (error) {
+    console.error("Booking error:", error);
+
+    if (!navigator.onLine) {
+      alert("No internet connection. Please check your network and try again.");
+    } else {
+      alert("Something went wrong while sending your booking. Please try again.");
+    }
+  }
+};
 
   const pageStyle = {
     minHeight: "100vh",
