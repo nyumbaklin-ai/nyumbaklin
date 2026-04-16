@@ -148,15 +148,15 @@ function Login() {
             </Link>
 
             <Link
-              to="/cleaner-register"
-              style={{
-                color: "#16a34a",
-                fontWeight: "700",
-                textDecoration: "none",
-              }}
-            >
-              Cleaner Register
-            </Link>
+  to="/cleaner-register"
+  style={{
+    color: "#16a34a",
+    fontWeight: "700",
+    textDecoration: "none",
+  }}
+>
+  Cleaner Joining Info
+</Link>
           </div>
         </div>
       </div>
@@ -281,105 +281,67 @@ function Register() {
 }
 
 function CleanerRegister() {
-  const navigate = useNavigate();
-
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const handleCleanerRegister = async (e) => {
-    e.preventDefault();
-
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/cleaner/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, phone }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert(data.message || "Cleaner registration successful");
-        navigate("/");
-      } else {
-        alert(data.message || "Cleaner registration failed");
-      }
-    } catch (error) {
-      console.error("Cleaner registration error:", error);
-      alert("Something went wrong during cleaner registration");
-    }
-  };
-
   return (
     <div style={authPageStyle}>
       <div style={authCardStyle}>
         <div style={{ textAlign: "center", marginBottom: "22px" }}>
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>Cleaner Registration</h2>
-          <p style={{ marginTop: "10px", color: "#64748b" }}>
-            Join Nyumbaklin as a cleaner and start receiving jobs.
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
+            Cleaner Joining Information
+          </h2>
+          <p style={{ marginTop: "10px", color: "#64748b", lineHeight: "1.7" }}>
+            Nyumbaklin does not allow public online cleaner registration.
           </p>
         </div>
 
-        <form onSubmit={handleCleanerRegister}>
-          <input
-            type="email"
-            placeholder="Cleaner email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={authInputStyle}
-          />
+        <div
+          style={{
+            background: "#f8fafc",
+            border: "1px solid #e5e7eb",
+            borderRadius: "14px",
+            padding: "18px",
+            color: "#334155",
+            lineHeight: "1.8",
+            fontSize: "15px",
+          }}
+        >
+          <p style={{ marginTop: 0 }}>
+            To join Nyumbaklin as a cleaner, you must first come to our office for
+            physical verification.
+          </p>
 
-          <input
-            type="text"
-            placeholder="Phone number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-            style={authInputStyle}
-          />
+          <p>
+            Please carry your important documents, such as your National ID,
+            phone number, and any other details required for approval.
+          </p>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={authInputStyle}
-          />
+          <p style={{ marginBottom: 0 }}>
+            After verification and approval, Nyumbaklin will create your cleaner
+            account safely and give you login details.
+          </p>
+        </div>
 
-          <input
-            type="password"
-            placeholder="Confirm password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            style={authInputStyle}
-          />
-
-          <button
-            type="submit"
+        <p
+          style={{
+            marginTop: "18px",
+            textAlign: "center",
+            color: "#475569",
+            lineHeight: "1.7",
+          }}
+        >
+          Already approved and given login details?{" "}
+          <Link
+            to="/"
             style={{
-              ...primaryButtonStyle,
-              background: "linear-gradient(90deg, #16a34a, #15803d)",
-              boxShadow: "0 10px 18px rgba(22, 163, 74, 0.20)",
+              color: "#2563eb",
+              fontWeight: "700",
+              textDecoration: "none",
             }}
           >
-            Register as Cleaner
-          </button>
-        </form>
+            Go to login
+          </Link>
+        </p>
 
-        <p style={{ marginTop: "18px", textAlign: "center", color: "#475569" }}>
-          Already have an account?{" "}
+        <p style={{ marginTop: "10px", textAlign: "center", color: "#475569" }}>
           <Link
             to="/"
             style={{
