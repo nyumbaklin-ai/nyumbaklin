@@ -3,43 +3,43 @@ const router = express.Router();
 const pool = require("../config/db");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const { auth } = require("../middleware/auth");
+const { auth, cleanerOnly } = require("../middleware/auth");
 const pendingPayments = new Map();
 
-// ================= ROLE CHECK =================
-const adminOnly = (req, res, next) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).send("Access denied. Admins only.");
-  }
-  next();
-};
-
-const cleanerOnly = (req, res, next) => {
-  if (req.user.role !== "cleaner") {
-    return res.status(403).send("Access denied. Cleaners only.");
-  }
-  next();
-};
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+const normalizeText = (value) => String(value || "").trim();
+const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 
 // ================= REGISTER =================
 router.post("/register", async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const name = normalizeText(req.body.name) || "Customer";
+  const email = normalizeEmail(req.body.email);
+  const password = String(req.body.password || "");
+  const phone = normalizeText(req.body.phone) || null;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters" });
+  }
 
   try {
     const existingUser = await pool.query(
-      "SELECT * FROM customers WHERE email=$1",
+      "SELECT id FROM customers WHERE email=$1",
       [email]
     );
 
     if (existingUser.rows.length > 0) {
-      return res.status(400).send("Email already registered");
+      return res.status(400).json({ message: "Email already registered" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
       "INSERT INTO customers (name, email, password, role, phone) VALUES ($1,$2,$3,'customer',$4)",
-      [name || "Customer", email, hashedPassword, phone || null]
+      [name, email, hashedPassword, phone]
     );
 
     res.json({
@@ -47,31 +47,49 @@ router.post("/register", async (req, res) => {
       role: "customer",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error registering customer");
+    console.error("Register error:", error);
+    res.status(500).json({ message: "Error registering customer" });
   }
 });
 
 // ================= ONE-TIME ADMIN SETUP =================
 router.post("/setup-admin", async (req, res) => {
-  const { email, password, secret } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const password = String(req.body.password || "");
+  const secret = String(req.body.secret || "");
 
   try {
+    if (!process.env.ADMIN_SETUP_SECRET) {
+      return res.status(403).json({ message: "Admin setup is disabled" });
+    }
+
     if (!email || !password || !secret) {
-      return res.status(400).send("Email, password and secret are required");
+      return res.status(400).json({ message: "Email, password and secret are required" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
     if (secret !== process.env.ADMIN_SETUP_SECRET) {
-      return res.status(403).send("Invalid setup secret");
+      return res.status(403).json({ message: "Invalid setup secret" });
     }
 
-    const existingAdmin = await pool.query(
-      "SELECT * FROM customers WHERE email=$1",
+    const existingAnyAdmin = await pool.query(
+      "SELECT id FROM customers WHERE role='admin' LIMIT 1"
+    );
+
+    if (existingAnyAdmin.rows.length > 0) {
+      return res.status(403).json({ message: "Admin setup already completed" });
+    }
+
+    const existingUser = await pool.query(
+      "SELECT id FROM customers WHERE email=$1",
       [email]
     );
 
-    if (existingAdmin.rows.length > 0) {
-      return res.status(400).send("Admin email already exists");
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: "Admin email already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -88,13 +106,18 @@ router.post("/setup-admin", async (req, res) => {
     });
   } catch (error) {
     console.error("Admin setup error:", error);
-    res.status(500).send("Error creating admin");
+    res.status(500).json({ message: "Error creating admin" });
   }
 });
 
 // ================= LOGIN =================
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const password = String(req.body.password || "");
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
 
   try {
     const result = await pool.query(
@@ -107,7 +130,6 @@ router.post("/login", async (req, res) => {
     }
 
     const user = result.rows[0];
-
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
@@ -130,8 +152,8 @@ router.post("/login", async (req, res) => {
       role: user.role,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Login error");
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Login error" });
   }
 });
 
@@ -144,22 +166,22 @@ router.get("/profile", auth, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("Customer not found");
+      return res.status(404).json({ message: "Customer not found" });
     }
 
     res.json(result.rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching profile");
+    console.error("Profile error:", error);
+    res.status(500).json({ message: "Error fetching profile" });
   }
 });
 
 // ================= UPDATE PHONE =================
 router.put("/update-phone", auth, async (req, res) => {
-  const { phone } = req.body;
+  const phone = normalizeText(req.body.phone);
 
   if (!phone) {
-    return res.status(400).send("Phone number is required");
+    return res.status(400).json({ message: "Phone number is required" });
   }
 
   try {
@@ -168,19 +190,19 @@ router.put("/update-phone", auth, async (req, res) => {
       [phone, req.user.email]
     );
 
-    res.send("Phone updated successfully");
+    res.json({ message: "Phone updated successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error updating phone");
+    console.error("Update phone error:", error);
+    res.status(500).json({ message: "Error updating phone" });
   }
 });
 
 // ================= UPDATE LOCATION =================
 router.put("/update-location", auth, async (req, res) => {
-  const { location } = req.body;
+  const location = normalizeText(req.body.location);
 
   if (!location) {
-    return res.status(400).send("Location is required");
+    return res.status(400).json({ message: "Location is required" });
   }
 
   try {
@@ -189,33 +211,38 @@ router.put("/update-location", auth, async (req, res) => {
       [location, req.user.email]
     );
 
-    res.send("Location updated successfully");
+    res.json({ message: "Location updated successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error updating location");
+    console.error("Update location error:", error);
+    res.status(500).json({ message: "Error updating location" });
   }
 });
 
 // ================= CREATE BOOKING =================
 router.post("/book", auth, async (req, res) => {
-  const { service, booking_date, booking_time, address, price } = req.body;
+  const service = normalizeText(req.body.service);
+  const booking_date = req.body.booking_date;
+  const booking_time = normalizeText(req.body.booking_time);
+  const address = normalizeText(req.body.address);
+  const price = Number(req.body.price);
+  const gps_readable_location = normalizeText(req.body.gps_readable_location) || null;
 
-  if (!service || !booking_date || !booking_time || !address || !price) {
-    return res.status(400).send("All booking fields are required");
+  if (!service || !booking_date || !booking_time || !address || Number.isNaN(price) || price <= 0) {
+    return res.status(400).json({ message: "All booking fields are required with a valid price" });
   }
 
   try {
     await pool.query(
       `INSERT INTO bookings 
-      (email, service, booking_date, booking_time, address, status, seen, price)
-       VALUES ($1,$2,$3,$4,$5,'pending', false, $6)`,
-      [req.user.email, service, booking_date, booking_time, address, price]
+      (email, service, booking_date, booking_time, address, status, seen, price, gps_readable_location)
+       VALUES ($1,$2,$3,$4,$5,'pending', false, $6, $7)`,
+      [req.user.email, service, booking_date, booking_time, address, price, gps_readable_location]
     );
 
-    res.send("Booking created successfully");
+    res.json({ message: "Booking created successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Booking failed");
+    console.error("Create booking error:", error);
+    res.status(500).json({ message: "Booking failed" });
   }
 });
 
@@ -262,8 +289,8 @@ router.get("/my-bookings", auth, async (req, res) => {
 
     res.json(bookings);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching bookings");
+    console.error("My bookings error:", error);
+    res.status(500).json({ message: "Error fetching bookings" });
   }
 });
 
@@ -279,11 +306,11 @@ router.get("/cleaner-notifications", auth, cleanerOnly, async (req, res) => {
     );
 
     res.json({
-      new_jobs: parseInt(result.rows[0].count),
+      new_jobs: parseInt(result.rows[0].count, 10),
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching notifications");
+    console.error("Cleaner notifications error:", error);
+    res.status(500).json({ message: "Error fetching notifications" });
   }
 });
 
@@ -299,7 +326,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, service, booking_date, booking_time, address, price
+      SELECT id, service, booking_date, booking_time, address, gps_readable_location, price
       FROM bookings
       WHERE cleaner IS NULL AND status='pending'
       ORDER BY
@@ -314,14 +341,18 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching available jobs");
+    console.error("Available jobs error:", error);
+    res.status(500).json({ message: "Error fetching available jobs" });
   }
 });
 
 // ================= ACCEPT JOB =================
 router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
   const { id } = req.params;
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
 
   try {
     const result = await pool.query(
@@ -333,25 +364,29 @@ router.put("/accept-job/:id", auth, cleanerOnly, async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      return res.status(400).send("Job already taken");
+      return res.status(400).json({ message: "Job already taken" });
     }
 
-    res.send("Job accepted successfully");
+    res.json({ message: "Job accepted successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error accepting job");
+    console.error("Accept job error:", error);
+    res.status(500).json({ message: "Error accepting job" });
   }
 });
 
 // ================= CLEANER UPDATE STATUS =================
 router.put("/cleaner-status/:id", auth, cleanerOnly, async (req, res) => {
-  const { status } = req.body;
   const { id } = req.params;
+  const status = normalizeText(req.body.status);
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
 
   const allowedStatus = ["accepted", "in progress", "completed"];
 
   if (!allowedStatus.includes(status)) {
-    return res.status(400).send("Invalid status value");
+    return res.status(400).json({ message: "Invalid status value" });
   }
 
   try {
@@ -364,13 +399,13 @@ router.put("/cleaner-status/:id", auth, cleanerOnly, async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      return res.status(400).send("You cannot update this job");
+      return res.status(400).json({ message: "You cannot update this job" });
     }
 
-    res.send("Status updated by cleaner");
+    res.json({ message: "Status updated by cleaner" });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error updating status");
+    console.error("Cleaner status error:", error);
+    res.status(500).json({ message: "Error updating status" });
   }
 });
 
@@ -388,8 +423,8 @@ router.get("/cleaner-earnings", auth, cleanerOnly, async (req, res) => {
       total_earnings: Number(result.rows[0].total_earnings),
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error calculating earnings");
+    console.error("Cleaner earnings error:", error);
+    res.status(500).json({ message: "Error calculating earnings" });
   }
 });
 
@@ -397,7 +432,7 @@ router.get("/cleaner-earnings", auth, cleanerOnly, async (req, res) => {
 router.get("/cleaner-earnings-history", auth, cleanerOnly, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, service, booking_date, booking_time, address, price
+      `SELECT id, service, booking_date, booking_time, address, gps_readable_location, price
        FROM bookings
        WHERE cleaner=$1 AND status='completed'
        ORDER BY booking_date DESC`,
@@ -406,8 +441,8 @@ router.get("/cleaner-earnings-history", auth, cleanerOnly, async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching earnings history");
+    console.error("Cleaner earnings history error:", error);
+    res.status(500).json({ message: "Error fetching earnings history" });
   }
 });
 
@@ -415,7 +450,7 @@ router.get("/cleaner-earnings-history", auth, cleanerOnly, async (req, res) => {
 router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, service, booking_date, booking_time, address, status, price
+      `SELECT id, service, booking_date, booking_time, address, gps_readable_location, status, price
        FROM bookings 
        WHERE cleaner=$1
        ORDER BY id DESC`,
@@ -424,8 +459,8 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching cleaner jobs");
+    console.error("Cleaner jobs error:", error);
+    res.status(500).json({ message: "Error fetching cleaner jobs" });
   }
 });
 
@@ -446,28 +481,32 @@ router.get("/my-bookings-simple", auth, async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
+    console.error("My bookings simple error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // ================= BOOK CLEANING SERVICE =================
 router.post("/book-service", auth, async (req, res) => {
   try {
-    const {
-      service,
-      booking_date,
-      price,
-      address,
-      payment_method,
-      gps_readable_location,
-    } = req.body;
+    const service = normalizeText(req.body.service);
+    const booking_date = req.body.booking_date;
+    const price = Number(req.body.price);
+    const address = normalizeText(req.body.address);
+    const payment_method = normalizeText(req.body.payment_method) || "pay_after";
+    const gps_readable_location = normalizeText(req.body.gps_readable_location) || null;
+
+    const allowedPaymentMethods = ["pay_after", "momo", "cash", "mobile_money"];
+
+    if (!service || !booking_date || !address || Number.isNaN(price) || price <= 0) {
+      return res.status(400).json({ message: "All fields are required with a valid price" });
+    }
+
+    if (!allowedPaymentMethods.includes(payment_method)) {
+      return res.status(400).json({ message: "Invalid payment method" });
+    }
 
     const email = req.user.email;
-
-    if (!service || !booking_date || !price || !address) {
-      return res.status(400).send("All fields are required");
-    }
 
     const result = await pool.query(
       `
@@ -490,8 +529,8 @@ router.post("/book-service", auth, async (req, res) => {
         booking_date,
         address,
         price,
-        payment_method || "pay_after",
-        gps_readable_location || null,
+        payment_method,
+        gps_readable_location,
       ]
     );
 
@@ -500,19 +539,24 @@ router.post("/book-service", auth, async (req, res) => {
       booking: result.rows[0],
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
+    console.error("Book service error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // ================= RATE COMPLETED JOB =================
 router.post("/rate-job/:id", auth, async (req, res) => {
   const bookingId = req.params.id;
-  const { rating, review } = req.body;
+  const rating = Number(req.body.rating);
+  const review = normalizeText(req.body.review) || null;
+
+  if (!isValidId(bookingId)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
 
   try {
     if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).send("Rating must be between 1 and 5");
+      return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
 
     const bookingResult = await pool.query(
@@ -521,17 +565,17 @@ router.post("/rate-job/:id", auth, async (req, res) => {
     );
 
     if (bookingResult.rows.length === 0) {
-      return res.status(404).send("Booking not found");
+      return res.status(404).json({ message: "Booking not found" });
     }
 
     const booking = bookingResult.rows[0];
 
     if (booking.status !== "completed") {
-      return res.status(400).send("You can only rate completed jobs");
+      return res.status(400).json({ message: "You can only rate completed jobs" });
     }
 
     if (!booking.cleaner) {
-      return res.status(400).send("No cleaner assigned");
+      return res.status(400).json({ message: "No cleaner assigned" });
     }
 
     const existingRating = await pool.query(
@@ -540,7 +584,7 @@ router.post("/rate-job/:id", auth, async (req, res) => {
     );
 
     if (existingRating.rows.length > 0) {
-      return res.status(400).send("You already rated this job");
+      return res.status(400).json({ message: "You already rated this job" });
     }
 
     await pool.query(
@@ -552,20 +596,24 @@ router.post("/rate-job/:id", auth, async (req, res) => {
         req.user.email,
         booking.cleaner,
         rating,
-        review || null,
+        review,
       ]
     );
 
-    res.send("Rating submitted successfully");
+    res.json({ message: "Rating submitted successfully" });
   } catch (error) {
     console.error("Rating error:", error);
-    res.status(500).send("Error submitting rating");
+    res.status(500).json({ message: "Error submitting rating" });
   }
 });
 
 // ================= PAY FOR BOOKING =================
 router.post("/pay/:id", auth, async (req, res) => {
   const bookingId = req.params.id;
+
+  if (!isValidId(bookingId)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
 
   try {
     const result = await pool.query(
@@ -574,13 +622,13 @@ router.post("/pay/:id", auth, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("Booking not found");
+      return res.status(404).json({ message: "Booking not found" });
     }
 
     const booking = result.rows[0];
 
     if (booking.payment_status === "paid") {
-      return res.status(400).send("Booking already paid");
+      return res.status(400).json({ message: "Booking already paid" });
     }
 
     const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -603,34 +651,38 @@ router.post("/pay/:id", auth, async (req, res) => {
       otpCode,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Payment failed");
+    console.error("Pay error:", error);
+    res.status(500).json({ message: "Payment failed" });
   }
 });
 
 // ================= CONFIRM PAYMENT OTP =================
 router.post("/confirm-payment/:id", auth, async (req, res) => {
   const bookingId = req.params.id;
-  const { otp } = req.body;
+  const otp = normalizeText(req.body.otp);
+
+  if (!isValidId(bookingId)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
 
   try {
     const pending = pendingPayments.get(String(bookingId));
 
     if (!pending) {
-      return res.status(400).send("No pending payment request found");
+      return res.status(400).json({ message: "No pending payment request found" });
     }
 
     if (pending.email !== req.user.email) {
-      return res.status(403).send("You cannot confirm this payment");
+      return res.status(403).json({ message: "You cannot confirm this payment" });
     }
 
     if (Date.now() > pending.expiresAt) {
       pendingPayments.delete(String(bookingId));
-      return res.status(400).send("OTP expired. Please request payment again");
+      return res.status(400).json({ message: "OTP expired. Please request payment again" });
     }
 
     if (!otp || otp !== pending.otpCode) {
-      return res.status(400).send("Invalid OTP");
+      return res.status(400).json({ message: "Invalid OTP" });
     }
 
     const result = await pool.query(
@@ -640,10 +692,15 @@ router.post("/confirm-payment/:id", auth, async (req, res) => {
 
     if (result.rows.length === 0) {
       pendingPayments.delete(String(bookingId));
-      return res.status(404).send("Booking not found");
+      return res.status(404).json({ message: "Booking not found" });
     }
 
     const booking = result.rows[0];
+
+    if (booking.payment_status === "paid") {
+      pendingPayments.delete(String(bookingId));
+      return res.status(400).json({ message: "Booking already paid" });
+    }
 
     const commission = Math.floor(Number(booking.price) * 0.15);
     const cleanerAmount = Number(booking.price) - commission;
@@ -666,8 +723,8 @@ router.post("/confirm-payment/:id", auth, async (req, res) => {
       cleanerAmount,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("OTP confirmation failed");
+    console.error("Confirm payment error:", error);
+    res.status(500).json({ message: "OTP confirmation failed" });
   }
 });
 
