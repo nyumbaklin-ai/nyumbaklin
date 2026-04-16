@@ -74,6 +74,11 @@ async function ensureDatabaseUpdates() {
       ADD COLUMN IF NOT EXISTS cleaner_payout_status TEXT DEFAULT 'unpaid'
     `);
 
+    await pool.query(`
+  ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS gps_readable_location TEXT
+`);
+
     console.log("✅ customers.phone column is ready");
     console.log("✅ ratings table is ready");
     console.log("✅ bookings payment columns are ready");
