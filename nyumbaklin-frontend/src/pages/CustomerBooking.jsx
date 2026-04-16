@@ -137,103 +137,122 @@ function CustomerBooking() {
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationMessage("GPS is not supported on this device/browser.");
-      return;
-    }
+  if (!navigator.geolocation) {
+    setLocationMessage("GPS is not supported on this device/browser.");
+    return;
+  }
 
-    if (!window.isSecureContext && window.location.hostname !== "localhost") {
-      setLocationMessage("GPS needs HTTPS or localhost to work on this device.");
-      return;
-    }
+  if (!window.isSecureContext && window.location.hostname !== "localhost") {
+    setLocationMessage("GPS needs HTTPS or localhost to work on this device.");
+    return;
+  }
 
-    setGettingLocation(true);
-    setLocationMessage("Getting your current location... Please allow GPS access.");
-    setGpsAccuracy(null);
-    setGpsTimestamp("");
-    setGpsReadableLocation("");
+  setGettingLocation(true);
+  setLocationMessage("Getting your current location... Please allow GPS access.");
+  setGpsAccuracy(null);
+  setGpsTimestamp("");
+  setGpsReadableLocation("");
 
-    const savePosition = async (position) => {
-      const latitude = position.coords.latitude.toFixed(6);
-      const longitude = position.coords.longitude.toFixed(6);
-      const accuracy =
-        typeof position.coords.accuracy === "number"
-          ? Math.round(position.coords.accuracy)
-          : null;
+  const savePosition = async (position) => {
+    const latitude = position.coords.latitude.toFixed(6);
+    const longitude = position.coords.longitude.toFixed(6);
+    const accuracy =
+      typeof position.coords.accuracy === "number"
+        ? Math.round(position.coords.accuracy)
+        : null;
 
-      const capturedTime = new Date(position.timestamp).toLocaleString();
+    const capturedTime = new Date(position.timestamp).toLocaleString();
 
-      setArea("Other");
-      setCustomArea(
-        accuracy
-          ? `GPS: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`
-          : `GPS: ${latitude}, ${longitude}`
-      );
-      setGpsAccuracy(accuracy);
-      setGpsTimestamp(capturedTime);
+    setArea("Other");
+    setCustomArea(
+      accuracy
+        ? `GPS: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`
+        : `GPS: ${latitude}, ${longitude}`
+    );
+    setGpsAccuracy(accuracy);
+    setGpsTimestamp(capturedTime);
+    setLocationMessage("✅ GPS coordinates captured. Finding approximate area...");
+
+    const readableLocation = await getReadableLocationFromCoordinates(
+      latitude,
+      longitude
+    );
+
+    if (readableLocation) {
+      setGpsReadableLocation(readableLocation);
 
       if (accuracy && accuracy <= 50) {
-        setLocationMessage("✅ GPS location added successfully.");
+        setLocationMessage("✅ GPS location added successfully. Approx area found.");
       } else if (accuracy && accuracy > 50) {
         setLocationMessage(
-          "✅ GPS location added, but accuracy is a bit low. You can edit the location if needed."
+          "✅ GPS location added and approx area found, but accuracy is a bit low. You can edit the location if needed."
         );
       } else {
-        setLocationMessage("✅ GPS location added. You can still edit it if needed.");
-      }
-
-      const readableLocation = await getReadableLocationFromCoordinates(
-        latitude,
-        longitude
-      );
-
-      if (readableLocation) {
-        setGpsReadableLocation(readableLocation);
-      }
-
-      setGettingLocation(false);
-    };
-
-    const handleFinalError = (error) => {
-      console.error("Location error:", error);
-
-      if (error.code === 1) {
-        setLocationMessage("Location permission denied. Please allow GPS and try again.");
-      } else if (error.code === 2) {
         setLocationMessage(
-          "Unable to detect your location right now. Please move to an open area and try again."
+          "✅ GPS location added and approx area found. You can still edit it if needed."
         );
-      } else if (error.code === 3) {
-        setLocationMessage("Location request timed out. Please try again.");
+      }
+    } else {
+      if (accuracy && accuracy <= 50) {
+        setLocationMessage(
+          "✅ GPS coordinates were captured, but approx area could not be found. You can still continue or edit the location manually."
+        );
       } else {
-        setLocationMessage("Failed to get location.");
+        setLocationMessage(
+          "✅ GPS coordinates were captured. Approx area could not be found, and accuracy may not be perfect. You can still continue or edit the location manually."
+        );
       }
+    }
 
-      setGettingLocation(false);
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      savePosition,
-      (error) => {
-        if (error.code === 3) {
-          setLocationMessage("GPS is taking long. Retrying with normal accuracy...");
-
-          navigator.geolocation.getCurrentPosition(savePosition, handleFinalError, {
-            enableHighAccuracy: false,
-            timeout: 15000,
-            maximumAge: 60000,
-          });
-        } else {
-          handleFinalError(error);
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+    setGettingLocation(false);
   };
+
+  const handleFinalError = (error) => {
+    console.error("Location error:", error);
+
+    if (error.code === 1) {
+      setLocationMessage(
+        "Location permission denied. Please allow GPS access in your browser and try again."
+      );
+    } else if (error.code === 2) {
+      setLocationMessage(
+        "Unable to detect your location right now. Move to an open area or check your internet/GPS, then try again."
+      );
+    } else if (error.code === 3) {
+      setLocationMessage(
+        "Location request timed out. Please try again or enter your area manually."
+      );
+    } else {
+      setLocationMessage(
+        "Failed to get location. Please try again or enter your area manually."
+      );
+    }
+
+    setGettingLocation(false);
+  };
+
+  navigator.geolocation.getCurrentPosition(
+    savePosition,
+    (error) => {
+      if (error.code === 3) {
+        setLocationMessage("GPS is taking long. Retrying with normal accuracy...");
+
+        navigator.geolocation.getCurrentPosition(savePosition, handleFinalError, {
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 60000,
+        });
+      } else {
+        handleFinalError(error);
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    }
+  );
+};
 
   const handleBooking = async (e) => {
   e.preventDefault();
