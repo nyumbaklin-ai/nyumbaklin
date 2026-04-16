@@ -444,6 +444,15 @@ function Dashboard() {
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
 
   const token = localStorage.getItem("token");
+  
+const readResponseMessage = async (response, fallbackMessage) => {
+  try {
+    const data = await response.json();
+    return data.message || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+};
 
   const fetchUsers = () => {
     fetch(`${API_URL}/admin/users`, {
@@ -513,7 +522,7 @@ function Dashboard() {
     fetchRatings();
   }, []);
 
-  const deleteUser = async (id) => {
+    const deleteUser = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this user?");
 
     if (!confirmDelete) {
@@ -528,18 +537,24 @@ function Dashboard() {
         },
       });
 
-      const message = await response.text();
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "User deleted successfully" : "Error deleting user"
+      );
+
       alert(message);
 
-      fetchUsers();
-      fetchStats();
+      if (response.ok) {
+        fetchUsers();
+        fetchStats();
+      }
     } catch (error) {
       console.error("Error deleting user:", error);
       alert("Error deleting user");
     }
   };
 
-  const changeUserRole = async (id, currentRole) => {
+    const changeUserRole = async (id, currentRole) => {
     const newRole = window.prompt(
       "Enter new role for this user (admin, cleaner, customer):",
       currentRole
@@ -575,18 +590,24 @@ function Dashboard() {
         body: JSON.stringify({ role: cleanedRole }),
       });
 
-      const message = await response.text();
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "User role updated successfully" : "Error changing user role"
+      );
+
       alert(message);
 
-      fetchUsers();
-      fetchStats();
+      if (response.ok) {
+        fetchUsers();
+        fetchStats();
+      }
     } catch (error) {
       console.error("Error changing user role:", error);
       alert("Error changing user role");
     }
   };
 
-  const deleteBooking = async (id) => {
+    const deleteBooking = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
 
     if (!confirmDelete) {
@@ -601,18 +622,24 @@ function Dashboard() {
         },
       });
 
-      const message = await response.text();
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Booking deleted successfully" : "Error deleting booking"
+      );
+
       alert(message);
 
-      fetchBookings();
-      fetchStats();
+      if (response.ok) {
+        fetchBookings();
+        fetchStats();
+      }
     } catch (error) {
       console.error("Error deleting booking:", error);
       alert("Error deleting booking");
     }
   };
 
-  const updatePrice = async (id, currentPrice) => {
+    const updatePrice = async (id, currentPrice) => {
     const newPrice = window.prompt("Enter new price:", currentPrice);
 
     if (newPrice === null) {
@@ -634,18 +661,24 @@ function Dashboard() {
         body: JSON.stringify({ price: Number(newPrice) }),
       });
 
-      const message = await response.text();
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Booking price updated successfully" : "Error updating price"
+      );
+
       alert(message);
 
-      fetchBookings();
-      fetchStats();
+      if (response.ok) {
+        fetchBookings();
+        fetchStats();
+      }
     } catch (error) {
       console.error("Error updating price:", error);
       alert("Error updating price");
     }
   };
 
-  const updatePayment = async (id, currentMethod) => {
+    const updatePayment = async (id, currentMethod) => {
     const method = window.prompt(
       "Enter payment method (cash or mobile_money):",
       currentMethod || "cash"
@@ -675,17 +708,22 @@ function Dashboard() {
         }),
       });
 
-      const message = await response.text();
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Payment status updated successfully" : "Error updating payment"
+      );
+
       alert(message);
 
-      fetchBookings();
+      if (response.ok) {
+        fetchBookings();
+      }
     } catch (error) {
       console.error("Error updating payment:", error);
       alert("Error updating payment");
     }
   };
-
-  const markCleanerPaid = async (id) => {
+    const markCleanerPaid = async (id) => {
     try {
       const response = await fetch(`${API_URL}/admin/update-payout-status/${id}`, {
         method: "PUT",
@@ -698,15 +736,22 @@ function Dashboard() {
         }),
       });
 
-      const message = await response.text();
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Cleaner paid successfully" : "Error updating cleaner payout"
+      );
+
       alert(message);
 
-      fetchBookings();
+      if (response.ok) {
+        fetchBookings();
+      }
     } catch (error) {
       console.error("Error updating cleaner payout:", error);
       alert("Error updating cleaner payout");
     }
   };
+  
 
   const getStatusStyle = (status) => {
     if (status === "pending") {
