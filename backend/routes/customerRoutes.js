@@ -230,6 +230,7 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.booking_date,
         b.booking_time,
         b.address,
+        b.gps_readable_location,
         b.status,
         b.cleaner,
         b.price,
@@ -435,7 +436,7 @@ router.get("/my-bookings-simple", auth, async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, service, booking_date, price, status
+      SELECT id, service, booking_date, price, status, gps_readable_location
       FROM bookings
       WHERE email = $1
       ORDER BY booking_date DESC
