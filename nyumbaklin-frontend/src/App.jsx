@@ -319,6 +319,18 @@ function CleanerRegister() {
             account safely and give you login details.
           </p>
         </div>
+           <p
+          style={{
+            marginTop: "14px",
+            textAlign: "center",
+            color: "#475569",
+            lineHeight: "1.7",
+            fontSize: "14px",
+          }}
+        >
+          Need help joining? Scroll down and use the <strong>Call Us</strong> or{" "}
+          <strong>WhatsApp Us</strong> buttons in the footer.
+        </p>
 
         <p
           style={{
