@@ -655,6 +655,20 @@ function CustomerBooking() {
               </div>
             )}
 
+            {!gettingLocation && customArea.startsWith("GPS:") && !gpsReadableLocation && (
+  <p
+    style={{
+      margin: "4px 0 0 0",
+      color: "#164e63",
+      fontSize: "13px",
+      lineHeight: "1.6",
+    }}
+  >
+    Approx area: not available yet. You can still continue with the GPS coordinates
+    or edit the location manually.
+  </p>
+)}
+
             <select
               value={area}
               onChange={(e) => {
