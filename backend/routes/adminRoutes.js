@@ -5,6 +5,24 @@ const { auth, adminOnly } = require("../middleware/auth");
 const pool = require("../config/db");
 
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
+const normalizeText = (value) => String(value || "").trim();
+
+let manualPaymentColumnsReady = false;
+
+const ensureManualPaymentColumns = async () => {
+  if (manualPaymentColumnsReady) return;
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS manual_payment_network VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS manual_payment_phone VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS manual_payment_reference VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS manual_payment_note TEXT,
+    ADD COLUMN IF NOT EXISTS manual_payment_submitted_at TIMESTAMPTZ
+  `);
+
+  manualPaymentColumnsReady = true;
+};
 
 // ================= ADMIN DASHBOARD =================
 router.get("/dashboard", auth, adminOnly, (req, res) => {
@@ -40,6 +58,8 @@ router.get("/users", auth, adminOnly, async (req, res) => {
 // ================= VIEW ALL BOOKINGS =================
 router.get("/bookings", auth, adminOnly, async (req, res) => {
   try {
+    await ensureManualPaymentColumns();
+
     const result = await pool.query(`
       SELECT 
         b.id,
@@ -56,6 +76,11 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
         b.commission,
         b.cleaner_amount,
         b.cleaner_payout_status,
+        b.manual_payment_network,
+        b.manual_payment_phone,
+        b.manual_payment_reference,
+        b.manual_payment_note,
+        b.manual_payment_submitted_at,
         customer.phone AS customer_phone,
         cleaner_user.phone AS cleaner_phone
       FROM bookings b
@@ -247,8 +272,18 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
     return res.status(400).json({ message: "Invalid booking id" });
   }
 
-  const allowedPaymentStatuses = ["unpaid", "paid"];
-  const allowedPaymentMethods = ["cash", "mobile_money"];
+  const allowedPaymentStatuses = [
+    "unpaid",
+    "pending_verification",
+    "paid",
+    "rejected",
+  ];
+
+  const allowedPaymentMethods = [
+    "cash",
+    "mobile_money",
+    "manual_mobile_money",
+  ];
 
   if (!allowedPaymentStatuses.includes(payment_status)) {
     return res.status(400).json({ message: "Invalid payment status" });
@@ -293,6 +328,160 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
   } catch (error) {
     console.error("Payment status update error:", error);
     res.status(500).json({ message: "Error updating payment status" });
+  }
+});
+
+// ================= CONFIRM MANUAL MOBILE MONEY PAYMENT =================
+router.put("/confirm-manual-payment/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
+  try {
+    await ensureManualPaymentColumns();
+
+    const bookingCheck = await pool.query(
+      `
+      SELECT 
+        id,
+        price,
+        payment_status,
+        manual_payment_network,
+        manual_payment_phone,
+        manual_payment_reference
+      FROM bookings
+      WHERE id=$1
+      `,
+      [id]
+    );
+
+    if (bookingCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    const booking = bookingCheck.rows[0];
+
+    if (booking.payment_status === "paid") {
+      return res.status(400).json({ message: "This booking is already marked as paid" });
+    }
+
+    if (!booking.manual_payment_reference) {
+      return res.status(400).json({
+        message: "No manual payment reference was submitted for this booking",
+      });
+    }
+
+    const price = Number(booking.price || 0);
+    const commission = Math.floor(price * 0.15);
+    const cleanerAmount = price - commission;
+
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET payment_status='paid',
+          payment_method='manual_mobile_money',
+          commission=$1,
+          cleaner_amount=$2
+      WHERE id=$3
+      RETURNING 
+        id,
+        price,
+        payment_status,
+        payment_method,
+        commission,
+        cleaner_amount,
+        manual_payment_network,
+        manual_payment_phone,
+        manual_payment_reference
+      `,
+      [commission, cleanerAmount, id]
+    );
+
+    res.json({
+      message: "Manual Mobile Money payment confirmed successfully ✅",
+      booking: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Confirm manual payment error:", error);
+    res.status(500).json({ message: "Error confirming manual payment" });
+  }
+});
+
+// ================= REJECT MANUAL MOBILE MONEY PAYMENT =================
+router.put("/reject-manual-payment/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const rejectionReason = normalizeText(req.body.rejection_reason);
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
+  try {
+    await ensureManualPaymentColumns();
+
+    const bookingCheck = await pool.query(
+      `
+      SELECT 
+        id,
+        payment_status,
+        manual_payment_reference
+      FROM bookings
+      WHERE id=$1
+      `,
+      [id]
+    );
+
+    if (bookingCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    const booking = bookingCheck.rows[0];
+
+    if (booking.payment_status === "paid") {
+      return res.status(400).json({
+        message: "This booking is already paid. You cannot reject it here.",
+      });
+    }
+
+    if (!booking.manual_payment_reference) {
+      return res.status(400).json({
+        message: "No manual payment reference was submitted for this booking",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET payment_status='rejected',
+          payment_method='manual_mobile_money',
+          commission=NULL,
+          cleaner_amount=NULL,
+          manual_payment_note = CASE
+            WHEN $1 = '' THEN manual_payment_note
+            ELSE $1
+          END
+      WHERE id=$2
+      RETURNING 
+        id,
+        payment_status,
+        payment_method,
+        manual_payment_network,
+        manual_payment_phone,
+        manual_payment_reference,
+        manual_payment_note
+      `,
+      [rejectionReason, id]
+    );
+
+    res.json({
+      message: "Manual Mobile Money payment rejected",
+      booking: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Reject manual payment error:", error);
+    res.status(500).json({ message: "Error rejecting manual payment" });
   }
 });
 
