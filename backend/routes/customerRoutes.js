@@ -4,7 +4,6 @@ const pool = require("../config/db");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { auth, cleanerOnly } = require("../middleware/auth");
-const pendingPayments = new Map();
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizeText = (value) => String(value || "").trim();
@@ -763,129 +762,20 @@ router.post("/submit-manual-payment/:id", auth, async (req, res) => {
   }
 });
 
-// ================= PAY FOR BOOKING =================
-// This is the old demo OTP flow. We are keeping it temporarily so the app does not break.
-// The frontend will be moved to /submit-manual-payment/:id next.
+// ================= OLD DEMO OTP PAYMENT DISABLED =================
 router.post("/pay/:id", auth, async (req, res) => {
-  const bookingId = req.params.id;
-
-  if (!isValidId(bookingId)) {
-    return res.status(400).json({ message: "Invalid booking id" });
-  }
-
-  try {
-    const result = await pool.query(
-      "SELECT * FROM bookings WHERE id=$1 AND email=$2",
-      [bookingId, req.user.email]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    const booking = result.rows[0];
-
-    if (booking.payment_status === "paid") {
-      return res.status(400).json({ message: "Booking already paid" });
-    }
-
-    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
-
-    pendingPayments.set(String(bookingId), {
-      otpCode,
-      email: req.user.email,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    });
-
-    await pool.query(
-      `UPDATE bookings
-       SET payment_method='mobile_money'
-       WHERE id=$1`,
-      [bookingId]
-    );
-
-    res.json({
-      message: "Payment request sent. Waiting for OTP confirmation...",
-      otpCode,
-    });
-  } catch (error) {
-    console.error("Pay error:", error);
-    res.status(500).json({ message: "Payment failed" });
-  }
+  return res.status(403).json({
+    message:
+      "Demo OTP payment is disabled. Please use manual Mobile Money payment proof and admin verification.",
+  });
 });
 
-// ================= CONFIRM PAYMENT OTP =================
-// This is the old demo OTP flow. We are keeping it temporarily so the app does not break.
-// Manual real payment confirmation will be handled by admin after proof is submitted.
+// ================= OLD DEMO OTP CONFIRMATION DISABLED =================
 router.post("/confirm-payment/:id", auth, async (req, res) => {
-  const bookingId = req.params.id;
-  const otp = normalizeText(req.body.otp);
-
-  if (!isValidId(bookingId)) {
-    return res.status(400).json({ message: "Invalid booking id" });
-  }
-
-  try {
-    const pending = pendingPayments.get(String(bookingId));
-
-    if (!pending) {
-      return res.status(400).json({ message: "No pending payment request found" });
-    }
-
-    if (pending.email !== req.user.email) {
-      return res.status(403).json({ message: "You cannot confirm this payment" });
-    }
-
-    if (Date.now() > pending.expiresAt) {
-      pendingPayments.delete(String(bookingId));
-      return res.status(400).json({ message: "OTP expired. Please request payment again" });
-    }
-
-    if (!otp || otp !== pending.otpCode) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
-    const result = await pool.query(
-      "SELECT * FROM bookings WHERE id=$1 AND email=$2",
-      [bookingId, req.user.email]
-    );
-
-    if (result.rows.length === 0) {
-      pendingPayments.delete(String(bookingId));
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    const booking = result.rows[0];
-
-    if (booking.payment_status === "paid") {
-      pendingPayments.delete(String(bookingId));
-      return res.status(400).json({ message: "Booking already paid" });
-    }
-
-    const commission = Math.floor(Number(booking.price) * 0.15);
-    const cleanerAmount = Number(booking.price) - commission;
-
-    await pool.query(
-      `UPDATE bookings
-       SET payment_status='paid',
-           payment_method='mobile_money',
-           commission=$1,
-           cleaner_amount=$2
-       WHERE id=$3`,
-      [commission, cleanerAmount, bookingId]
-    );
-
-    pendingPayments.delete(String(bookingId));
-
-    res.json({
-      message: "Payment confirmed successfully",
-      commission,
-      cleanerAmount,
-    });
-  } catch (error) {
-    console.error("Confirm payment error:", error);
-    res.status(500).json({ message: "OTP confirmation failed" });
-  }
+  return res.status(403).json({
+    message:
+      "Demo OTP confirmation is disabled. Payments are now verified manually by admin after checking MTN/Airtel records.",
+  });
 });
 
 module.exports = router;
