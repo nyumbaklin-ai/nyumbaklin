@@ -10,6 +10,23 @@ const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizeText = (value) => String(value || "").trim();
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 
+let manualPaymentColumnsReady = false;
+
+const ensureManualPaymentColumns = async () => {
+  if (manualPaymentColumnsReady) return;
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS manual_payment_network VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS manual_payment_phone VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS manual_payment_reference VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS manual_payment_note TEXT,
+    ADD COLUMN IF NOT EXISTS manual_payment_submitted_at TIMESTAMPTZ
+  `);
+
+  manualPaymentColumnsReady = true;
+};
+
 // ================= REGISTER =================
 router.post("/register", async (req, res) => {
   const name = normalizeText(req.body.name) || "Customer";
@@ -249,6 +266,8 @@ router.post("/book", auth, async (req, res) => {
 // ================= CUSTOMER JOB TRACKING =================
 router.get("/my-bookings", auth, async (req, res) => {
   try {
+    await ensureManualPaymentColumns();
+
     const result = await pool.query(
       `
       SELECT 
@@ -263,6 +282,11 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.price,
         b.payment_status,
         b.payment_method,
+        b.manual_payment_network,
+        b.manual_payment_phone,
+        b.manual_payment_reference,
+        b.manual_payment_note,
+        b.manual_payment_submitted_at,
         c.phone AS cleaner_phone,
         r.rating AS submitted_rating,
         r.review AS submitted_review
@@ -467,11 +491,25 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
 // ================= CUSTOMER BOOKING HISTORY =================
 router.get("/my-bookings-simple", auth, async (req, res) => {
   try {
+    await ensureManualPaymentColumns();
+
     const email = req.user.email;
 
     const result = await pool.query(
       `
-      SELECT id, service, booking_date, price, status, gps_readable_location
+      SELECT 
+        id,
+        service,
+        booking_date,
+        price,
+        status,
+        payment_status,
+        payment_method,
+        manual_payment_network,
+        manual_payment_phone,
+        manual_payment_reference,
+        manual_payment_submitted_at,
+        gps_readable_location
       FROM bookings
       WHERE email = $1
       ORDER BY booking_date DESC
@@ -496,7 +534,13 @@ router.post("/book-service", auth, async (req, res) => {
     const payment_method = normalizeText(req.body.payment_method) || "pay_after";
     const gps_readable_location = normalizeText(req.body.gps_readable_location) || null;
 
-    const allowedPaymentMethods = ["pay_after", "momo", "cash", "mobile_money"];
+    const allowedPaymentMethods = [
+      "pay_after",
+      "momo",
+      "cash",
+      "mobile_money",
+      "manual_mobile_money",
+    ];
 
     if (!service || !booking_date || !address || Number.isNaN(price) || price <= 0) {
       return res.status(400).json({ message: "All fields are required with a valid price" });
@@ -607,7 +651,121 @@ router.post("/rate-job/:id", auth, async (req, res) => {
   }
 });
 
+// ================= SUBMIT MANUAL MOBILE MONEY PAYMENT PROOF =================
+router.post("/submit-manual-payment/:id", auth, async (req, res) => {
+  const bookingId = req.params.id;
+  const paymentNetwork = normalizeText(req.body.payment_network).toLowerCase();
+  const paymentPhone = normalizeText(req.body.payment_phone);
+  const transactionReference = normalizeText(req.body.transaction_reference).toUpperCase();
+  const paymentNote = normalizeText(req.body.payment_note) || null;
+
+  if (!isValidId(bookingId)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
+  const allowedNetworks = ["mtn", "airtel"];
+
+  if (!allowedNetworks.includes(paymentNetwork)) {
+    return res.status(400).json({ message: "Please choose MTN or Airtel" });
+  }
+
+  if (!paymentPhone) {
+    return res.status(400).json({ message: "Phone number used for payment is required" });
+  }
+
+  if (paymentPhone.length < 9) {
+    return res.status(400).json({ message: "Please enter a valid Mobile Money phone number" });
+  }
+
+  if (!transactionReference) {
+    return res.status(400).json({ message: "Transaction reference is required" });
+  }
+
+  if (transactionReference.length < 4) {
+    return res.status(400).json({ message: "Please enter a valid transaction reference" });
+  }
+
+  try {
+    await ensureManualPaymentColumns();
+
+    const bookingResult = await pool.query(
+      "SELECT * FROM bookings WHERE id=$1 AND email=$2",
+      [bookingId, req.user.email]
+    );
+
+    if (bookingResult.rows.length === 0) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    const booking = bookingResult.rows[0];
+
+    if (booking.payment_status === "paid") {
+      return res.status(400).json({ message: "This booking is already marked as paid" });
+    }
+
+    const duplicateReference = await pool.query(
+      `
+      SELECT id
+      FROM bookings
+      WHERE manual_payment_reference = $1
+      AND id <> $2
+      LIMIT 1
+      `,
+      [transactionReference, bookingId]
+    );
+
+    if (duplicateReference.rows.length > 0) {
+      return res.status(400).json({
+        message: "This transaction reference has already been submitted for another booking",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET payment_status='pending_verification',
+          payment_method='manual_mobile_money',
+          manual_payment_network=$1,
+          manual_payment_phone=$2,
+          manual_payment_reference=$3,
+          manual_payment_note=$4,
+          manual_payment_submitted_at=NOW()
+      WHERE id=$5 AND email=$6
+      RETURNING
+        id,
+        service,
+        price,
+        payment_status,
+        payment_method,
+        manual_payment_network,
+        manual_payment_phone,
+        manual_payment_reference,
+        manual_payment_note,
+        manual_payment_submitted_at
+      `,
+      [
+        paymentNetwork,
+        paymentPhone,
+        transactionReference,
+        paymentNote,
+        bookingId,
+        req.user.email,
+      ]
+    );
+
+    res.json({
+      message: "Payment proof submitted successfully. Admin will verify it soon.",
+      payment: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Submit manual payment error:", error);
+    res.status(500).json({ message: "Error submitting payment proof" });
+  }
+});
+
 // ================= PAY FOR BOOKING =================
+// This is the old demo OTP flow. We are keeping it temporarily so the app does not break.
+// The frontend will be moved to /submit-manual-payment/:id next.
 router.post("/pay/:id", auth, async (req, res) => {
   const bookingId = req.params.id;
 
@@ -657,6 +815,8 @@ router.post("/pay/:id", auth, async (req, res) => {
 });
 
 // ================= CONFIRM PAYMENT OTP =================
+// This is the old demo OTP flow. We are keeping it temporarily so the app does not break.
+// Manual real payment confirmation will be handled by admin after proof is submitted.
 router.post("/confirm-payment/:id", auth, async (req, res) => {
   const bookingId = req.params.id;
   const otp = normalizeText(req.body.otp);
