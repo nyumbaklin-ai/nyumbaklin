@@ -15,7 +15,6 @@ import TermsConditions from "./pages/TermsConditions";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-
 const authPageStyle = {
   minHeight: "100vh",
   background: "linear-gradient(135deg, #eef2ff 0%, #f8fafc 50%, #ecfeff 100%)",
@@ -148,15 +147,15 @@ function Login() {
             </Link>
 
             <Link
-  to="/cleaner-register"
-  style={{
-    color: "#16a34a",
-    fontWeight: "700",
-    textDecoration: "none",
-  }}
->
-  Cleaner Joining Info
-</Link>
+              to="/cleaner-register"
+              style={{
+                color: "#16a34a",
+                fontWeight: "700",
+                textDecoration: "none",
+              }}
+            >
+              Cleaner Joining Info
+            </Link>
           </div>
         </div>
       </div>
@@ -319,7 +318,8 @@ function CleanerRegister() {
             account safely and give you login details.
           </p>
         </div>
-           <p
+
+        <p
           style={{
             marginTop: "14px",
             textAlign: "center",
@@ -418,15 +418,15 @@ function Dashboard() {
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
 
   const token = localStorage.getItem("token");
-  
-const readResponseMessage = async (response, fallbackMessage) => {
-  try {
-    const data = await response.json();
-    return data.message || fallbackMessage;
-  } catch {
-    return fallbackMessage;
-  }
-};
+
+  const readResponseMessage = async (response, fallbackMessage) => {
+    try {
+      const data = await response.json();
+      return data.message || fallbackMessage;
+    } catch {
+      return fallbackMessage;
+    }
+  };
 
   const fetchUsers = () => {
     fetch(`${API_URL}/admin/users`, {
@@ -496,7 +496,7 @@ const readResponseMessage = async (response, fallbackMessage) => {
     fetchRatings();
   }, []);
 
-    const deleteUser = async (id) => {
+  const deleteUser = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this user?");
 
     if (!confirmDelete) {
@@ -528,56 +528,56 @@ const readResponseMessage = async (response, fallbackMessage) => {
     }
   };
 
-    const changeUserRole = async (id, currentRole) => {
-  const newRole = window.prompt(
-    "Enter new role for this user (cleaner or customer):",
-    currentRole
-  );
-
-  if (newRole === null) {
-    return;
-  }
-
-  const cleanedRole = newRole.trim().toLowerCase();
-
-  if (cleanedRole !== "cleaner" && cleanedRole !== "customer") {
-    alert("Please enter a valid role: cleaner or customer");
-    return;
-  }
-
-  if (cleanedRole === currentRole) {
-    alert("This user already has that role");
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/admin/change-role/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({ role: cleanedRole }),
-    });
-
-    const message = await readResponseMessage(
-      response,
-      response.ok ? "User role updated successfully" : "Error changing user role"
+  const changeUserRole = async (id, currentRole) => {
+    const newRole = window.prompt(
+      "Enter new role for this user (cleaner or customer):",
+      currentRole
     );
 
-    alert(message);
-
-    if (response.ok) {
-      fetchUsers();
-      fetchStats();
+    if (newRole === null) {
+      return;
     }
-  } catch (error) {
-    console.error("Error changing user role:", error);
-    alert("Error changing user role");
-  }
-};
 
-    const deleteBooking = async (id) => {
+    const cleanedRole = newRole.trim().toLowerCase();
+
+    if (cleanedRole !== "cleaner" && cleanedRole !== "customer") {
+      alert("Please enter a valid role: cleaner or customer");
+      return;
+    }
+
+    if (cleanedRole === currentRole) {
+      alert("This user already has that role");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/admin/change-role/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ role: cleanedRole }),
+      });
+
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "User role updated successfully" : "Error changing user role"
+      );
+
+      alert(message);
+
+      if (response.ok) {
+        fetchUsers();
+        fetchStats();
+      }
+    } catch (error) {
+      console.error("Error changing user role:", error);
+      alert("Error changing user role");
+    }
+  };
+
+  const deleteBooking = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
 
     if (!confirmDelete) {
@@ -609,7 +609,7 @@ const readResponseMessage = async (response, fallbackMessage) => {
     }
   };
 
-    const updatePrice = async (id, currentPrice) => {
+  const updatePrice = async (id, currentPrice) => {
     const newPrice = window.prompt("Enter new price:", currentPrice);
 
     if (newPrice === null) {
@@ -648,9 +648,9 @@ const readResponseMessage = async (response, fallbackMessage) => {
     }
   };
 
-    const updatePayment = async (id, currentMethod) => {
+  const updatePayment = async (id, currentMethod) => {
     const method = window.prompt(
-      "Enter payment method (cash or mobile_money):",
+      "Enter payment method (cash, mobile_money, or manual_mobile_money):",
       currentMethod || "cash"
     );
 
@@ -660,7 +660,11 @@ const readResponseMessage = async (response, fallbackMessage) => {
 
     const cleanedMethod = method.trim().toLowerCase();
 
-    if (cleanedMethod !== "cash" && cleanedMethod !== "mobile_money") {
+    if (
+      cleanedMethod !== "cash" &&
+      cleanedMethod !== "mobile_money" &&
+      cleanedMethod !== "manual_mobile_money"
+    ) {
       alert("Invalid payment method");
       return;
     }
@@ -687,13 +691,90 @@ const readResponseMessage = async (response, fallbackMessage) => {
 
       if (response.ok) {
         fetchBookings();
+        fetchStats();
       }
     } catch (error) {
       console.error("Error updating payment:", error);
       alert("Error updating payment");
     }
   };
-    const markCleanerPaid = async (id) => {
+
+  const confirmManualPayment = async (id) => {
+    const confirmPayment = window.confirm(
+      "Have you checked your Mobile Money message/account and confirmed this payment is real?"
+    );
+
+    if (!confirmPayment) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/admin/confirm-manual-payment/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const message = await readResponseMessage(
+        response,
+        response.ok
+          ? "Manual Mobile Money payment confirmed successfully"
+          : "Error confirming manual payment"
+      );
+
+      alert(message);
+
+      if (response.ok) {
+        fetchBookings();
+        fetchStats();
+      }
+    } catch (error) {
+      console.error("Error confirming manual payment:", error);
+      alert("Error confirming manual payment");
+    }
+  };
+
+  const rejectManualPayment = async (id) => {
+    const reason = window.prompt(
+      "Why are you rejecting this payment proof?",
+      "Transaction not found or wrong reference"
+    );
+
+    if (reason === null) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/admin/reject-manual-payment/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          rejection_reason: reason.trim(),
+        }),
+      });
+
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Manual payment rejected" : "Error rejecting manual payment"
+      );
+
+      alert(message);
+
+      if (response.ok) {
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error("Error rejecting manual payment:", error);
+      alert("Error rejecting manual payment");
+    }
+  };
+
+  const markCleanerPaid = async (id) => {
     try {
       const response = await fetch(`${API_URL}/admin/update-payout-status/${id}`, {
         method: "PUT",
@@ -721,7 +802,6 @@ const readResponseMessage = async (response, fallbackMessage) => {
       alert("Error updating cleaner payout");
     }
   };
-  
 
   const getStatusStyle = (status) => {
     if (status === "pending") {
@@ -787,6 +867,20 @@ const readResponseMessage = async (response, fallbackMessage) => {
       };
     }
 
+    if (status === "pending_verification") {
+      return {
+        background: "#fef3c7",
+        color: "#92400e",
+      };
+    }
+
+    if (status === "rejected") {
+      return {
+        background: "#fee2e2",
+        color: "#b91c1c",
+      };
+    }
+
     return {
       background: "#fee2e2",
       color: "#b91c1c",
@@ -794,10 +888,17 @@ const readResponseMessage = async (response, fallbackMessage) => {
   };
 
   const getPaymentMethodStyle = (method) => {
-    if (method === "mobile_money") {
+    if (method === "mobile_money" || method === "momo" || method === "manual_mobile_money") {
       return {
         background: "#dbeafe",
         color: "#1d4ed8",
+      };
+    }
+
+    if (method === "pay_after") {
+      return {
+        background: "#ede9fe",
+        color: "#6d28d9",
       };
     }
 
@@ -807,25 +908,40 @@ const readResponseMessage = async (response, fallbackMessage) => {
     };
   };
 
-  const parseGpsAddress = (address) => {
-  if (!address || typeof address !== "string") return null;
-
-  const match = address.match(
-    /^GPS:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)(?:\s*\(Accuracy:\s*(\d+)m\))?$/i
-  );
-
-  if (!match) return null;
-
-  return {
-    latitude: match[1],
-    longitude: match[2],
-    accuracy: match[3] || "",
+  const getPaymentStatusLabel = (status) => {
+    if (status === "paid") return "Paid";
+    if (status === "pending_verification") return "Pending Verification";
+    if (status === "rejected") return "Rejected";
+    return "Unpaid";
   };
-};
 
-const getGoogleMapsLink = (latitude, longitude) => {
-  return `https://www.google.com/maps?q=${latitude},${longitude}`;
-};
+  const getPaymentMethodLabel = (method) => {
+    if (method === "pay_after") return "Pay After Service";
+    if (method === "momo" || method === "mobile_money") return "Mobile Money";
+    if (method === "manual_mobile_money") return "Manual Mobile Money";
+    if (method === "cash") return "Cash";
+    return method || "Cash";
+  };
+
+  const parseGpsAddress = (address) => {
+    if (!address || typeof address !== "string") return null;
+
+    const match = address.match(
+      /^GPS:\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)(?:\s*\(Accuracy:\s*(\d+)m\))?$/i
+    );
+
+    if (!match) return null;
+
+    return {
+      latitude: match[1],
+      longitude: match[2],
+      accuracy: match[3] || "",
+    };
+  };
+
+  const getGoogleMapsLink = (latitude, longitude) => {
+    return `https://www.google.com/maps?q=${latitude},${longitude}`;
+  };
 
   const filteredUsers = users.filter((user) => {
     const emailText = user.email ? user.email.toLowerCase() : "";
@@ -846,10 +962,16 @@ const getGoogleMapsLink = (latitude, longitude) => {
     const serviceText = booking.service ? booking.service.toLowerCase() : "";
     const addressText = booking.address ? booking.address.toLowerCase() : "";
     const gpsReadableText = booking.gps_readable_location
-  ? booking.gps_readable_location.toLowerCase()
-  : "";
+      ? booking.gps_readable_location.toLowerCase()
+      : "";
     const customerPhoneText = booking.customer_phone ? booking.customer_phone.toLowerCase() : "";
     const cleanerPhoneText = booking.cleaner_phone ? booking.cleaner_phone.toLowerCase() : "";
+    const manualPaymentPhoneText = booking.manual_payment_phone
+      ? booking.manual_payment_phone.toLowerCase()
+      : "";
+    const manualPaymentReferenceText = booking.manual_payment_reference
+      ? booking.manual_payment_reference.toLowerCase()
+      : "";
 
     const matchesSearch =
       emailText.includes(bookingSearch.toLowerCase()) ||
@@ -857,7 +979,9 @@ const getGoogleMapsLink = (latitude, longitude) => {
       addressText.includes(bookingSearch.toLowerCase()) ||
       gpsReadableText.includes(bookingSearch.toLowerCase()) ||
       customerPhoneText.includes(bookingSearch.toLowerCase()) ||
-      cleanerPhoneText.includes(bookingSearch.toLowerCase());
+      cleanerPhoneText.includes(bookingSearch.toLowerCase()) ||
+      manualPaymentPhoneText.includes(bookingSearch.toLowerCase()) ||
+      manualPaymentReferenceText.includes(bookingSearch.toLowerCase());
 
     const matchesStatus =
       bookingStatusFilter === "all" || booking.status === bookingStatusFilter;
@@ -878,6 +1002,9 @@ const getGoogleMapsLink = (latitude, longitude) => {
   const totalCleanerPayout = totalCompletedValue - totalPlatformRevenue;
   const pendingJobs = bookings.filter((booking) => booking.status === "pending").length;
   const inProgressJobs = bookings.filter((booking) => booking.status === "in progress").length;
+  const pendingManualPayments = bookings.filter(
+    (booking) => booking.payment_status === "pending_verification"
+  ).length;
 
   const pageStyle = {
     padding: "32px 24px",
@@ -948,51 +1075,61 @@ const getGoogleMapsLink = (latitude, longitude) => {
     background: "#ffffff",
   };
 
-const adminGpsBoxStyle = {
-  background: "#ecfeff",
-  border: "1px solid #a5f3fc",
-  borderRadius: "12px",
-  padding: "10px",
-  minWidth: "210px",
-};
+  const adminGpsBoxStyle = {
+    background: "#ecfeff",
+    border: "1px solid #a5f3fc",
+    borderRadius: "12px",
+    padding: "10px",
+    minWidth: "210px",
+  };
 
-const adminGpsBadgeStyle = {
-  display: "inline-block",
-  background: "#cffafe",
-  color: "#155e75",
-  padding: "5px 10px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontWeight: "700",
-  marginBottom: "8px",
-};
+  const adminGpsBadgeStyle = {
+    display: "inline-block",
+    background: "#cffafe",
+    color: "#155e75",
+    padding: "5px 10px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: "700",
+    marginBottom: "8px",
+  };
 
-const adminGpsLabelStyle = {
-  color: "#64748b",
-  fontSize: "12px",
-  marginBottom: "2px",
-  fontWeight: "600",
-};
+  const adminGpsLabelStyle = {
+    color: "#64748b",
+    fontSize: "12px",
+    marginBottom: "2px",
+    fontWeight: "600",
+  };
 
-const adminGpsValueStyle = {
-  color: "#0f172a",
-  fontSize: "14px",
-  fontWeight: "700",
-  marginBottom: "8px",
-  wordBreak: "break-word",
-};
+  const adminGpsValueStyle = {
+    color: "#0f172a",
+    fontSize: "14px",
+    fontWeight: "700",
+    marginBottom: "8px",
+    wordBreak: "break-word",
+  };
 
-const adminGpsMapLinkStyle = {
-  display: "inline-block",
-  marginTop: "6px",
-  background: "#0f766e",
-  color: "white",
-  textDecoration: "none",
-  padding: "8px 12px",
-  borderRadius: "8px",
-  fontWeight: "700",
-  fontSize: "12px",
-};
+  const adminGpsMapLinkStyle = {
+    display: "inline-block",
+    marginTop: "6px",
+    background: "#0f766e",
+    color: "white",
+    textDecoration: "none",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    fontWeight: "700",
+    fontSize: "12px",
+  };
+
+  const manualPaymentProofStyle = {
+    background: "#f8fafc",
+    border: "1px solid #e5e7eb",
+    borderRadius: "12px",
+    padding: "10px",
+    minWidth: "230px",
+    fontSize: "13px",
+    lineHeight: "1.6",
+  };
 
   return (
     <div style={pageStyle}>
@@ -1084,6 +1221,15 @@ const adminGpsMapLinkStyle = {
           <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>In Progress Jobs</h3>
           <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#7c3aed" }}>
             {inProgressJobs}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>
+            Payments to Verify
+          </h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#b45309" }}>
+            {pendingManualPayments}
           </p>
         </div>
       </div>
@@ -1276,7 +1422,7 @@ const adminGpsMapLinkStyle = {
           >
             <input
               type="text"
-              placeholder="Search by email, service, location or phone"
+              placeholder="Search by email, service, location, phone or transaction ref"
               value={bookingSearch}
               onChange={(e) => setBookingSearch(e.target.value)}
               style={inputStyle}
@@ -1296,7 +1442,7 @@ const adminGpsMapLinkStyle = {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "2400px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "2800px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
@@ -1312,6 +1458,7 @@ const adminGpsMapLinkStyle = {
               <th style={tableHeaderStyle}>Cleaner Payout</th>
               <th style={tableHeaderStyle}>Payment Method</th>
               <th style={tableHeaderStyle}>Payment Status</th>
+              <th style={tableHeaderStyle}>Manual Payment Proof</th>
               <th style={tableHeaderStyle}>Cleaner Paid</th>
               <th style={tableHeaderStyle}>Date</th>
               <th style={tableHeaderStyle}>Actions</th>
@@ -1321,7 +1468,7 @@ const adminGpsMapLinkStyle = {
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="16">
+                <td style={tableCellStyle} colSpan="17">
                   No bookings found
                 </td>
               </tr>
@@ -1341,6 +1488,7 @@ const adminGpsMapLinkStyle = {
                 const paymentStatus = booking.payment_status || "unpaid";
                 const cleanerPayoutStatus = booking.cleaner_payout_status || "unpaid";
                 const gpsLocation = parseGpsAddress(booking.address);
+                const hasManualPaymentProof = Boolean(booking.manual_payment_reference);
 
                 return (
                   <tr key={booking.id} style={{ background: "#fff" }}>
@@ -1349,43 +1497,44 @@ const adminGpsMapLinkStyle = {
                     <td style={tableCellStyle}>{booking.customer_phone || "Not provided"}</td>
                     <td style={tableCellStyle}>{booking.service}</td>
                     <td style={tableCellStyle}>
-  {gpsLocation ? (
-    <div style={adminGpsBoxStyle}>
-      <div style={adminGpsBadgeStyle}>GPS Location</div>
+                      {gpsLocation ? (
+                        <div style={adminGpsBoxStyle}>
+                          <div style={adminGpsBadgeStyle}>GPS Location</div>
 
-      <div style={adminGpsLabelStyle}>Latitude</div>
-      <div style={adminGpsValueStyle}>{gpsLocation.latitude}</div>
+                          <div style={adminGpsLabelStyle}>Latitude</div>
+                          <div style={adminGpsValueStyle}>{gpsLocation.latitude}</div>
 
-      <div style={adminGpsLabelStyle}>Longitude</div>
-      <div style={adminGpsValueStyle}>{gpsLocation.longitude}</div>
+                          <div style={adminGpsLabelStyle}>Longitude</div>
+                          <div style={adminGpsValueStyle}>{gpsLocation.longitude}</div>
 
-      {gpsLocation.accuracy && (
-        <>
-          <div style={adminGpsLabelStyle}>Accuracy</div>
-          <div style={adminGpsValueStyle}>{gpsLocation.accuracy} meters</div>
-        </>
-      )}
+                          {gpsLocation.accuracy && (
+                            <>
+                              <div style={adminGpsLabelStyle}>Accuracy</div>
+                              <div style={adminGpsValueStyle}>{gpsLocation.accuracy} meters</div>
+                            </>
+                          )}
 
-      {booking.gps_readable_location && (
-  <>
-    <div style={adminGpsLabelStyle}>Approx Area</div>
-    <div style={adminGpsValueStyle}>{booking.gps_readable_location}</div>
-  </>
-)}
+                          {booking.gps_readable_location && (
+                            <>
+                              <div style={adminGpsLabelStyle}>Approx Area</div>
+                              <div style={adminGpsValueStyle}>{booking.gps_readable_location}</div>
+                            </>
+                          )}
 
-      <a
-        href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
-        target="_blank"
-        rel="noreferrer"
-        style={adminGpsMapLinkStyle}
-      >
-        Open in Google Maps
-      </a>
-    </div>
-  ) : (
-    booking.address || "Not provided"
-  )}
-</td>
+                          <a
+                            href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={adminGpsMapLinkStyle}
+                          >
+                            Open in Google Maps
+                          </a>
+                        </div>
+                      ) : (
+                        booking.address || "Not provided"
+                      )}
+                    </td>
+
                     <td style={tableCellStyle}>
                       <span
                         style={{
@@ -1401,21 +1550,26 @@ const adminGpsMapLinkStyle = {
                         {booking.status}
                       </span>
                     </td>
+
                     <td style={tableCellStyle}>{booking.cleaner || "Not assigned"}</td>
                     <td style={tableCellStyle}>{booking.cleaner_phone || "Not available"}</td>
+
                     <td style={tableCellStyle}>
                       <strong>UGX {bookingPrice.toLocaleString()}</strong>
                     </td>
+
                     <td style={tableCellStyle}>
                       {booking.status === "completed"
                         ? `UGX ${platformFee.toLocaleString()}`
                         : "-"}
                     </td>
+
                     <td style={tableCellStyle}>
                       {booking.status === "completed"
                         ? `UGX ${cleanerPayout.toLocaleString()}`
                         : "-"}
                     </td>
+
                     <td style={tableCellStyle}>
                       <span
                         style={{
@@ -1427,15 +1581,10 @@ const adminGpsMapLinkStyle = {
                           display: "inline-block",
                         }}
                       >
-                        {paymentMethod === "pay_after"
-  ? "Pay After Service"
-  : paymentMethod === "momo" || paymentMethod === "mobile_money"
-  ? "Mobile Money"
-  : paymentMethod === "cash"
-  ? "Cash"
- : paymentMethod}
+                        {getPaymentMethodLabel(paymentMethod)}
                       </span>
                     </td>
+
                     <td style={tableCellStyle}>
                       <span
                         style={{
@@ -1447,9 +1596,50 @@ const adminGpsMapLinkStyle = {
                           display: "inline-block",
                         }}
                       >
-                        {paymentStatus}
+                        {getPaymentStatusLabel(paymentStatus)}
                       </span>
                     </td>
+
+                    <td style={tableCellStyle}>
+                      {hasManualPaymentProof ? (
+                        <div style={manualPaymentProofStyle}>
+                          <div>
+                            <strong>Network:</strong>{" "}
+                            {booking.manual_payment_network
+                              ? booking.manual_payment_network.toUpperCase()
+                              : "N/A"}
+                          </div>
+
+                          <div>
+                            <strong>Phone:</strong>{" "}
+                            {booking.manual_payment_phone || "N/A"}
+                          </div>
+
+                          <div>
+                            <strong>Ref:</strong>{" "}
+                            {booking.manual_payment_reference || "N/A"}
+                          </div>
+
+                          {booking.manual_payment_note && (
+                            <div>
+                              <strong>Note:</strong> {booking.manual_payment_note}
+                            </div>
+                          )}
+
+                          {booking.manual_payment_submitted_at && (
+                            <div>
+                              <strong>Submitted:</strong>{" "}
+                              {new Date(
+                                booking.manual_payment_submitted_at
+                              ).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        "No proof submitted"
+                      )}
+                    </td>
+
                     <td style={tableCellStyle}>
                       <span
                         style={{
@@ -1464,9 +1654,11 @@ const adminGpsMapLinkStyle = {
                         {cleanerPayoutStatus}
                       </span>
                     </td>
+
                     <td style={tableCellStyle}>
                       {new Date(booking.booking_date).toLocaleDateString()}
                     </td>
+
                     <td style={tableCellStyle}>
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                         <button
@@ -1489,31 +1681,55 @@ const adminGpsMapLinkStyle = {
                           Mark Paid
                         </button>
 
+                        {hasManualPaymentProof && paymentStatus !== "paid" && (
+                          <>
+                            <button
+                              onClick={() => confirmManualPayment(booking.id)}
+                              style={{
+                                ...actionButtonStyle,
+                                background: "#15803d",
+                              }}
+                            >
+                              Confirm Manual
+                            </button>
+
+                            <button
+                              onClick={() => rejectManualPayment(booking.id)}
+                              style={{
+                                ...actionButtonStyle,
+                                background: "#ea580c",
+                              }}
+                            >
+                              Reject Manual
+                            </button>
+                          </>
+                        )}
+
                         {booking.cleaner_payout_status === "paid" ? (
-  <span
-    style={{
-      background: "#dcfce7",
-      color: "#166534",
-      padding: "9px 14px",
-      borderRadius: "8px",
-      fontWeight: "700",
-      fontSize: "13px",
-      display: "inline-block",
-    }}
-  >
-    Cleaner Paid
-  </span>
-) : (
-  <button
-    onClick={() => markCleanerPaid(booking.id)}
-    style={{
-      ...actionButtonStyle,
-      background: "#7c3aed",
-    }}
-  >
-    Pay Cleaner
-  </button>
-)}
+                          <span
+                            style={{
+                              background: "#dcfce7",
+                              color: "#166534",
+                              padding: "9px 14px",
+                              borderRadius: "8px",
+                              fontWeight: "700",
+                              fontSize: "13px",
+                              display: "inline-block",
+                            }}
+                          >
+                            Cleaner Paid
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => markCleanerPaid(booking.id)}
+                            style={{
+                              ...actionButtonStyle,
+                              background: "#7c3aed",
+                            }}
+                          >
+                            Pay Cleaner
+                          </button>
+                        )}
 
                         <button
                           onClick={() => deleteBooking(booking.id)}
@@ -1631,29 +1847,31 @@ function App() {
     <Layout>
       <Routes>
         <Route
-  path="/"
-  element={
-    <PublicOnlyRoute>
-      <Login />
-    </PublicOnlyRoute>
-  }
-/>
-<Route
-  path="/register"
-  element={
-    <PublicOnlyRoute>
-      <Register />
-    </PublicOnlyRoute>
-  }
-/>
-<Route
-  path="/cleaner-register"
-  element={
-    <PublicOnlyRoute>
-      <CleanerRegister />
-    </PublicOnlyRoute>
-  }
-/>
+          path="/"
+          element={
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute>
+              <Register />
+            </PublicOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/cleaner-register"
+          element={
+            <PublicOnlyRoute>
+              <CleanerRegister />
+            </PublicOnlyRoute>
+          }
+        />
 
         <Route
           path="/dashboard"
@@ -1718,9 +1936,9 @@ function App() {
           }
         />
 
-<Route path="/about-us" element={<AboutUs />} />
-<Route path="/privacy-policy" element={<PrivacyPolicy />} />
-<Route path="/terms-conditions" element={<TermsConditions />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-conditions" element={<TermsConditions />} />
       </Routes>
       <Footer />
     </Layout>
