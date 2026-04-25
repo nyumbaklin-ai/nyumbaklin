@@ -2,8 +2,8 @@
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const NYUMBAKLIN_MTN_PAYMENT_NUMBER = "PUT_YOUR_MTN_PAYMENT_NUMBER_HERE";
-const NYUMBAKLIN_AIRTEL_PAYMENT_NUMBER = "PUT_YOUR_AIRTEL_PAYMENT_NUMBER_HERE";
+const NYUMBAKLIN_MTN_PAYMENT_NUMBER = "Mtn Number:0781812743";
+const NYUMBAKLIN_AIRTEL_PAYMENT_NUMBER = "Airtel Merchant Code:7076122";
 
 function CustomerMyBookings() {
   const [bookings, setBookings] = useState([]);
