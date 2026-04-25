@@ -2,12 +2,16 @@
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+const NYUMBAKLIN_MTN_PAYMENT_NUMBER = "PUT_YOUR_MTN_PAYMENT_NUMBER_HERE";
+const NYUMBAKLIN_AIRTEL_PAYMENT_NUMBER = "PUT_YOUR_AIRTEL_PAYMENT_NUMBER_HERE";
+
 function CustomerMyBookings() {
   const [bookings, setBookings] = useState([]);
   const [ratingInputs, setRatingInputs] = useState({});
   const [submittingRatings, setSubmittingRatings] = useState({});
   const [ratingMessages, setRatingMessages] = useState({});
-  const [payingBookingId, setPayingBookingId] = useState(null);
+  const [submittingPaymentId, setSubmittingPaymentId] = useState(null);
+  const [paymentInputs, setPaymentInputs] = useState({});
   const [paymentMessages, setPaymentMessages] = useState({});
   const token = localStorage.getItem("token");
 
@@ -41,6 +45,23 @@ function CustomerMyBookings() {
         return updatedInputs;
       });
 
+      setPaymentInputs((prev) => {
+        const updatedInputs = { ...prev };
+
+        safeData.forEach((b) => {
+          if (!updatedInputs[b.id]) {
+            updatedInputs[b.id] = {
+              payment_network: b.manual_payment_network || "mtn",
+              payment_phone: b.manual_payment_phone || "",
+              transaction_reference: b.manual_payment_reference || "",
+              payment_note: b.manual_payment_note || "",
+            };
+          }
+        });
+
+        return updatedInputs;
+      });
+
       setPaymentMessages((prev) => {
         const updatedMessages = { ...prev };
 
@@ -64,77 +85,91 @@ function CustomerMyBookings() {
     return () => clearInterval(interval);
   }, [token]);
 
-  const handlePay = async (bookingId) => {
+  const handlePaymentInputChange = (bookingId, field, value) => {
+    setPaymentInputs((prev) => ({
+      ...prev,
+      [bookingId]: {
+        payment_network: "mtn",
+        payment_phone: "",
+        transaction_reference: "",
+        payment_note: "",
+        ...(prev[bookingId] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSubmitManualPayment = async (bookingId) => {
+    const currentInput = paymentInputs[bookingId] || {};
+    const paymentNetwork = currentInput.payment_network || "mtn";
+    const paymentPhone = String(currentInput.payment_phone || "").trim();
+    const transactionReference = String(
+      currentInput.transaction_reference || ""
+    ).trim();
+    const paymentNote = String(currentInput.payment_note || "").trim();
+
+    if (!paymentPhone) {
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: "Please enter the phone number you used to pay.",
+      }));
+      return;
+    }
+
+    if (!transactionReference) {
+      setPaymentMessages((prev) => ({
+        ...prev,
+        [bookingId]: "Please enter the Mobile Money transaction reference.",
+      }));
+      return;
+    }
+
     try {
-      setPayingBookingId(bookingId);
+      setSubmittingPaymentId(bookingId);
       setPaymentMessages((prev) => ({
         ...prev,
         [bookingId]: "",
       }));
 
-      const response = await fetch(`${API_URL}/customers/pay/${bookingId}`, {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Payment failed");
-      }
-
-      setPaymentMessages((prev) => ({
-        ...prev,
-        [bookingId]: "Payment request sent. Waiting for OTP confirmation...",
-      }));
-
-      const enteredOtp = window.prompt(
-        `Enter the OTP sent to your phone.\n\nDemo OTP: ${data?.otpCode || ""}`
-      );
-
-      if (!enteredOtp) {
-        setPaymentMessages((prev) => ({
-          ...prev,
-          [bookingId]: "OTP confirmation was cancelled.",
-        }));
-        return;
-      }
-
-      const confirmResponse = await fetch(
-        `${API_URL}/customers/confirm-payment/${bookingId}`,
+      const response = await fetch(
+        `${API_URL}/customers/submit-manual-payment/${bookingId}`,
         {
           method: "POST",
           headers: {
             Authorization: "Bearer " + token,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ otp: enteredOtp }),
+          body: JSON.stringify({
+            payment_network: paymentNetwork,
+            payment_phone: paymentPhone,
+            transaction_reference: transactionReference,
+            payment_note: paymentNote,
+          }),
         }
       );
 
-      const confirmData = await confirmResponse.json().catch(() => null);
+      const data = await response.json().catch(() => null);
 
-      if (!confirmResponse.ok) {
-        throw new Error(confirmData?.message || "OTP confirmation failed");
+      if (!response.ok) {
+        throw new Error(data?.message || "Payment proof submission failed");
       }
 
       setPaymentMessages((prev) => ({
         ...prev,
-        [bookingId]: "Payment successful.",
+        [bookingId]:
+          data?.message ||
+          "Payment proof submitted successfully. Admin will verify it soon.",
       }));
 
       fetchBookings();
     } catch (error) {
-      console.error("Payment error:", error);
+      console.error("Manual payment submission error:", error);
       setPaymentMessages((prev) => ({
         ...prev,
-        [bookingId]: error.message || "Payment failed",
+        [bookingId]: error.message || "Payment proof submission failed",
       }));
     } finally {
-      setPayingBookingId(null);
+      setSubmittingPaymentId(null);
     }
   };
 
@@ -152,6 +187,41 @@ function CustomerMyBookings() {
       return { text: "Completed", style: { background: "#16a34a", color: "white" } };
     }
     return { text: status, style: { background: "#6b7280", color: "white" } };
+  };
+
+  const getPaymentStatusText = (paymentStatus) => {
+    if (paymentStatus === "paid") return "Paid";
+    if (paymentStatus === "pending_verification") return "Pending Verification";
+    if (paymentStatus === "rejected") return "Rejected";
+    return "Unpaid";
+  };
+
+  const getPaymentStatusStyle = (paymentStatus) => {
+    if (paymentStatus === "paid") {
+      return {
+        background: "#dcfce7",
+        color: "#166534",
+      };
+    }
+
+    if (paymentStatus === "pending_verification") {
+      return {
+        background: "#fef3c7",
+        color: "#92400e",
+      };
+    }
+
+    if (paymentStatus === "rejected") {
+      return {
+        background: "#fee2e2",
+        color: "#b91c1c",
+      };
+    }
+
+    return {
+      background: "#fee2e2",
+      color: "#b91c1c",
+    };
   };
 
   const getStatusMessage = (status) => {
@@ -354,21 +424,8 @@ function CustomerMyBookings() {
     fontSize: "14px",
   };
 
-  const paidBadgeStyle = {
+  const paymentStatusBadgeStyle = {
     display: "inline-block",
-    background: "#dcfce7",
-    color: "#166534",
-    padding: "8px 14px",
-    borderRadius: "999px",
-    fontWeight: "700",
-    fontSize: "14px",
-    marginBottom: "10px",
-  };
-
-  const unpaidBadgeStyle = {
-    display: "inline-block",
-    background: "#fee2e2",
-    color: "#b91c1c",
     padding: "8px 14px",
     borderRadius: "999px",
     fontWeight: "700",
@@ -381,6 +438,31 @@ function CustomerMyBookings() {
     fontSize: "14px",
     color: "#1d4ed8",
     fontWeight: "600",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "12px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "10px",
+    fontSize: "14px",
+    boxSizing: "border-box",
+  };
+
+  const selectStyle = {
+    ...inputStyle,
+    background: "white",
+  };
+
+  const instructionsBoxStyle = {
+    background: "white",
+    border: "1px solid #bfdbfe",
+    borderRadius: "12px",
+    padding: "14px",
+    marginBottom: "14px",
+    color: "#1e3a8a",
+    lineHeight: "1.6",
+    fontSize: "14px",
   };
 
   const emptyStateStyle = {
@@ -415,9 +497,18 @@ function CustomerMyBookings() {
             {bookings.map((b) => {
               const badge = getStatusBadge(b.status);
               const isPaid = b.payment_status === "paid";
+              const isPendingVerification =
+                b.payment_status === "pending_verification";
+              const isRejected = b.payment_status === "rejected";
               const cleanerPhone = b.cleaner_phone || "";
               const whatsappPhone = formatPhoneForWhatsApp(cleanerPhone);
               const gpsLocation = parseGpsAddress(b.address);
+              const currentPaymentInput = paymentInputs[b.id] || {
+                payment_network: b.manual_payment_network || "mtn",
+                payment_phone: b.manual_payment_phone || "",
+                transaction_reference: b.manual_payment_reference || "",
+                payment_note: b.manual_payment_note || "",
+              };
 
               return (
                 <div key={b.id} style={bookingCardStyle}>
@@ -457,7 +548,7 @@ function CustomerMyBookings() {
                     <div style={detailCardStyle}>
                       <div style={labelStyle}>📱 Payment Status</div>
                       <div style={valueStyle}>
-                        {isPaid ? "Paid" : b.payment_status || "Unpaid"}
+                        {getPaymentStatusText(b.payment_status)}
                       </div>
                     </div>
                   </div>
@@ -484,12 +575,13 @@ function CustomerMyBookings() {
                             <div style={valueStyle}>{gpsLocation.accuracy} meters</div>
                           </div>
                         )}
+
                         {b.gps_readable_location && (
-  <div style={gpsCardStyle}>
-    <div style={labelStyle}>Approx Area</div>
-    <div style={valueStyle}>{b.gps_readable_location}</div>
-  </div>
-)}
+                          <div style={gpsCardStyle}>
+                            <div style={labelStyle}>Approx Area</div>
+                            <div style={valueStyle}>{b.gps_readable_location}</div>
+                          </div>
+                        )}
                       </div>
 
                       <div style={gpsSubTextStyle}>
@@ -579,17 +671,24 @@ function CustomerMyBookings() {
                   )}
 
                   <div style={paymentBoxStyle}>
-                    <div style={labelStyle}>📱 Mobile Money Payment</div>
+                    <div style={labelStyle}>📱 Manual Mobile Money Payment</div>
+
+                    <div
+                      style={{
+                        ...paymentStatusBadgeStyle,
+                        ...getPaymentStatusStyle(b.payment_status),
+                      }}
+                    >
+                      {getPaymentStatusText(b.payment_status)}
+                    </div>
 
                     {isPaid ? (
                       <>
-                        <div style={paidBadgeStyle}>Payment Successful</div>
-
                         <div style={detailsGridStyle}>
                           <div style={detailCardStyle}>
                             <div style={labelStyle}>Payment Method</div>
                             <div style={valueStyle}>
-                              {b.payment_method || "mobile_money"}
+                              {b.payment_method || "manual_mobile_money"}
                             </div>
                           </div>
 
@@ -599,32 +698,188 @@ function CustomerMyBookings() {
                               UGX {Number(b.price).toLocaleString()}
                             </div>
                           </div>
+
+                          {b.manual_payment_reference && (
+                            <div style={detailCardStyle}>
+                              <div style={labelStyle}>Transaction Reference</div>
+                              <div style={valueStyle}>
+                                {b.manual_payment_reference}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </>
                     ) : (
                       <>
-                        <div style={unpaidBadgeStyle}>Payment Pending</div>
-
-                        <div style={{ color: "#374151", marginBottom: "12px", lineHeight: "1.5" }}>
-                          Pay for this booking using Mobile Money to confirm your service payment.
+                        <div style={instructionsBoxStyle}>
+                          <strong>How to pay:</strong>
+                          <br />
+                          1. Send{" "}
+                          <strong>UGX {Number(b.price).toLocaleString()}</strong>{" "}
+                          using MTN or Airtel Mobile Money.
+                          <br />
+                          2. Use your booking number as reference:{" "}
+                          <strong>Booking #{b.id}</strong>
+                          <br />
+                          3. After paying, enter your phone number and transaction
+                          reference below.
+                          <br />
+                          <br />
+                          <strong>MTN Payment Number:</strong>{" "}
+                          {NYUMBAKLIN_MTN_PAYMENT_NUMBER}
+                          <br />
+                          <strong>Airtel Payment Number:</strong>{" "}
+                          {NYUMBAKLIN_AIRTEL_PAYMENT_NUMBER}
                         </div>
 
-                        <button
-                          onClick={() => handlePay(b.id)}
-                          disabled={payingBookingId === b.id}
-                          style={{
-                            ...paymentButtonStyle,
-                            opacity: payingBookingId === b.id ? 0.7 : 1,
-                            cursor:
-                              payingBookingId === b.id ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          {payingBookingId === b.id
-                            ? "Processing Payment..."
-                            : "Pay with Mobile Money"}
-                        </button>
+                        {isPendingVerification && (
+                          <div
+                            style={{
+                              background: "#fef3c7",
+                              color: "#92400e",
+                              padding: "12px",
+                              borderRadius: "10px",
+                              marginBottom: "12px",
+                              fontWeight: "700",
+                            }}
+                          >
+                            Your payment proof has been submitted. Admin will verify
+                            it soon.
+                          </div>
+                        )}
 
-                        {!isPaid && paymentMessages[b.id] && (
+                        {isRejected && (
+                          <div
+                            style={{
+                              background: "#fee2e2",
+                              color: "#b91c1c",
+                              padding: "12px",
+                              borderRadius: "10px",
+                              marginBottom: "12px",
+                              fontWeight: "700",
+                            }}
+                          >
+                            Your payment proof was rejected. Please check the
+                            transaction reference and submit again.
+                          </div>
+                        )}
+
+                        {b.manual_payment_reference && !isRejected && (
+                          <div style={detailsGridStyle}>
+                            <div style={detailCardStyle}>
+                              <div style={labelStyle}>Submitted Network</div>
+                              <div style={valueStyle}>
+                                {b.manual_payment_network?.toUpperCase() || "N/A"}
+                              </div>
+                            </div>
+
+                            <div style={detailCardStyle}>
+                              <div style={labelStyle}>Submitted Phone</div>
+                              <div style={valueStyle}>
+                                {b.manual_payment_phone || "N/A"}
+                              </div>
+                            </div>
+
+                            <div style={detailCardStyle}>
+                              <div style={labelStyle}>Submitted Reference</div>
+                              <div style={valueStyle}>
+                                {b.manual_payment_reference || "N/A"}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {!isPendingVerification && (
+                          <div style={{ display: "grid", gap: "12px" }}>
+                            <div>
+                              <div style={labelStyle}>Payment Network</div>
+                              <select
+                                value={currentPaymentInput.payment_network}
+                                onChange={(e) =>
+                                  handlePaymentInputChange(
+                                    b.id,
+                                    "payment_network",
+                                    e.target.value
+                                  )
+                                }
+                                style={selectStyle}
+                              >
+                                <option value="mtn">MTN Mobile Money</option>
+                                <option value="airtel">Airtel Money</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <div style={labelStyle}>Phone Number Used to Pay</div>
+                              <input
+                                type="tel"
+                                placeholder="Example: 077XXXXXXX"
+                                value={currentPaymentInput.payment_phone}
+                                onChange={(e) =>
+                                  handlePaymentInputChange(
+                                    b.id,
+                                    "payment_phone",
+                                    e.target.value
+                                  )
+                                }
+                                style={inputStyle}
+                              />
+                            </div>
+
+                            <div>
+                              <div style={labelStyle}>Transaction Reference / ID</div>
+                              <input
+                                type="text"
+                                placeholder="Enter transaction ID from Mobile Money SMS"
+                                value={currentPaymentInput.transaction_reference}
+                                onChange={(e) =>
+                                  handlePaymentInputChange(
+                                    b.id,
+                                    "transaction_reference",
+                                    e.target.value
+                                  )
+                                }
+                                style={inputStyle}
+                              />
+                            </div>
+
+                            <div>
+                              <div style={labelStyle}>Optional Note</div>
+                              <input
+                                type="text"
+                                placeholder="Example: Paid from my wife's phone"
+                                value={currentPaymentInput.payment_note}
+                                onChange={(e) =>
+                                  handlePaymentInputChange(
+                                    b.id,
+                                    "payment_note",
+                                    e.target.value
+                                  )
+                                }
+                                style={inputStyle}
+                              />
+                            </div>
+
+                            <button
+                              onClick={() => handleSubmitManualPayment(b.id)}
+                              disabled={submittingPaymentId === b.id}
+                              style={{
+                                ...paymentButtonStyle,
+                                opacity: submittingPaymentId === b.id ? 0.7 : 1,
+                                cursor:
+                                  submittingPaymentId === b.id
+                                    ? "not-allowed"
+                                    : "pointer",
+                              }}
+                            >
+                              {submittingPaymentId === b.id
+                                ? "Submitting Proof..."
+                                : "Submit Payment Proof"}
+                            </button>
+                          </div>
+                        )}
+
+                        {paymentMessages[b.id] && (
                           <div style={paymentMessageStyle}>
                             {paymentMessages[b.id]}
                           </div>
