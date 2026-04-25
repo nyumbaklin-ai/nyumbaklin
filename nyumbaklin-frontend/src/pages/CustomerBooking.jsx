@@ -137,194 +137,194 @@ function CustomerBooking() {
   };
 
   const handleUseCurrentLocation = () => {
-  if (!navigator.geolocation) {
-    setLocationMessage("GPS is not supported on this device/browser.");
-    return;
-  }
+    if (!navigator.geolocation) {
+      setLocationMessage("GPS is not supported on this device/browser.");
+      return;
+    }
 
-  if (!window.isSecureContext && window.location.hostname !== "localhost") {
-    setLocationMessage("GPS needs HTTPS or localhost to work on this device.");
-    return;
-  }
+    if (!window.isSecureContext && window.location.hostname !== "localhost") {
+      setLocationMessage("GPS needs HTTPS or localhost to work on this device.");
+      return;
+    }
 
-  setGettingLocation(true);
-  setLocationMessage("Getting your current location... Please allow GPS access.");
-  setGpsAccuracy(null);
-  setGpsTimestamp("");
-  setGpsReadableLocation("");
+    setGettingLocation(true);
+    setLocationMessage("Getting your current location... Please allow GPS access.");
+    setGpsAccuracy(null);
+    setGpsTimestamp("");
+    setGpsReadableLocation("");
 
-  const savePosition = async (position) => {
-    const latitude = position.coords.latitude.toFixed(6);
-    const longitude = position.coords.longitude.toFixed(6);
-    const accuracy =
-      typeof position.coords.accuracy === "number"
-        ? Math.round(position.coords.accuracy)
-        : null;
+    const savePosition = async (position) => {
+      const latitude = position.coords.latitude.toFixed(6);
+      const longitude = position.coords.longitude.toFixed(6);
+      const accuracy =
+        typeof position.coords.accuracy === "number"
+          ? Math.round(position.coords.accuracy)
+          : null;
 
-    const capturedTime = new Date(position.timestamp).toLocaleString();
+      const capturedTime = new Date(position.timestamp).toLocaleString();
 
-    setArea("Other");
-    setCustomArea(
-      accuracy
-        ? `GPS: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`
-        : `GPS: ${latitude}, ${longitude}`
+      setArea("Other");
+      setCustomArea(
+        accuracy
+          ? `GPS: ${latitude}, ${longitude} (Accuracy: ${accuracy}m)`
+          : `GPS: ${latitude}, ${longitude}`
+      );
+      setGpsAccuracy(accuracy);
+      setGpsTimestamp(capturedTime);
+      setLocationMessage("✅ GPS coordinates captured. Finding approximate area...");
+
+      const readableLocation = await getReadableLocationFromCoordinates(
+        latitude,
+        longitude
+      );
+
+      if (readableLocation) {
+        setGpsReadableLocation(readableLocation);
+
+        if (accuracy && accuracy <= 50) {
+          setLocationMessage("✅ GPS location added successfully. Approx area found.");
+        } else if (accuracy && accuracy > 50) {
+          setLocationMessage(
+            "✅ GPS location added and approx area found, but accuracy is a bit low. You can edit the location if needed."
+          );
+        } else {
+          setLocationMessage(
+            "✅ GPS location added and approx area found. You can still edit it if needed."
+          );
+        }
+      } else {
+        if (accuracy && accuracy <= 50) {
+          setLocationMessage(
+            "✅ GPS coordinates were captured, but approx area could not be found. You can still continue or edit the location manually."
+          );
+        } else {
+          setLocationMessage(
+            "✅ GPS coordinates were captured. Approx area could not be found, and accuracy may not be perfect. You can still continue or edit the location manually."
+          );
+        }
+      }
+
+      setGettingLocation(false);
+    };
+
+    const handleFinalError = (error) => {
+      console.error("Location error:", error);
+
+      if (error.code === 1) {
+        setLocationMessage(
+          "Location permission denied. Please allow GPS access in your browser and try again."
+        );
+      } else if (error.code === 2) {
+        setLocationMessage(
+          "Unable to detect your location right now. Move to an open area or check your internet/GPS, then try again."
+        );
+      } else if (error.code === 3) {
+        setLocationMessage(
+          "Location request timed out. Please try again or enter your area manually."
+        );
+      } else {
+        setLocationMessage(
+          "Failed to get location. Please try again or enter your area manually."
+        );
+      }
+
+      setGettingLocation(false);
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      savePosition,
+      (error) => {
+        if (error.code === 3) {
+          setLocationMessage("GPS is taking long. Retrying with normal accuracy...");
+
+          navigator.geolocation.getCurrentPosition(savePosition, handleFinalError, {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 60000,
+          });
+        } else {
+          handleFinalError(error);
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
     );
-    setGpsAccuracy(accuracy);
-    setGpsTimestamp(capturedTime);
-    setLocationMessage("✅ GPS coordinates captured. Finding approximate area...");
-
-    const readableLocation = await getReadableLocationFromCoordinates(
-      latitude,
-      longitude
-    );
-
-    if (readableLocation) {
-      setGpsReadableLocation(readableLocation);
-
-      if (accuracy && accuracy <= 50) {
-        setLocationMessage("✅ GPS location added successfully. Approx area found.");
-      } else if (accuracy && accuracy > 50) {
-        setLocationMessage(
-          "✅ GPS location added and approx area found, but accuracy is a bit low. You can edit the location if needed."
-        );
-      } else {
-        setLocationMessage(
-          "✅ GPS location added and approx area found. You can still edit it if needed."
-        );
-      }
-    } else {
-      if (accuracy && accuracy <= 50) {
-        setLocationMessage(
-          "✅ GPS coordinates were captured, but approx area could not be found. You can still continue or edit the location manually."
-        );
-      } else {
-        setLocationMessage(
-          "✅ GPS coordinates were captured. Approx area could not be found, and accuracy may not be perfect. You can still continue or edit the location manually."
-        );
-      }
-    }
-
-    setGettingLocation(false);
   };
-
-  const handleFinalError = (error) => {
-    console.error("Location error:", error);
-
-    if (error.code === 1) {
-      setLocationMessage(
-        "Location permission denied. Please allow GPS access in your browser and try again."
-      );
-    } else if (error.code === 2) {
-      setLocationMessage(
-        "Unable to detect your location right now. Move to an open area or check your internet/GPS, then try again."
-      );
-    } else if (error.code === 3) {
-      setLocationMessage(
-        "Location request timed out. Please try again or enter your area manually."
-      );
-    } else {
-      setLocationMessage(
-        "Failed to get location. Please try again or enter your area manually."
-      );
-    }
-
-    setGettingLocation(false);
-  };
-
-  navigator.geolocation.getCurrentPosition(
-    savePosition,
-    (error) => {
-      if (error.code === 3) {
-        setLocationMessage("GPS is taking long. Retrying with normal accuracy...");
-
-        navigator.geolocation.getCurrentPosition(savePosition, handleFinalError, {
-          enableHighAccuracy: false,
-          timeout: 15000,
-          maximumAge: 60000,
-        });
-      } else {
-        handleFinalError(error);
-      }
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0,
-    }
-  );
-};
 
   const handleBooking = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const finalService = service === "Other" ? customService.trim() : service;
-  const finalPrice = getPrice();
-  const finalAddress = area === "Other" ? customArea.trim() : area;
-  const isGpsAddress = finalAddress.startsWith("GPS:");
+    const finalService = service === "Other" ? customService.trim() : service;
+    const finalPrice = getPrice();
+    const finalAddress = area === "Other" ? customArea.trim() : area;
+    const isGpsAddress = finalAddress.startsWith("GPS:");
 
-  if (!finalService) return alert("Select service");
-  if (needsRoomSelection && !roomSize) return alert("Select rooms");
+    if (!finalService) return alert("Select service");
+    if (needsRoomSelection && !roomSize) return alert("Select rooms");
 
-  if (service === "Other" && (!customPrice || Number(customPrice) <= 0)) {
-    return alert("Enter valid price");
-  }
+    if (service === "Other" && (!customPrice || Number(customPrice) <= 0)) {
+      return alert("Enter valid price");
+    }
 
-  if (!area) return alert("Select location");
+    if (!area) return alert("Select location");
 
-  if (area === "Other" && !customArea.trim()) {
-    return alert("Enter location");
-  }
+    if (area === "Other" && !customArea.trim()) {
+      return alert("Enter location");
+    }
 
-  if (!date) return alert("Select date");
-
-  try {
-    const response = await fetch(`${API_URL}/customers/book-service`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({
-        service:
-          service === "Other"
-            ? finalService
-            : `${finalService} (${roomSize} rooms)`,
-        booking_date: date,
-        price: finalPrice,
-        address: finalAddress,
-        payment_method: paymentMethod,
-        gps_readable_location: isGpsAddress ? gpsReadableLocation || null : null,
-      }),
-    });
-
-    let data = {};
+    if (!date) return alert("Select date");
 
     try {
-      data = await response.json();
-    } catch {
-      data = {};
-    }
+      const response = await fetch(`${API_URL}/customers/book-service`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          service:
+            service === "Other"
+              ? finalService
+              : `${finalService} (${roomSize} rooms)`,
+          booking_date: date,
+          price: finalPrice,
+          address: finalAddress,
+          payment_method: paymentMethod,
+          gps_readable_location: isGpsAddress ? gpsReadableLocation || null : null,
+        }),
+      });
 
-    if (response.ok) {
-      alert(
-        paymentMethod === "pay_after"
-          ? "✅ Booking successful! Pay after service."
-          : "✅ Booking received! Your Mobile Money payment will be verified before confirmation."
-      );
-      navigate("/my-bookings");
-    } else {
-      alert(data.message || "Booking failed. Please try again.");
-    }
-  } catch (error) {
-    console.error("Booking error:", error);
+      let data = {};
 
-    if (!navigator.onLine) {
-      alert("No internet connection. Please check your network and try again.");
-    } else {
-      alert("Something went wrong while sending your booking. Please try again.");
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
+
+      if (response.ok) {
+        alert(
+          paymentMethod === "pay_after"
+            ? "✅ Booking successful! Pay after service."
+            : "✅ Booking received! After paying, go to My Bookings and submit your Mobile Money transaction reference for verification."
+        );
+        navigate("/my-bookings");
+      } else {
+        alert(data.message || "Booking failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Booking error:", error);
+
+      if (!navigator.onLine) {
+        alert("No internet connection. Please check your network and try again.");
+      } else {
+        alert("Something went wrong while sending your booking. Please try again.");
+      }
     }
-  }
-};
+  };
 
   const pageStyle = {
     minHeight: "100vh",
@@ -656,18 +656,18 @@ function CustomerBooking() {
             )}
 
             {!gettingLocation && customArea.startsWith("GPS:") && !gpsReadableLocation && (
-  <p
-    style={{
-      margin: "4px 0 0 0",
-      color: "#164e63",
-      fontSize: "13px",
-      lineHeight: "1.6",
-    }}
-  >
-    Approx area: not available yet. You can still continue with the GPS coordinates
-    or edit the location manually.
-  </p>
-)}
+              <p
+                style={{
+                  margin: "4px 0 0 0",
+                  color: "#164e63",
+                  fontSize: "13px",
+                  lineHeight: "1.6",
+                }}
+              >
+                Approx area: not available yet. You can still continue with the GPS coordinates
+                or edit the location manually.
+              </p>
+            )}
 
             <select
               value={area}
@@ -729,14 +729,14 @@ function CustomerBooking() {
             <label style={optionBoxStyle}>
               <input
                 type="radio"
-                value="momo"
-                checked={paymentMethod === "momo"}
+                value="manual_mobile_money"
+                checked={paymentMethod === "manual_mobile_money"}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
               Pay with Mobile Money
             </label>
 
-            {paymentMethod === "momo" && (
+            {paymentMethod === "manual_mobile_money" && (
               <div style={momoBoxStyle}>
                 <p
                   style={{
@@ -750,30 +750,52 @@ function CustomerBooking() {
                 </p>
 
                 <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  1. Go to your Mobile Money menu on MTN or Airtel.
+                  1. Choose your network: MTN Mobile Money or Airtel Money.
                 </p>
 
                 <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  2. Send the full booking amount to:
+                  2. Pay the full booking amount using the correct payment details below:
                 </p>
 
-                <p
+                <div
                   style={{
-                    margin: "0 0 10px 0",
-                    color: "#0f172a",
-                    fontSize: "18px",
-                    fontWeight: "800",
+                    background: "#ffffff",
+                    border: "1px solid #fed7aa",
+                    borderRadius: "12px",
+                    padding: "12px",
+                    marginBottom: "10px",
                   }}
                 >
-                  📞 0781812743 (Nyumbaklin Payments)
+                  <p
+                    style={{
+                      margin: "0 0 8px 0",
+                      color: "#0f172a",
+                      fontSize: "16px",
+                      fontWeight: "800",
+                    }}
+                  >
+                    📞 MTN Users: Pay to 0781812743
+                  </p>
+
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#0f172a",
+                      fontSize: "16px",
+                      fontWeight: "800",
+                    }}
+                  >
+                    🟢 Airtel Users: Pay using Airtel Merchant Code 7076122
+                  </p>
+                </div>
+
+                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
+                  3. Use your booking number, phone number, or name as the payment reference.
                 </p>
 
                 <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  3. Use your phone number or name as payment reference.
-                </p>
-
-                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  4. After sending money, click <strong>Book Service</strong> to submit your booking.
+                  4. After booking, go to <strong>My Bookings</strong> and submit the
+                  Mobile Money transaction reference from your SMS.
                 </p>
 
                 <p
@@ -785,7 +807,7 @@ function CustomerBooking() {
                     lineHeight: "1.6",
                   }}
                 >
-                  ⚠️ Bookings paid by Mobile Money are confirmed after payment verification.
+                  ⚠️ Mobile Money bookings are confirmed only after admin verifies the payment.
                 </p>
               </div>
             )}
