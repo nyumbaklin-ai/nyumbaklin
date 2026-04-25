@@ -1006,6 +1006,18 @@ function Dashboard() {
     (booking) => booking.payment_status === "pending_verification"
   ).length;
 
+  const verifiedMobileMoneyPayments = bookings.filter(
+    (booking) =>
+      booking.payment_status === "paid" &&
+      booking.payment_method === "manual_mobile_money" &&
+      booking.manual_payment_reference
+  );
+
+  const totalVerifiedMobileMoneyValue = verifiedMobileMoneyPayments.reduce(
+    (sum, booking) => sum + Number(booking.price || 0),
+    0
+  );
+
   const pageStyle = {
     padding: "32px 24px",
     background: "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
@@ -1232,6 +1244,109 @@ function Dashboard() {
             {pendingManualPayments}
           </p>
         </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>
+            Verified MoMo Payments
+          </h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#166534" }}>
+            {verifiedMobileMoneyPayments.length}
+          </p>
+        </div>
+
+        <div style={cardStyle}>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>
+            Verified MoMo Value
+          </h3>
+          <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#15803d" }}>
+            UGX {totalVerifiedMobileMoneyValue.toLocaleString()}
+          </p>
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
+        <div style={{ marginBottom: "20px" }}>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
+            Verified Mobile Money Payments
+          </h2>
+          <p style={{ marginTop: "8px", marginBottom: 0, color: "#64748b", fontSize: "14px" }}>
+            Use this as transaction proof when Pegasus asks for payment activity.
+          </p>
+        </div>
+
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1500px" }}>
+          <thead>
+            <tr>
+              <th style={tableHeaderStyle}>Booking ID</th>
+              <th style={tableHeaderStyle}>Customer Email</th>
+              <th style={tableHeaderStyle}>Customer Phone</th>
+              <th style={tableHeaderStyle}>Service</th>
+              <th style={tableHeaderStyle}>Amount</th>
+              <th style={tableHeaderStyle}>Network</th>
+              <th style={tableHeaderStyle}>Payment Phone</th>
+              <th style={tableHeaderStyle}>Transaction Ref</th>
+              <th style={tableHeaderStyle}>Submitted</th>
+              <th style={tableHeaderStyle}>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {verifiedMobileMoneyPayments.length === 0 ? (
+              <tr>
+                <td style={tableCellStyle} colSpan="10">
+                  No verified Mobile Money payments yet
+                </td>
+              </tr>
+            ) : (
+              verifiedMobileMoneyPayments.map((booking) => {
+                const bookingPrice = Number(booking.price || 0);
+                const paymentStatus = booking.payment_status || "unpaid";
+
+                return (
+                  <tr key={booking.id} style={{ background: "#fff" }}>
+                    <td style={tableCellStyle}>#{booking.id}</td>
+                    <td style={tableCellStyle}>{booking.email}</td>
+                    <td style={tableCellStyle}>{booking.customer_phone || "Not provided"}</td>
+                    <td style={tableCellStyle}>{booking.service}</td>
+                    <td style={tableCellStyle}>
+                      <strong>UGX {bookingPrice.toLocaleString()}</strong>
+                    </td>
+                    <td style={tableCellStyle}>
+                      {booking.manual_payment_network
+                        ? booking.manual_payment_network.toUpperCase()
+                        : "N/A"}
+                    </td>
+                    <td style={tableCellStyle}>
+                      {booking.manual_payment_phone || "N/A"}
+                    </td>
+                    <td style={tableCellStyle}>
+                      <strong>{booking.manual_payment_reference}</strong>
+                    </td>
+                    <td style={tableCellStyle}>
+                      {booking.manual_payment_submitted_at
+                        ? new Date(booking.manual_payment_submitted_at).toLocaleString()
+                        : "Not recorded"}
+                    </td>
+                    <td style={tableCellStyle}>
+                      <span
+                        style={{
+                          ...getPaymentBadgeStyle(paymentStatus),
+                          padding: "7px 12px",
+                          borderRadius: "999px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          display: "inline-block",
+                        }}
+                      >
+                        {getPaymentStatusLabel(paymentStatus)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       <div style={sectionStyle}>
