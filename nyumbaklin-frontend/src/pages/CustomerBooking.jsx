@@ -309,7 +309,7 @@ function CustomerBooking() {
         alert(
           paymentMethod === "pay_after"
             ? "✅ Booking successful! Pay after service."
-            : "✅ Booking received! After paying, go to My Bookings and submit your Mobile Money transaction reference for verification."
+            : "✅ Booking successful! If you have paid, submit your transaction ID in My Bookings."
         );
         navigate("/my-bookings");
       } else {
@@ -723,7 +723,7 @@ function CustomerBooking() {
                 checked={paymentMethod === "pay_after"}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
-              Pay After Service (Recommended)
+              Pay After Service
             </label>
 
             <label style={optionBoxStyle}>
@@ -733,7 +733,7 @@ function CustomerBooking() {
                 checked={paymentMethod === "manual_mobile_money"}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               />
-              Pay with Mobile Money
+              Pay Now with Mobile Money
             </label>
 
             {paymentMethod === "manual_mobile_money" && (
@@ -743,18 +743,10 @@ function CustomerBooking() {
                     margin: "0 0 10px 0",
                     color: "#9a3412",
                     fontSize: "16px",
-                    fontWeight: "700",
+                    fontWeight: "800",
                   }}
                 >
-                  📲 Mobile Money Payment Instructions
-                </p>
-
-                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  1. Choose your network: MTN Mobile Money or Airtel Money.
-                </p>
-
-                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  2. Pay the full booking amount using the correct payment details below:
+                  📲 Pay Now
                 </p>
 
                 <div
@@ -774,7 +766,7 @@ function CustomerBooking() {
                       fontWeight: "800",
                     }}
                   >
-                    📞 MTN Users: Pay to 0781812743
+                    MTN: 0781812743
                   </p>
 
                   <p
@@ -785,34 +777,30 @@ function CustomerBooking() {
                       fontWeight: "800",
                     }}
                   >
-                    🟢 Airtel Users: Pay using Airtel Merchant Code 7076122
+                    Airtel Merchant Code: 7076122
                   </p>
                 </div>
 
-                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  3. Use your booking number, phone number, or name as the payment reference.
-                </p>
-
-                <p style={{ margin: "0 0 8px 0", color: "#7c2d12", fontSize: "14px" }}>
-                  4. After booking, go to <strong>My Bookings</strong> and submit the
-                  Mobile Money transaction reference from your SMS.
+                <p style={{ margin: "0", color: "#7c2d12", fontSize: "14px", lineHeight: "1.6" }}>
+                  After paying, tap <strong>Book Service</strong>. Then open{" "}
+                  <strong>My Bookings</strong> and submit your transaction ID.
                 </p>
 
                 <p
                   style={{
-                    margin: "12px 0 0 0",
+                    margin: "10px 0 0 0",
                     color: "#b91c1c",
                     fontSize: "13px",
                     fontWeight: "700",
                     lineHeight: "1.6",
                   }}
                 >
-                  ⚠️ Mobile Money bookings are confirmed only after admin verifies the payment.
+                  Admin confirms after checking the real MTN/Airtel payment.
                 </p>
               </div>
             )}
 
-            <p style={noteStyle}>Pay after service is safer and builds trust.</p>
+            <p style={noteStyle}>Pay after service is available if you prefer to pay later.</p>
 
             <p style={noteStyle}>Prices include cleaner transport within Kampala.</p>
 
