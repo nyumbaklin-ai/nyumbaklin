@@ -131,6 +131,24 @@ function Login() {
           </button>
         </form>
 
+        <div
+          style={{
+            marginTop: "14px",
+            background: "#f8fafc",
+            border: "1px solid #e5e7eb",
+            borderRadius: "12px",
+            padding: "12px",
+            textAlign: "center",
+            color: "#475569",
+            fontSize: "14px",
+            lineHeight: "1.6",
+          }}
+        >
+          <strong style={{ color: "#0f172a" }}>Forgot password?</strong>
+          <br />
+          Contact Nyumbaklin support. Admin will verify your account and reset your password.
+        </div>
+
         <div style={{ marginTop: "20px", textAlign: "center", color: "#475569" }}>
           <p style={{ marginBottom: "12px" }}>Don&apos;t have an account?</p>
 
