@@ -577,6 +577,64 @@ function Dashboard() {
     }
   };
 
+  const resetUserPassword = async (id, email, role) => {
+    if (role === "admin") {
+      alert("You cannot reset another admin password from here.");
+      return;
+    }
+
+    const newPassword = window.prompt(
+      `Enter temporary password for ${email}:`,
+      "Nyumba12345"
+    );
+
+    if (newPassword === null) {
+      return;
+    }
+
+    const cleanedPassword = newPassword.trim();
+
+    if (cleanedPassword.length < 6) {
+      alert("Password must be at least 6 characters");
+      return;
+    }
+
+    const confirmReset = window.confirm(
+      `Reset password for ${email} to this temporary password?\n\n${cleanedPassword}`
+    );
+
+    if (!confirmReset) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/admin/reset-password/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          new_password: cleanedPassword,
+        }),
+      });
+
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Password reset successfully" : "Error resetting password"
+      );
+
+      alert(message);
+
+      if (response.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      alert("Error resetting password");
+    }
+  };
+
   const deleteBooking = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
 
@@ -1401,6 +1459,7 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Sub Status</th>
               <th style={tableHeaderStyle}>Expiry</th>
               <th style={tableHeaderStyle}>Change Role</th>
+              <th style={tableHeaderStyle}>Reset Password</th>
               <th style={tableHeaderStyle}>Delete</th>
             </tr>
           </thead>
@@ -1408,7 +1467,7 @@ function Dashboard() {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="9">
+                <td style={tableCellStyle} colSpan="10">
                   No users found
                 </td>
               </tr>
@@ -1495,6 +1554,24 @@ function Dashboard() {
                     >
                       Change Role
                     </button>
+                  </td>
+
+                  <td style={tableCellStyle}>
+                    {user.role === "admin" ? (
+                      "—"
+                    ) : (
+                      <button
+                        onClick={() =>
+                          resetUserPassword(user.id, user.email, user.role)
+                        }
+                        style={{
+                          ...actionButtonStyle,
+                          background: "#7c3aed",
+                        }}
+                      >
+                        Reset Password
+                      </button>
+                    )}
                   </td>
 
                   <td style={tableCellStyle}>
