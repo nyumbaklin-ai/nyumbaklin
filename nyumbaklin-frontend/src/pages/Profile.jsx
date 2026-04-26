@@ -6,6 +6,12 @@ function Profile() {
   const [profile, setProfile] = useState({});
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const token = localStorage.getItem("token");
 
   const kampalaAreas = [
@@ -56,6 +62,20 @@ function Profile() {
     "Mukono",
   ];
 
+  const readResponseMessage = async (res, fallbackMessage) => {
+    try {
+      const data = await res.json();
+      return data.message || fallbackMessage;
+    } catch {
+      try {
+        const text = await res.text();
+        return text || fallbackMessage;
+      } catch {
+        return fallbackMessage;
+      }
+    }
+  };
+
   const fetchProfile = async () => {
     try {
       const res = await fetch(`${API_URL}/customers/profile`, {
@@ -88,7 +108,11 @@ function Profile() {
         body: JSON.stringify({ phone }),
       });
 
-      const msg = await res.text();
+      const msg = await readResponseMessage(
+        res,
+        res.ok ? "Phone updated successfully" : "Error updating phone"
+      );
+
       alert(msg);
       fetchProfile();
     } catch (err) {
@@ -113,12 +137,77 @@ function Profile() {
         body: JSON.stringify({ location }),
       });
 
-      const msg = await res.text();
+      const msg = await readResponseMessage(
+        res,
+        res.ok ? "Location updated successfully" : "Error updating location"
+      );
+
       alert(msg);
       fetchProfile();
     } catch (err) {
       console.error(err);
       alert("Error updating location");
+    }
+  };
+
+  const changePassword = async () => {
+    const cleanedCurrentPassword = currentPassword.trim();
+    const cleanedNewPassword = newPassword.trim();
+    const cleanedConfirmPassword = confirmPassword.trim();
+
+    if (!cleanedCurrentPassword || !cleanedNewPassword || !cleanedConfirmPassword) {
+      alert("Please fill in current password, new password, and confirm password.");
+      return;
+    }
+
+    if (cleanedNewPassword.length < 6) {
+      alert("New password must be at least 6 characters.");
+      return;
+    }
+
+    if (cleanedNewPassword !== cleanedConfirmPassword) {
+      alert("New password and confirm password do not match.");
+      return;
+    }
+
+    if (cleanedCurrentPassword === cleanedNewPassword) {
+      alert("New password must be different from current password.");
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+
+      const res = await fetch(`${API_URL}/customers/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          current_password: cleanedCurrentPassword,
+          new_password: cleanedNewPassword,
+          confirm_password: cleanedConfirmPassword,
+        }),
+      });
+
+      const msg = await readResponseMessage(
+        res,
+        res.ok ? "Password changed successfully" : "Error changing password"
+      );
+
+      alert(msg);
+
+      if (res.ok) {
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error changing password");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -194,6 +283,14 @@ function Profile() {
     boxShadow: "0 10px 18px rgba(37, 99, 235, 0.20)",
   };
 
+  const sectionCardStyle = {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "16px",
+    padding: "22px",
+    marginBottom: "20px",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
@@ -203,7 +300,7 @@ function Profile() {
               My Profile
             </h1>
             <p style={{ marginTop: "10px", color: "#64748b", fontSize: "15px" }}>
-              View your account details and keep your phone number and location up to date.
+              View your account details and keep your phone number, location, and password up to date.
             </p>
           </div>
 
@@ -226,15 +323,7 @@ function Profile() {
             </div>
           </div>
 
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "16px",
-              padding: "22px",
-              marginBottom: "20px",
-            }}
-          >
+          <div style={sectionCardStyle}>
             <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
               Update Phone Number
             </h3>
@@ -259,14 +348,7 @@ function Profile() {
             </button>
           </div>
 
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "16px",
-              padding: "22px",
-            }}
-          >
+          <div style={sectionCardStyle}>
             <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
               Update Location
             </h3>
@@ -293,6 +375,72 @@ function Profile() {
 
             <button onClick={updateLocation} style={buttonStyle}>
               Update Location
+            </button>
+          </div>
+
+          <div
+            style={{
+              ...sectionCardStyle,
+              marginBottom: 0,
+              background: "#f8fafc",
+            }}
+          >
+            <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
+              Change Password
+            </h3>
+
+            <p style={{ marginTop: "8px", color: "#64748b", fontSize: "14px" }}>
+              If admin gave you a temporary password, enter it as your current password, then set your own new password.
+            </p>
+
+            <label style={{ ...labelStyle, display: "block", marginTop: "18px" }}>
+              Current Password
+            </label>
+
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              style={inputStyle}
+            />
+
+            <label style={{ ...labelStyle, display: "block" }}>
+              New Password
+            </label>
+
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              style={inputStyle}
+            />
+
+            <label style={{ ...labelStyle, display: "block" }}>
+              Confirm New Password
+            </label>
+
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              style={inputStyle}
+            />
+
+            <button
+              onClick={changePassword}
+              disabled={changingPassword}
+              style={{
+                ...buttonStyle,
+                background: "linear-gradient(90deg, #7c3aed, #6d28d9)",
+                boxShadow: "0 10px 18px rgba(124, 58, 237, 0.20)",
+                opacity: changingPassword ? 0.7 : 1,
+                cursor: changingPassword ? "not-allowed" : "pointer",
+              }}
+            >
+              {changingPassword ? "Changing Password..." : "Change Password"}
             </button>
           </div>
         </div>
