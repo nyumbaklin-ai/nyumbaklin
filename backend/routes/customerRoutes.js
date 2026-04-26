@@ -234,6 +234,72 @@ router.put("/update-location", auth, async (req, res) => {
   }
 });
 
+// ================= CHANGE PASSWORD =================
+router.put("/change-password", auth, async (req, res) => {
+  const currentPassword = String(req.body.current_password || "");
+  const newPassword = String(req.body.new_password || "");
+  const confirmPassword = String(req.body.confirm_password || "");
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return res.status(400).json({
+      message: "Current password, new password, and confirm password are required",
+    });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      message: "New password must be at least 6 characters",
+    });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({
+      message: "New password and confirm password do not match",
+    });
+  }
+
+  if (currentPassword === newPassword) {
+    return res.status(400).json({
+      message: "New password must be different from current password",
+    });
+  }
+
+  try {
+    const userResult = await pool.query(
+      "SELECT id, email, password FROM customers WHERE email=$1",
+      [req.user.email]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = userResult.rows[0];
+
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+
+    if (!validPassword) {
+      return res.status(401).json({
+        message: "Current password is incorrect",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query("UPDATE customers SET password=$1 WHERE id=$2", [
+      hashedPassword,
+      user.id,
+    ]);
+
+    res.json({
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ message: "Error changing password" });
+  }
+});
+
 // ================= CREATE BOOKING =================
 router.post("/book", auth, async (req, res) => {
   const service = normalizeText(req.body.service);
