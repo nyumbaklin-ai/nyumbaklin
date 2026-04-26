@@ -3,6 +3,7 @@ const router = express.Router();
 
 const { auth, adminOnly } = require("../middleware/auth");
 const pool = require("../config/db");
+const bcrypt = require("bcrypt");
 
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 const normalizeText = (value) => String(value || "").trim();
@@ -526,6 +527,57 @@ router.put("/update-payout-status/:id", auth, adminOnly, async (req, res) => {
   } catch (error) {
     console.error("Cleaner payout update error:", error);
     res.status(500).json({ message: "Error updating cleaner payout status" });
+  }
+});
+
+// ================= ADMIN RESET USER PASSWORD =================
+router.put("/reset-password/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const newPassword = String(req.body.new_password || "").trim();
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
+
+  if (!newPassword) {
+    return res.status(400).json({ message: "New password is required" });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters" });
+  }
+
+  try {
+    const userResult = await pool.query(
+      "SELECT id, email, role FROM customers WHERE id=$1",
+      [id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = userResult.rows[0];
+
+    if (user.role === "admin") {
+      return res.status(403).json({
+        message: "You cannot reset another admin password from here",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query("UPDATE customers SET password=$1 WHERE id=$2", [
+      hashedPassword,
+      id,
+    ]);
+
+    res.json({
+      message: `Password reset successfully for ${user.email}`,
+    });
+  } catch (error) {
+    console.error("Admin reset password error:", error);
+    res.status(500).json({ message: "Error resetting password" });
   }
 });
 
