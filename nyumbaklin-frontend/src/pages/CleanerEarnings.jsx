@@ -82,7 +82,7 @@ function CleanerEarnings() {
 
   const pageStyle = {
     minHeight: "100vh",
-    background: "#f4f7fb",
+    background: "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
     padding: "30px 20px",
   };
 
@@ -92,11 +92,12 @@ function CleanerEarnings() {
   };
 
   const headerCardStyle = {
-    background: "white",
-    borderRadius: "16px",
-    padding: "25px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-    border: "1px solid #e5e7eb",
+    background: "linear-gradient(135deg, #0f172a, #1d4ed8)",
+    color: "white",
+    borderRadius: "18px",
+    padding: "28px",
+    boxShadow: "0 16px 36px rgba(15, 23, 42, 0.14)",
+    border: "1px solid rgba(255,255,255,0.12)",
     marginBottom: "25px",
   };
 
@@ -111,29 +112,36 @@ function CleanerEarnings() {
     border: "1px solid #e5e7eb",
     borderRadius: "16px",
     padding: "22px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
+  };
+
+  const mainEarningsCardStyle = {
+    ...statCardStyle,
+    background: "linear-gradient(135deg, #f0fdf4, #ffffff)",
+    border: "1px solid #bbf7d0",
   };
 
   const labelStyle = {
     margin: 0,
-    color: "#6b7280",
+    color: "#64748b",
     fontSize: "14px",
+    fontWeight: "600",
   };
 
   const valueStyle = {
     margin: "10px 0 0 0",
     color: "#111827",
     fontSize: "26px",
-    fontWeight: "bold",
+    fontWeight: "800",
   };
 
   const subCardStyle = {
     marginTop: "25px",
     background: "white",
     border: "1px solid #e5e7eb",
-    borderRadius: "16px",
+    borderRadius: "18px",
     padding: "24px",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
   };
 
   const reviewCardStyle = {
@@ -155,15 +163,16 @@ function CleanerEarnings() {
   };
 
   const refreshButtonStyle = {
-    background: refreshing ? "#94a3b8" : "#2563eb",
-    color: "white",
+    background: refreshing ? "#94a3b8" : "white",
+    color: refreshing ? "white" : "#1d4ed8",
     border: "none",
-    padding: "10px 16px",
+    padding: "11px 16px",
     borderRadius: "10px",
     fontSize: "14px",
-    fontWeight: "700",
+    fontWeight: "800",
     cursor: refreshing ? "not-allowed" : "pointer",
     marginTop: "16px",
+    boxShadow: "0 10px 18px rgba(15, 23, 42, 0.12)",
   };
 
   const historySummaryStyle = {
@@ -184,13 +193,25 @@ function CleanerEarnings() {
     fontWeight: "700",
   };
 
+  const noteBoxStyle = {
+    marginTop: "20px",
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: "14px",
+    padding: "16px",
+    color: "#1e3a8a",
+    lineHeight: "1.6",
+    fontSize: "14px",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerCardStyle}>
-          <h1 style={{ margin: 0, color: "#111827" }}>Cleaner Earnings</h1>
-          <p style={{ marginTop: "8px", color: "#6b7280" }}>
-            View your completed jobs, earnings, payouts, and customer ratings.
+          <h1 style={{ margin: 0, fontSize: "32px" }}>Cleaner Earnings</h1>
+
+          <p style={{ marginTop: "10px", color: "#dbeafe", lineHeight: "1.6" }}>
+            View your completed jobs, your earnings, payout status, and customer ratings.
           </p>
 
           <button
@@ -203,7 +224,7 @@ function CleanerEarnings() {
         </div>
 
         {!earnings ? (
-          <div style={headerCardStyle}>
+          <div style={subCardStyle}>
             <p style={{ margin: 0, color: "#6b7280" }}>
               Loading earnings...
             </p>
@@ -213,40 +234,26 @@ function CleanerEarnings() {
             <div style={statsGridStyle}>
               <div style={statCardStyle}>
                 <p style={labelStyle}>Completed Jobs</p>
-                <h2 style={valueStyle}>{earnings.total_jobs}</h2>
+                <h2 style={valueStyle}>{earnings.total_jobs || 0}</h2>
               </div>
 
-              <div style={statCardStyle}>
-                <p style={labelStyle}>Total Job Value</p>
-                <h2 style={valueStyle}>
-                  UGX {Number(earnings.total_value).toLocaleString()}
-                </h2>
-              </div>
-
-              <div style={statCardStyle}>
-                <p style={labelStyle}>Platform Fee (15%)</p>
-                <h2 style={valueStyle}>
-                  UGX {Number(earnings.platform_fee).toLocaleString()}
-                </h2>
-              </div>
-
-              <div style={statCardStyle}>
-                <p style={labelStyle}>Your Earnings</p>
-                <h2 style={valueStyle}>
-                  UGX {Number(earnings.cleaner_earnings).toLocaleString()}
+              <div style={mainEarningsCardStyle}>
+                <p style={labelStyle}>Your Total Earnings</p>
+                <h2 style={{ ...valueStyle, color: "#15803d" }}>
+                  UGX {Number(earnings.cleaner_earnings || 0).toLocaleString()}
                 </h2>
               </div>
 
               <div style={statCardStyle}>
                 <p style={labelStyle}>Paid To You</p>
-                <h2 style={{ ...valueStyle, color: "green" }}>
+                <h2 style={{ ...valueStyle, color: "#15803d" }}>
                   UGX {Number(earnings.total_paid || 0).toLocaleString()}
                 </h2>
               </div>
 
               <div style={statCardStyle}>
                 <p style={labelStyle}>Pending Payout</p>
-                <h2 style={{ ...valueStyle, color: "orange" }}>
+                <h2 style={{ ...valueStyle, color: "#ea580c" }}>
                   UGX {Number(earnings.total_pending || 0).toLocaleString()}
                 </h2>
               </div>
@@ -266,16 +273,16 @@ function CleanerEarnings() {
               </div>
             </div>
 
-            <div style={subCardStyle}>
-              <h2 style={{ marginTop: 0 }}>Commission Breakdown</h2>
-              <p style={{ color: "#6b7280" }}>
-                Nyumbaklin takes 15% platform fee. The rest is your earning.
-              </p>
+            <div style={noteBoxStyle}>
+              <strong>Note:</strong> Your earnings are shown after Nyumbaklin’s
+              platform service fee. This page focuses on the money payable to you
+              as a cleaner.
             </div>
 
             <div style={subCardStyle}>
-              <h2 style={{ marginTop: 0 }}>Earnings History</h2>
-              <p style={{ color: "#6b7280", marginTop: "8px" }}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Earnings History</h2>
+
+              <p style={{ color: "#64748b", marginTop: "8px", lineHeight: "1.6" }}>
                 Track each completed job and confirm whether your payout has
                 already been sent or is still pending.
               </p>
@@ -303,7 +310,7 @@ function CleanerEarnings() {
               </div>
 
               {earningsHistory.length === 0 ? (
-                <p style={{ color: "#6b7280" }}>No completed jobs yet.</p>
+                <p style={{ color: "#64748b" }}>No completed jobs yet.</p>
               ) : (
                 earningsHistory.map((job) => {
                   const isPaid = job.cleaner_payout_status === "paid";
@@ -332,6 +339,7 @@ function CleanerEarnings() {
                           <strong style={{ color: "#111827", fontSize: "16px" }}>
                             {job.service}
                           </strong>
+
                           <p style={{ margin: "8px 0 0 0", color: "#475569" }}>
                             Booking #{job.id}
                           </p>
@@ -362,28 +370,14 @@ function CleanerEarnings() {
                         }}
                       >
                         <div>
-                          <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>
-                            Total Price
-                          </p>
-                          <p
-                            style={{
-                              margin: "6px 0 0 0",
-                              fontWeight: "700",
-                              color: "#111827",
-                            }}
-                          >
-                            UGX {Number(job.price || 0).toLocaleString()}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>
+                          <p style={{ margin: 0, color: "#64748b", fontSize: "13px" }}>
                             Your Earnings
                           </p>
+
                           <p
                             style={{
                               margin: "6px 0 0 0",
-                              fontWeight: "700",
+                              fontWeight: "800",
                               color: "#16a34a",
                             }}
                           >
@@ -392,13 +386,14 @@ function CleanerEarnings() {
                         </div>
 
                         <div>
-                          <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>
+                          <p style={{ margin: 0, color: "#64748b", fontSize: "13px" }}>
                             Payout Status
                           </p>
+
                           <p
                             style={{
                               margin: "6px 0 0 0",
-                              fontWeight: "700",
+                              fontWeight: "800",
                               color: isPaid ? "#166534" : "#c2410c",
                             }}
                           >
@@ -413,12 +408,12 @@ function CleanerEarnings() {
             </div>
 
             <div style={subCardStyle}>
-              <h2 style={{ marginTop: 0 }}>Customer Reviews</h2>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Customer Reviews</h2>
 
               {!ratingsSummary ? (
-                <p>Loading reviews...</p>
+                <p style={{ color: "#64748b" }}>Loading reviews...</p>
               ) : !ratingsSummary.reviews || ratingsSummary.reviews.length === 0 ? (
-                <p>No reviews yet.</p>
+                <p style={{ color: "#64748b" }}>No reviews yet.</p>
               ) : (
                 ratingsSummary.reviews.map((review) => (
                   <div key={review.id} style={reviewCardStyle}>
