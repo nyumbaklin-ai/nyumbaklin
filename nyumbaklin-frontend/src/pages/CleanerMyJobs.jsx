@@ -2,8 +2,37 @@
 
 function CleanerMyJobs() {
   const [jobs, setJobs] = useState([]);
+  const [actionMessage, setActionMessage] = useState({ type: "", text: "" });
+
   const token = localStorage.getItem("token");
   const API_URL = import.meta.env.VITE_API_URL;
+
+  const showActionMessage = (type, text) => {
+    setActionMessage({ type, text });
+
+    setTimeout(() => {
+      setActionMessage({ type: "", text: "" });
+    }, 4000);
+  };
+
+  const readResponseMessage = async (response, fallbackMessage) => {
+    try {
+      const text = await response.text();
+
+      if (!text) {
+        return fallbackMessage;
+      }
+
+      try {
+        const data = JSON.parse(text);
+        return data.message || fallbackMessage;
+      } catch {
+        return text;
+      }
+    } catch {
+      return fallbackMessage;
+    }
+  };
 
   const fetchJobs = async () => {
     try {
@@ -16,7 +45,7 @@ function CleanerMyJobs() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Failed to fetch jobs");
+        showActionMessage("error", data.message || "Failed to fetch jobs");
         setJobs([]);
         return;
       }
@@ -24,7 +53,7 @@ function CleanerMyJobs() {
       setJobs(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Fetch jobs error:", err);
-      alert("Failed to connect to backend");
+      showActionMessage("error", "Failed to connect to backend");
       setJobs([]);
     }
   };
@@ -44,12 +73,21 @@ function CleanerMyJobs() {
         },
       });
 
-      const message = await response.text();
-      alert(message);
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Job started successfully." : "Failed to start job"
+      );
+
+      if (!response.ok) {
+        showActionMessage("error", message);
+        return;
+      }
+
+      showActionMessage("success", "✅ Job started successfully.");
       fetchJobs();
     } catch (error) {
       console.error(error);
-      alert("Failed to start job");
+      showActionMessage("error", "Failed to start job. Please try again.");
     }
   };
 
@@ -62,12 +100,21 @@ function CleanerMyJobs() {
         },
       });
 
-      const message = await response.text();
-      alert(message);
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Job completed successfully." : "Failed to complete job"
+      );
+
+      if (!response.ok) {
+        showActionMessage("error", message);
+        return;
+      }
+
+      showActionMessage("success", "✅ Job completed successfully.");
       fetchJobs();
     } catch (error) {
       console.error(error);
-      alert("Failed to complete job");
+      showActionMessage("error", "Failed to complete job. Please try again.");
     }
   };
 
@@ -290,149 +337,181 @@ function CleanerMyJobs() {
     fontSize: "14px",
   };
 
+  const actionMessageStyle = {
+    padding: "12px 14px",
+    borderRadius: "12px",
+    marginTop: "16px",
+    fontWeight: "700",
+    lineHeight: "1.5",
+    background: actionMessage.type === "success" ? "#dcfce7" : "#fee2e2",
+    color: actionMessage.type === "success" ? "#166534" : "#b91c1c",
+    border:
+      actionMessage.type === "success"
+        ? "1px solid #bbf7d0"
+        : "1px solid #fecaca",
+  };
+
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerCardStyle}>
-          <h1>My Jobs</h1>
+          <h1 style={{ marginTop: 0 }}>My Jobs</h1>
+
+          {actionMessage.text && (
+            <div style={actionMessageStyle}>
+              {actionMessage.text}
+            </div>
+          )}
         </div>
 
         <div style={jobsGridStyle}>
-          {jobs.map((job) => {
-            const badge = getStatusBadge(job.status);
-            const whatsappPhone = formatPhoneForWhatsApp(job.customer_phone);
-            const gpsLocation = parseGpsAddress(job.address);
+          {jobs.length === 0 ? (
+            <div style={jobCardStyle}>
+              <p style={{ margin: 0, color: "#64748b" }}>
+                No jobs assigned yet.
+              </p>
+            </div>
+          ) : (
+            jobs.map((job) => {
+              const badge = getStatusBadge(job.status);
+              const whatsappPhone = formatPhoneForWhatsApp(job.customer_phone);
+              const gpsLocation = parseGpsAddress(job.address);
 
-            return (
-              <div key={job.id} style={jobCardStyle}>
-                <h3>{job.service}</h3>
+              return (
+                <div key={job.id} style={jobCardStyle}>
+                  <h3>{job.service}</h3>
 
-                <div style={labelStyle}>📧 Customer Email</div>
-                <div style={valueStyle}>{job.email}</div>
+                  <div style={labelStyle}>📧 Customer Email</div>
+                  <div style={valueStyle}>{job.email}</div>
 
-                <div style={labelStyle}>💰 Price</div>
-                <div style={valueStyle}>
-                  UGX {Number(job.price).toLocaleString()}
-                </div>
+                  <div style={labelStyle}>💰 Price</div>
+                  <div style={valueStyle}>
+                    UGX {Number(job.price).toLocaleString()}
+                  </div>
 
-                {gpsLocation ? (
-                  <div style={gpsBoxStyle}>
-                    <div style={labelStyle}>📍 Customer Location</div>
-                    <div style={gpsBadgeStyle}>GPS Location</div>
+                  {gpsLocation ? (
+                    <div style={gpsBoxStyle}>
+                      <div style={labelStyle}>📍 Customer Location</div>
+                      <div style={gpsBadgeStyle}>GPS Location</div>
 
-                    <div style={gpsGridStyle}>
-                      <div style={gpsItemStyle}>
-                        <div style={gpsLabelStyle}>Latitude</div>
-                        <div style={gpsValueStyle}>{gpsLocation.latitude}</div>
-                      </div>
-
-                      <div style={gpsItemStyle}>
-                        <div style={gpsLabelStyle}>Longitude</div>
-                        <div style={gpsValueStyle}>{gpsLocation.longitude}</div>
-                      </div>
-
-                      {gpsLocation.accuracy && (
+                      <div style={gpsGridStyle}>
                         <div style={gpsItemStyle}>
-                          <div style={gpsLabelStyle}>Accuracy</div>
-                          <div style={gpsValueStyle}>{gpsLocation.accuracy} meters</div>
+                          <div style={gpsLabelStyle}>Latitude</div>
+                          <div style={gpsValueStyle}>{gpsLocation.latitude}</div>
                         </div>
-                      )}
 
-                      {job.gps_readable_location && (
-  <div style={gpsItemStyle}>
-    <div style={gpsLabelStyle}>Approx Area</div>
-    <div style={gpsValueStyle}>{job.gps_readable_location}</div>
-  </div>
-)}
-                    </div>
+                        <div style={gpsItemStyle}>
+                          <div style={gpsLabelStyle}>Longitude</div>
+                          <div style={gpsValueStyle}>{gpsLocation.longitude}</div>
+                        </div>
 
-                    <div
-                      style={{
-                        color: "#155e75",
-                        fontSize: "14px",
-                        marginTop: "10px",
-                        lineHeight: "1.5",
-                      }}
-                    >
-                      This job uses the customer&apos;s GPS location.
-                    </div>
+                        {gpsLocation.accuracy && (
+                          <div style={gpsItemStyle}>
+                            <div style={gpsLabelStyle}>Accuracy</div>
+                            <div style={gpsValueStyle}>{gpsLocation.accuracy} meters</div>
+                          </div>
+                        )}
 
-                    <a
-                      href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={mapButtonStyle}
-                    >
-                      Open in Google Maps
-                    </a>
-                  </div>
-                ) : (
-                  <div style={locationBoxStyle}>
-                    <div style={labelStyle}>📍 Location</div>
-                    <div style={{ ...valueStyle, marginBottom: 0, color: "#166534" }}>
-                      {job.address ? job.address : "Location not available"}
-                    </div>
-                  </div>
-                )}
+                        {job.gps_readable_location && (
+                          <div style={gpsItemStyle}>
+                            <div style={gpsLabelStyle}>Approx Area</div>
+                            <div style={gpsValueStyle}>{job.gps_readable_location}</div>
+                          </div>
+                        )}
+                      </div>
 
-                <div style={labelStyle}>📦 Status</div>
-                <div style={{ ...badgeBaseStyle, ...badge.style }}>
-                  {badge.text}
-                </div>
-
-                <div style={notificationStyle}>
-                  {getStatusMessage(job.status)}
-                </div>
-
-                {(job.status === "accepted" ||
-                  job.status === "in progress" ||
-                  job.status === "completed") && (
-                  <div style={phoneBoxStyle}>
-                    <div style={labelStyle}>Customer Phone</div>
-                    <div style={{ ...valueStyle, color: "#1d4ed8" }}>
-                      {job.customer_phone}
-                    </div>
-
-                    <div style={contactActionsStyle}>
-                      <a
-                        href={`tel:${job.customer_phone}`}
-                        style={{ ...contactLinkStyle, background: "#2563eb", color: "white" }}
+                      <div
+                        style={{
+                          color: "#155e75",
+                          fontSize: "14px",
+                          marginTop: "10px",
+                          lineHeight: "1.5",
+                        }}
                       >
-                        Call
-                      </a>
+                        This job uses the customer&apos;s GPS location.
+                      </div>
 
                       <a
-                        href={`https://wa.me/${whatsappPhone}`}
+                        href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ ...contactLinkStyle, background: "#16a34a", color: "white" }}
+                        style={mapButtonStyle}
                       >
-                        WhatsApp
+                        Open in Google Maps
                       </a>
                     </div>
+                  ) : (
+                    <div style={locationBoxStyle}>
+                      <div style={labelStyle}>📍 Location</div>
+                      <div style={{ ...valueStyle, marginBottom: 0, color: "#166534" }}>
+                        {job.address ? job.address : "Location not available"}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={labelStyle}>📦 Status</div>
+                  <div style={{ ...badgeBaseStyle, ...badge.style }}>
+                    {badge.text}
                   </div>
-                )}
 
-                {job.status === "accepted" && (
-                  <button
-                    onClick={() => startJob(job.id)}
-                    style={{ ...actionButtonBase, background: "#2563eb" }}
-                  >
-                    Start Job
-                  </button>
-                )}
+                  <div style={notificationStyle}>
+                    {getStatusMessage(job.status)}
+                  </div>
 
-                {job.status === "in progress" && (
-                  <button
-                    onClick={() => completeJob(job.id)}
-                    style={{ ...actionButtonBase, background: "#16a34a" }}
-                  >
-                    Complete Job
-                  </button>
-                )}
-              </div>
-            );
-          })}
+                  {(job.status === "accepted" ||
+                    job.status === "in progress" ||
+                    job.status === "completed") && (
+                    <div style={phoneBoxStyle}>
+                      <div style={labelStyle}>Customer Phone</div>
+                      <div style={{ ...valueStyle, color: "#1d4ed8" }}>
+                        {job.customer_phone || "Not available"}
+                      </div>
+
+                      {job.customer_phone && (
+                        <div style={contactActionsStyle}>
+                          <a
+                            href={`tel:${job.customer_phone}`}
+                            style={{ ...contactLinkStyle, background: "#2563eb", color: "white" }}
+                          >
+                            Call
+                          </a>
+
+                          {whatsappPhone && (
+                            <a
+                              href={`https://wa.me/${whatsappPhone}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ ...contactLinkStyle, background: "#16a34a", color: "white" }}
+                            >
+                              WhatsApp
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {job.status === "accepted" && (
+                    <button
+                      onClick={() => startJob(job.id)}
+                      style={{ ...actionButtonBase, background: "#2563eb" }}
+                    >
+                      Start Job
+                    </button>
+                  )}
+
+                  {job.status === "in progress" && (
+                    <button
+                      onClick={() => completeJob(job.id)}
+                      style={{ ...actionButtonBase, background: "#16a34a" }}
+                    >
+                      Complete Job
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
