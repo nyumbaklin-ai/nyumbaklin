@@ -1219,10 +1219,289 @@ function Dashboard() {
     lineHeight: "1.6",
   };
 
+  const renderMobileRow = (label, value) => (
+    <div className="admin-mobile-row">
+      <div className="admin-mobile-label">{label}</div>
+      <div className="admin-mobile-value">{value}</div>
+    </div>
+  );
+
+  const renderPaymentStatusBadge = (status) => (
+    <span
+      style={{
+        ...getPaymentBadgeStyle(status),
+        padding: "7px 12px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        fontWeight: "700",
+        display: "inline-block",
+        textTransform: "capitalize",
+      }}
+    >
+      {getPaymentStatusLabel(status)}
+    </span>
+  );
+
+  const renderRawPaymentBadge = (status) => (
+    <span
+      style={{
+        ...getPaymentBadgeStyle(status),
+        padding: "7px 12px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        fontWeight: "700",
+        display: "inline-block",
+        textTransform: "capitalize",
+      }}
+    >
+      {status || "unpaid"}
+    </span>
+  );
+
+  const renderRoleBadge = (role) => (
+    <span
+      style={{
+        ...getRoleStyle(role),
+        padding: "7px 12px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        fontWeight: "700",
+        textTransform: "capitalize",
+        display: "inline-block",
+      }}
+    >
+      {role || "customer"}
+    </span>
+  );
+
+  const renderStatusBadge = (status) => (
+    <span
+      style={{
+        ...getStatusStyle(status),
+        padding: "7px 12px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        fontWeight: "700",
+        display: "inline-block",
+        textTransform: "capitalize",
+      }}
+    >
+      {status || "pending"}
+    </span>
+  );
+
+  const renderPaymentMethodBadge = (method) => (
+    <span
+      style={{
+        ...getPaymentMethodStyle(method),
+        padding: "7px 12px",
+        borderRadius: "999px",
+        fontSize: "13px",
+        fontWeight: "700",
+        display: "inline-block",
+      }}
+    >
+      {getPaymentMethodLabel(method)}
+    </span>
+  );
+
+  const renderGpsLocationBox = (gpsLocation, readableLocation) => (
+    <div style={{ ...adminGpsBoxStyle, minWidth: "0" }}>
+      <div style={adminGpsBadgeStyle}>GPS Location</div>
+
+      <div style={adminGpsLabelStyle}>Latitude</div>
+      <div style={adminGpsValueStyle}>{gpsLocation.latitude}</div>
+
+      <div style={adminGpsLabelStyle}>Longitude</div>
+      <div style={adminGpsValueStyle}>{gpsLocation.longitude}</div>
+
+      {gpsLocation.accuracy && (
+        <>
+          <div style={adminGpsLabelStyle}>Accuracy</div>
+          <div style={adminGpsValueStyle}>{gpsLocation.accuracy} meters</div>
+        </>
+      )}
+
+      {readableLocation && (
+        <>
+          <div style={adminGpsLabelStyle}>Approx Area</div>
+          <div style={adminGpsValueStyle}>{readableLocation}</div>
+        </>
+      )}
+
+      <a
+        href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
+        target="_blank"
+        rel="noreferrer"
+        style={adminGpsMapLinkStyle}
+      >
+        Open in Google Maps
+      </a>
+    </div>
+  );
+
+  const renderManualPaymentProof = (booking) => (
+    <div style={{ ...manualPaymentProofStyle, minWidth: "0" }}>
+      <div>
+        <strong>Network:</strong>{" "}
+        {booking.manual_payment_network
+          ? booking.manual_payment_network.toUpperCase()
+          : "N/A"}
+      </div>
+
+      <div>
+        <strong>Phone:</strong> {booking.manual_payment_phone || "N/A"}
+      </div>
+
+      <div>
+        <strong>Ref:</strong> {booking.manual_payment_reference || "N/A"}
+      </div>
+
+      {booking.manual_payment_note && (
+        <div>
+          <strong>Note:</strong> {booking.manual_payment_note}
+        </div>
+      )}
+
+      {booking.manual_payment_submitted_at && (
+        <div>
+          <strong>Submitted:</strong>{" "}
+          {new Date(booking.manual_payment_submitted_at).toLocaleString()}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div style={pageStyle}>
+    <>
+      <style>{`
+        .admin-mobile-cards {
+          display: none;
+        }
+
+        .admin-mobile-card {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 15px;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .admin-mobile-card-title {
+          margin: 0 0 12px 0;
+          color: #0f172a;
+          font-size: 17px;
+          font-weight: 800;
+          line-height: 1.35;
+        }
+
+        .admin-mobile-row {
+          display: grid;
+          grid-template-columns: 130px 1fr;
+          gap: 10px;
+          padding: 9px 0;
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .admin-mobile-row:last-child {
+          border-bottom: none;
+        }
+
+        .admin-mobile-label {
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .admin-mobile-value {
+          color: #0f172a;
+          font-size: 14px;
+          font-weight: 600;
+          word-break: break-word;
+        }
+
+        .admin-mobile-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 14px;
+        }
+
+        .admin-filter-row {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+          .admin-dashboard-page {
+            padding: 20px 12px !important;
+          }
+
+          .admin-dashboard-title {
+            font-size: 28px !important;
+          }
+
+          .admin-platform-profit-title {
+            font-size: 13px !important;
+          }
+
+          .admin-platform-profit-value {
+            font-size: 31px !important;
+          }
+
+          .admin-stat-grid {
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+          }
+
+          .admin-section-card {
+            padding: 18px 14px !important;
+            overflow-x: visible !important;
+          }
+
+          .admin-section-title {
+            font-size: 23px !important;
+          }
+
+          .admin-desktop-table {
+            display: none !important;
+          }
+
+          .admin-mobile-cards {
+            display: grid;
+            gap: 14px;
+          }
+
+          .admin-filter-row {
+            width: 100%;
+            flex-direction: column;
+          }
+
+          .admin-filter-row input,
+          .admin-filter-row select {
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box;
+          }
+
+          .admin-mobile-actions button,
+          .admin-mobile-actions span {
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+          }
+
+          .admin-mobile-row {
+            grid-template-columns: 1fr;
+            gap: 4px;
+          }
+        }
+      `}</style>
+
+      <div className="admin-dashboard-page" style={pageStyle}>
       <div style={{ marginBottom: "28px" }}>
-        <h1 style={{ margin: 0, color: "#0f172a", fontSize: "34px" }}>Admin Dashboard</h1>
+        <h1 className="admin-dashboard-title" style={{ margin: 0, color: "#0f172a", fontSize: "34px" }}>Admin Dashboard</h1>
         <p style={{ marginTop: "10px", color: "#64748b", fontSize: "15px" }}>
           Manage users, bookings, pricing, platform commission, payments, and ratings for Nyumbaklin.
         </p>
@@ -1236,13 +1515,14 @@ function Dashboard() {
           color: "white",
         }}
       >
-        <p style={{ margin: 0, opacity: 0.85, fontSize: "14px" }}>Your platform profit</p>
-        <h2 style={{ margin: "10px 0 0 0", fontSize: "40px" }}>
+        <p className="admin-platform-profit-title" style={{ margin: 0, opacity: 0.85, fontSize: "14px" }}>Your platform profit</p>
+        <h2 className="admin-platform-profit-value" style={{ margin: "10px 0 0 0", fontSize: "40px" }}>
           UGX {totalPlatformRevenue.toLocaleString()}
         </h2>
       </div>
 
       <div
+        className="admin-stat-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -1340,7 +1620,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div style={sectionStyle}>
+      <div className="admin-section-card" style={sectionStyle}>
         <div style={{ marginBottom: "20px" }}>
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
             Verified Mobile Money Payments
@@ -1350,7 +1630,7 @@ function Dashboard() {
           </p>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1500px" }}>
+        <table className="admin-desktop-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "1500px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>Booking ID</th>
@@ -1423,9 +1703,50 @@ function Dashboard() {
             )}
           </tbody>
         </table>
+
+        <div className="admin-mobile-cards">
+          {verifiedMobileMoneyPayments.length === 0 ? (
+            <div className="admin-mobile-card">No verified Mobile Money payments yet</div>
+          ) : (
+            verifiedMobileMoneyPayments.map((booking) => {
+              const bookingPrice = Number(booking.price || 0);
+              const paymentStatus = booking.payment_status || "unpaid";
+
+              return (
+                <div key={booking.id} className="admin-mobile-card">
+                  <h3 className="admin-mobile-card-title">Payment #{booking.id}</h3>
+                  {renderMobileRow("Booking ID", `#${booking.id}`)}
+                  {renderMobileRow("Customer Email", booking.email || "Not provided")}
+                  {renderMobileRow("Customer Phone", booking.customer_phone || "Not provided")}
+                  {renderMobileRow("Service", booking.service || "Not provided")}
+                  {renderMobileRow("Amount", <strong>UGX {bookingPrice.toLocaleString()}</strong>)}
+                  {renderMobileRow(
+                    "Network",
+                    booking.manual_payment_network
+                      ? booking.manual_payment_network.toUpperCase()
+                      : "N/A"
+                  )}
+                  {renderMobileRow("Payment Phone", booking.manual_payment_phone || "N/A")}
+                  {renderMobileRow(
+                    "Transaction Ref",
+                    <strong>{booking.manual_payment_reference || "N/A"}</strong>
+                  )}
+                  {renderMobileRow(
+                    "Submitted",
+                    booking.manual_payment_submitted_at
+                      ? new Date(booking.manual_payment_submitted_at).toLocaleString()
+                      : "Not recorded"
+                  )}
+                  {renderMobileRow("Status", renderPaymentStatusBadge(paymentStatus))}
+                </div>
+              );
+            })
+          )}
+        </div>
+
       </div>
 
-      <div style={sectionStyle}>
+      <div className="admin-section-card" style={sectionStyle}>
         <div
           style={{
             display: "flex",
@@ -1439,6 +1760,7 @@ function Dashboard() {
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>All Users</h2>
 
           <div
+            className="admin-filter-row"
             style={{
               display: "flex",
               gap: "12px",
@@ -1466,7 +1788,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
+        <table className="admin-desktop-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
@@ -1608,9 +1930,71 @@ function Dashboard() {
             )}
           </tbody>
         </table>
+
+        <div className="admin-mobile-cards">
+          {filteredUsers.length === 0 ? (
+            <div className="admin-mobile-card">No users found</div>
+          ) : (
+            filteredUsers.map((user) => (
+              <div key={user.id} className="admin-mobile-card">
+                <h3 className="admin-mobile-card-title">{user.email}</h3>
+                {renderMobileRow("ID", user.id)}
+                {renderMobileRow("Email", user.email || "Not provided")}
+                {renderMobileRow("Phone", user.phone || "Not provided")}
+                {renderMobileRow("Role", renderRoleBadge(user.role))}
+                {user.role === "cleaner" &&
+                  renderMobileRow("Subscription", user.subscription_type || "ordinary")}
+                {user.role === "cleaner" &&
+                  renderMobileRow("Sub Status", user.subscription_status || "inactive")}
+                {user.role === "cleaner" &&
+                  renderMobileRow(
+                    "Expiry",
+                    user.subscription_expiry
+                      ? new Date(user.subscription_expiry).toLocaleDateString()
+                      : "—"
+                  )}
+
+                <div className="admin-mobile-actions">
+                  <button
+                    onClick={() => changeUserRole(user.id, user.role)}
+                    style={{
+                      ...actionButtonStyle,
+                      background: "#2563eb",
+                    }}
+                  >
+                    Change Role
+                  </button>
+
+                  {user.role !== "admin" && (
+                    <button
+                      onClick={() => resetUserPassword(user.id, user.email, user.role)}
+                      style={{
+                        ...actionButtonStyle,
+                        background: "#7c3aed",
+                      }}
+                    >
+                      Reset Password
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => deleteUser(user.id)}
+                    style={{
+                      ...actionButtonStyle,
+                      background: "#dc2626",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
       </div>
 
-      <div style={sectionStyle}>
+      <div className="admin-section-card" style={sectionStyle}>
         <div
           style={{
             display: "flex",
@@ -1624,6 +2008,7 @@ function Dashboard() {
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>All Bookings</h2>
 
           <div
+            className="admin-filter-row"
             style={{
               display: "flex",
               gap: "12px",
@@ -1652,7 +2037,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "2800px" }}>
+        <table className="admin-desktop-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "2800px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
@@ -1958,9 +2343,150 @@ function Dashboard() {
             )}
           </tbody>
         </table>
+
+        <div className="admin-mobile-cards">
+          {filteredBookings.length === 0 ? (
+            <div className="admin-mobile-card">No bookings found</div>
+          ) : (
+            filteredBookings.map((booking) => {
+              const bookingPrice = Number(booking.price || 0);
+              const platformFee =
+                booking.status === "completed" ? Math.round(bookingPrice * 0.15) : 0;
+              const cleanerPayout =
+                booking.status === "completed" ? bookingPrice - platformFee : 0;
+              const paymentMethod = booking.payment_method || "cash";
+              const paymentStatus = booking.payment_status || "unpaid";
+              const cleanerPayoutStatus = booking.cleaner_payout_status || "unpaid";
+              const gpsLocation = parseGpsAddress(booking.address);
+              const hasManualPaymentProof = Boolean(booking.manual_payment_reference);
+
+              return (
+                <div key={booking.id} className="admin-mobile-card">
+                  <h3 className="admin-mobile-card-title">
+                    Booking #{booking.id} — {booking.service || "Service"}
+                  </h3>
+
+                  {renderMobileRow("Customer Email", booking.email || "Not provided")}
+                  {renderMobileRow("Customer Phone", booking.customer_phone || "Not provided")}
+                  {renderMobileRow("Service", booking.service || "Not provided")}
+                  {renderMobileRow(
+                    "Location / GPS",
+                    gpsLocation
+                      ? renderGpsLocationBox(gpsLocation, booking.gps_readable_location)
+                      : booking.address || "Not provided"
+                  )}
+                  {renderMobileRow("Status", renderStatusBadge(booking.status))}
+                  {renderMobileRow("Cleaner", booking.cleaner || "Not assigned")}
+                  {renderMobileRow("Cleaner Phone", booking.cleaner_phone || "Not available")}
+                  {renderMobileRow("Price", <strong>UGX {bookingPrice.toLocaleString()}</strong>)}
+                  {booking.status === "completed" &&
+                    renderMobileRow("Platform Fee", `UGX ${platformFee.toLocaleString()}`)}
+                  {booking.status === "completed" &&
+                    renderMobileRow("Cleaner Payout", `UGX ${cleanerPayout.toLocaleString()}`)}
+                  {renderMobileRow("Payment Method", renderPaymentMethodBadge(paymentMethod))}
+                  {renderMobileRow("Payment Status", renderPaymentStatusBadge(paymentStatus))}
+                  {renderMobileRow(
+                    "Manual Payment Proof",
+                    hasManualPaymentProof ? renderManualPaymentProof(booking) : "No proof submitted"
+                  )}
+                  {renderMobileRow("Cleaner Paid", renderRawPaymentBadge(cleanerPayoutStatus))}
+                  {renderMobileRow(
+                    "Date",
+                    booking.booking_date
+                      ? new Date(booking.booking_date).toLocaleDateString()
+                      : "Not recorded"
+                  )}
+
+                  <div className="admin-mobile-actions">
+                    <button
+                      onClick={() => updatePrice(booking.id, booking.price)}
+                      style={{
+                        ...actionButtonStyle,
+                        background: "#16a34a",
+                      }}
+                    >
+                      Price
+                    </button>
+
+                    <button
+                      onClick={() => updatePayment(booking.id, booking.payment_method)}
+                      style={{
+                        ...actionButtonStyle,
+                        background: "#2563eb",
+                      }}
+                    >
+                      Mark Paid
+                    </button>
+
+                    {hasManualPaymentProof && paymentStatus !== "paid" && (
+                      <>
+                        <button
+                          onClick={() => confirmManualPayment(booking.id)}
+                          style={{
+                            ...actionButtonStyle,
+                            background: "#15803d",
+                          }}
+                        >
+                          Confirm Manual
+                        </button>
+
+                        <button
+                          onClick={() => rejectManualPayment(booking.id)}
+                          style={{
+                            ...actionButtonStyle,
+                            background: "#ea580c",
+                          }}
+                        >
+                          Reject Manual
+                        </button>
+                      </>
+                    )}
+
+                    {booking.cleaner_payout_status === "paid" ? (
+                      <span
+                        style={{
+                          background: "#dcfce7",
+                          color: "#166534",
+                          padding: "9px 14px",
+                          borderRadius: "8px",
+                          fontWeight: "700",
+                          fontSize: "13px",
+                          display: "inline-block",
+                        }}
+                      >
+                        Cleaner Paid
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => markCleanerPaid(booking.id)}
+                        style={{
+                          ...actionButtonStyle,
+                          background: "#7c3aed",
+                        }}
+                      >
+                        Pay Cleaner
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => deleteBooking(booking.id)}
+                      style={{
+                        ...actionButtonStyle,
+                        background: "#dc2626",
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
       </div>
 
-      <div style={sectionStyle}>
+      <div className="admin-section-card" style={sectionStyle}>
         <div
           style={{
             display: "flex",
@@ -1977,7 +2503,7 @@ function Dashboard() {
           </p>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1200px" }}>
+        <table className="admin-desktop-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "1200px" }}>
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
@@ -2028,8 +2554,48 @@ function Dashboard() {
             )}
           </tbody>
         </table>
+
+        <div className="admin-mobile-cards">
+          {ratings.length === 0 ? (
+            <div className="admin-mobile-card">No ratings submitted yet</div>
+          ) : (
+            ratings.map((rating) => (
+              <div key={rating.id} className="admin-mobile-card">
+                <h3 className="admin-mobile-card-title">Rating #{rating.id}</h3>
+                {renderMobileRow("Booking ID", `#${rating.booking_id}`)}
+                {renderMobileRow("Customer Email", rating.customer_email || "Not provided")}
+                {renderMobileRow("Cleaner Email", rating.cleaner_email || "Not provided")}
+                {renderMobileRow(
+                  "Rating",
+                  <span
+                    style={{
+                      background: "#fef3c7",
+                      color: "#92400e",
+                      padding: "7px 12px",
+                      borderRadius: "999px",
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      display: "inline-block",
+                    }}
+                  >
+                    {rating.rating} ★
+                  </span>
+                )}
+                {renderMobileRow("Review", rating.review || "No review")}
+                {renderMobileRow(
+                  "Date",
+                  rating.created_at
+                    ? new Date(rating.created_at).toLocaleDateString()
+                    : "Not recorded"
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
