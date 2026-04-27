@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Routes, Route, useNavigate, Navigate, useLocation, Link } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -435,7 +435,130 @@ function Dashboard() {
   const [bookingSearch, setBookingSearch] = useState("");
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
 
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [adminAudioEnabled, setAdminAudioEnabled] = useState(false);
+  const [paymentAlertMessage, setPaymentAlertMessage] = useState("");
+
   const token = localStorage.getItem("token");
+
+  const previousPendingPaymentIdsRef = useRef([]);
+  const hasLoadedBookingsOnceRef = useRef(false);
+  const audioRef = useRef(null);
+  const adminAudioEnabledRef = useRef(false);
+  const isPlayingPaymentAlertRef = useRef(false);
+  const enablingAdminAudioRef = useRef(false);
+  const paymentAlertTimeoutRef = useRef(null);
+
+  const refreshAdminDashboard = () => {
+    fetchUsers();
+    fetchBookings();
+    fetchStats();
+    fetchRatings();
+  };
+
+  const showPaymentAlertMessage = (message) => {
+    setPaymentAlertMessage(message);
+
+    if (paymentAlertTimeoutRef.current) {
+      clearTimeout(paymentAlertTimeoutRef.current);
+    }
+
+    paymentAlertTimeoutRef.current = setTimeout(() => {
+      setPaymentAlertMessage("");
+    }, 12000);
+  };
+
+  const enableAdminAlertSound = async () => {
+    if (adminAudioEnabledRef.current || enablingAdminAudioRef.current) {
+      return;
+    }
+
+    try {
+      enablingAdminAudioRef.current = true;
+
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/nyumbaklin-notification.wav");
+        audioRef.current.preload = "auto";
+      }
+
+      audioRef.current.volume = 1;
+      audioRef.current.muted = true;
+      audioRef.current.currentTime = 0;
+
+      try {
+        await audioRef.current.play();
+      } catch (error) {
+        console.error("Admin silent audio unlock failed:", error);
+      }
+
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.muted = false;
+      audioRef.current.volume = 1;
+
+      adminAudioEnabledRef.current = true;
+      setAdminAudioEnabled(true);
+    } catch (error) {
+      console.error("Admin alert sound enable failed:", error);
+    } finally {
+      enablingAdminAudioRef.current = false;
+    }
+  };
+
+  const playAdminPaymentAlert = async () => {
+    if (!adminAudioEnabledRef.current) {
+      return;
+    }
+
+    if (isPlayingPaymentAlertRef.current) {
+      return;
+    }
+
+    try {
+      isPlayingPaymentAlertRef.current = true;
+
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/nyumbaklin-notification.wav");
+        audioRef.current.preload = "auto";
+      }
+
+      const playOnce = async () => {
+        if (!audioRef.current) {
+          return;
+        }
+
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current.muted = false;
+        audioRef.current.volume = 1;
+
+        try {
+          await audioRef.current.play();
+        } catch (error) {
+          console.error("Admin payment alert sound failed:", error);
+        }
+      };
+
+      await playOnce();
+
+      [700, 1400, 2100, 2800, 3500, 4200].forEach((delay) => {
+        setTimeout(() => {
+          playOnce();
+        }, delay);
+      });
+
+      if (navigator.vibrate) {
+        navigator.vibrate([700, 180, 700, 180, 700, 180, 700]);
+      }
+
+      setTimeout(() => {
+        isPlayingPaymentAlertRef.current = false;
+      }, 5600);
+    } catch (error) {
+      console.error("Admin payment alert failed:", error);
+      isPlayingPaymentAlertRef.current = false;
+    }
+  };
 
   const readResponseMessage = async (response, fallbackMessage) => {
     try {
@@ -469,7 +592,33 @@ function Dashboard() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setBookings(Array.isArray(data) ? data : []);
+        const nextBookings = Array.isArray(data) ? data : [];
+
+        const nextPendingPaymentIds = nextBookings
+          .filter(
+            (booking) =>
+              booking.payment_status === "pending_verification" &&
+              booking.manual_payment_reference
+          )
+          .map((booking) => String(booking.id));
+
+        if (hasLoadedBookingsOnceRef.current) {
+          const hasNewPaymentProof = nextPendingPaymentIds.some(
+            (id) => !previousPendingPaymentIdsRef.current.includes(id)
+          );
+
+          if (hasNewPaymentProof) {
+            showPaymentAlertMessage(
+              "🔔 New payment proof submitted. Check Mobile Money and verify it."
+            );
+            playAdminPaymentAlert();
+          }
+        }
+
+        previousPendingPaymentIdsRef.current = nextPendingPaymentIds;
+        hasLoadedBookingsOnceRef.current = true;
+        setBookings(nextBookings);
+        setLastUpdated(new Date());
       })
       .catch((error) => {
         console.error("Error fetching bookings:", error);
@@ -508,10 +657,39 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    fetchUsers();
-    fetchBookings();
-    fetchStats();
-    fetchRatings();
+    adminAudioEnabledRef.current = adminAudioEnabled;
+  }, [adminAudioEnabled]);
+
+  useEffect(() => {
+    audioRef.current = new Audio("/nyumbaklin-notification.wav");
+    audioRef.current.preload = "auto";
+    audioRef.current.volume = 1;
+
+    refreshAdminDashboard();
+
+    const refreshInterval = setInterval(() => {
+      refreshAdminDashboard();
+    }, 10000);
+
+    window.addEventListener("click", enableAdminAlertSound);
+    window.addEventListener("touchstart", enableAdminAlertSound);
+    window.addEventListener("keydown", enableAdminAlertSound);
+
+    return () => {
+      clearInterval(refreshInterval);
+      window.removeEventListener("click", enableAdminAlertSound);
+      window.removeEventListener("touchstart", enableAdminAlertSound);
+      window.removeEventListener("keydown", enableAdminAlertSound);
+
+      if (paymentAlertTimeoutRef.current) {
+        clearTimeout(paymentAlertTimeoutRef.current);
+      }
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, []);
 
   const deleteUser = async (id) => {
@@ -1219,6 +1397,35 @@ function Dashboard() {
     lineHeight: "1.6",
   };
 
+  const autoRefreshBoxStyle = {
+    ...cardStyle,
+    marginBottom: "22px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "14px",
+    flexWrap: "wrap",
+    background: "#f8fafc",
+  };
+
+  const soundButtonStyle = {
+    ...actionButtonStyle,
+    background: adminAudioEnabled ? "#16a34a" : "#111827",
+    padding: "11px 14px",
+  };
+
+  const paymentAlertBoxStyle = {
+    marginBottom: "22px",
+    background: "#fff7ed",
+    border: "1px solid #fed7aa",
+    color: "#9a3412",
+    borderRadius: "14px",
+    padding: "14px 16px",
+    fontWeight: "800",
+    lineHeight: "1.5",
+    boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
+  };
+
   const renderMobileRow = (label, value) => (
     <div className="admin-mobile-row">
       <div className="admin-mobile-label">{label}</div>
@@ -1434,6 +1641,15 @@ function Dashboard() {
         }
 
         @media (max-width: 768px) {
+          .admin-auto-refresh-box {
+            flex-direction: column;
+            align-items: stretch !important;
+          }
+
+          .admin-auto-refresh-box button {
+            width: 100%;
+          }
+
           .admin-dashboard-page {
             padding: 20px 12px !important;
           }
@@ -1506,6 +1722,37 @@ function Dashboard() {
           Manage users, bookings, pricing, platform commission, payments, and ratings for Nyumbaklin.
         </p>
       </div>
+
+      <div className="admin-auto-refresh-box" style={autoRefreshBoxStyle}>
+        <div>
+          <p style={{ margin: 0, color: "#0f172a", fontWeight: "800" }}>
+            Auto-refresh is active every 10 seconds
+          </p>
+          <p style={{ margin: "6px 0 0 0", color: "#64748b", fontSize: "14px" }}>
+            Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : "Loading..."}
+          </p>
+          <p style={{ margin: "6px 0 0 0", color: "#64748b", fontSize: "13px" }}>
+            Sound plays when a new payment proof appears in Payments to Verify.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={enableAdminAlertSound}
+          disabled={adminAudioEnabled}
+          style={{
+            ...soundButtonStyle,
+            opacity: adminAudioEnabled ? 0.85 : 1,
+            cursor: adminAudioEnabled ? "default" : "pointer",
+          }}
+        >
+          {adminAudioEnabled ? "🔊 Payment Alert Sound Enabled" : "🔔 Enable Loud Payment Alert"}
+        </button>
+      </div>
+
+      {paymentAlertMessage && (
+        <div style={paymentAlertBoxStyle}>{paymentAlertMessage}</div>
+      )}
 
       <div
         style={{
