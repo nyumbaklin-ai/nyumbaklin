@@ -7,8 +7,36 @@ function CleanerDashboard() {
   const [subscription, setSubscription] = useState(null);
   const [loadingSub, setLoadingSub] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [actionMessage, setActionMessage] = useState({ type: "", text: "" });
 
   const token = localStorage.getItem("token");
+
+  const showActionMessage = (type, text) => {
+    setActionMessage({ type, text });
+
+    setTimeout(() => {
+      setActionMessage({ type: "", text: "" });
+    }, 4000);
+  };
+
+  const readResponseMessage = async (response, fallbackMessage) => {
+    try {
+      const text = await response.text();
+
+      if (!text) {
+        return fallbackMessage;
+      }
+
+      try {
+        const data = JSON.parse(text);
+        return data.message || fallbackMessage;
+      } catch {
+        return text;
+      }
+    } catch {
+      return fallbackMessage;
+    }
+  };
 
   const prevJobIdsRef = useRef([]);
   const audioContextRef = useRef(null);
@@ -232,13 +260,21 @@ function CleanerDashboard() {
         headers: { Authorization: "Bearer " + token },
       });
 
-      const message = await response.text();
-      alert(message);
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Job accepted successfully. Check My Jobs." : "Failed to accept job"
+      );
 
+      if (!response.ok) {
+        showActionMessage("error", message);
+        return;
+      }
+
+      showActionMessage("success", "✅ Job accepted successfully. Check My Jobs.");
       fetchJobs();
     } catch (error) {
       console.error(error);
-      alert("Failed to accept job");
+      showActionMessage("error", "Failed to accept job. Please try again.");
     }
   };
 
@@ -442,6 +478,25 @@ function CleanerDashboard() {
         <div style={card}>
           <h2>Available Jobs ({jobs.length})</h2>
 
+          {actionMessage.text && (
+            <div
+              style={{
+                background: actionMessage.type === "success" ? "#dcfce7" : "#fee2e2",
+                color: actionMessage.type === "success" ? "#166534" : "#b91c1c",
+                border: `1px solid ${
+                  actionMessage.type === "success" ? "#bbf7d0" : "#fecaca"
+                }`,
+                borderRadius: "12px",
+                padding: "12px",
+                marginBottom: "14px",
+                fontWeight: "700",
+                lineHeight: "1.5",
+              }}
+            >
+              {actionMessage.text}
+            </div>
+          )}
+
           <p style={{ color: "#6b7280", fontSize: "14px", marginTop: "5px" }}>
             {audioEnabled
               ? "✅ Notification sound is enabled."
@@ -504,11 +559,11 @@ function CleanerDashboard() {
                         )}
 
                         {job.gps_readable_location && (
-  <div style={gpsItemStyle}>
-    <div style={gpsLabelStyle}>Approx Area</div>
-    <div style={gpsValueStyle}>{job.gps_readable_location}</div>
-  </div>
-)}
+                          <div style={gpsItemStyle}>
+                            <div style={gpsLabelStyle}>Approx Area</div>
+                            <div style={gpsValueStyle}>{job.gps_readable_location}</div>
+                          </div>
+                        )}
                       </div>
 
                       <p
