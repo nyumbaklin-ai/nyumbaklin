@@ -17,6 +17,9 @@ function CustomerBooking() {
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [gpsTimestamp, setGpsTimestamp] = useState("");
   const [gpsReadableLocation, setGpsReadableLocation] = useState("");
+  const [bookingMessage, setBookingMessage] = useState("");
+  const [bookingMessageType, setBookingMessageType] = useState("error");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -25,6 +28,22 @@ function CustomerBooking() {
     service === "House Cleaning" ||
     service === "Deep Cleaning" ||
     service === "Office Cleaning";
+
+  const showBookingMessage = (message, type = "error") => {
+    setBookingMessage(message);
+    setBookingMessageType(type);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const clearBookingMessage = () => {
+    if (bookingMessage) {
+      setBookingMessage("");
+    }
+  };
 
   const kampalaAreas = [
     "Ntinda",
@@ -137,6 +156,8 @@ function CustomerBooking() {
   };
 
   const handleUseCurrentLocation = () => {
+    clearBookingMessage();
+
     if (!navigator.geolocation) {
       setLocationMessage("GPS is not supported on this device/browser.");
       return;
@@ -256,28 +277,46 @@ function CustomerBooking() {
 
   const handleBooking = async (e) => {
     e.preventDefault();
+    clearBookingMessage();
 
     const finalService = service === "Other" ? customService.trim() : service;
     const finalPrice = getPrice();
     const finalAddress = area === "Other" ? customArea.trim() : area;
     const isGpsAddress = finalAddress.startsWith("GPS:");
 
-    if (!finalService) return alert("Select service");
-    if (needsRoomSelection && !roomSize) return alert("Select rooms");
+    if (!finalService) {
+      showBookingMessage("Please select a cleaning service.");
+      return;
+    }
+
+    if (needsRoomSelection && !roomSize) {
+      showBookingMessage("Please select the number of rooms.");
+      return;
+    }
 
     if (service === "Other" && (!customPrice || Number(customPrice) <= 0)) {
-      return alert("Enter valid price");
+      showBookingMessage("Please enter a valid price for the custom service.");
+      return;
     }
 
-    if (!area) return alert("Select location");
+    if (!area) {
+      showBookingMessage("Please select your location or area.");
+      return;
+    }
 
     if (area === "Other" && !customArea.trim()) {
-      return alert("Enter location");
+      showBookingMessage("Please enter your location, landmark, or GPS location.");
+      return;
     }
 
-    if (!date) return alert("Select date");
+    if (!date) {
+      showBookingMessage("Please select a booking date.");
+      return;
+    }
 
     try {
+      setIsSubmitting(true);
+
       const response = await fetch(`${API_URL}/customers/book-service`, {
         method: "POST",
         headers: {
@@ -306,23 +345,30 @@ function CustomerBooking() {
       }
 
       if (response.ok) {
-        alert(
+        showBookingMessage(
           paymentMethod === "pay_after"
             ? "✅ Booking successful! Pay after service."
-            : "✅ Booking successful! If you have paid, submit your transaction ID in My Bookings."
+            : "✅ Booking successful! If you have paid, submit your transaction ID in My Bookings.",
+          "success"
         );
-        navigate("/my-bookings");
+
+        setTimeout(() => {
+          navigate("/my-bookings");
+        }, 1200);
       } else {
-        alert(data.message || "Booking failed. Please try again.");
+        showBookingMessage(data.message || "Booking failed. Please try again.");
+        setIsSubmitting(false);
       }
     } catch (error) {
       console.error("Booking error:", error);
 
       if (!navigator.onLine) {
-        alert("No internet connection. Please check your network and try again.");
+        showBookingMessage("No internet connection. Please check your network and try again.");
       } else {
-        alert("Something went wrong while sending your booking. Please try again.");
+        showBookingMessage("Something went wrong while sending your booking. Please try again.");
       }
+
+      setIsSubmitting(false);
     }
   };
 
@@ -445,8 +491,9 @@ function CustomerBooking() {
     borderRadius: "16px",
     fontSize: "16px",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: isSubmitting ? "not-allowed" : "pointer",
     boxShadow: "0 14px 28px rgba(37, 99, 235, 0.25)",
+    opacity: isSubmitting ? 0.75 : 1,
   };
 
   const gpsButtonStyle = {
@@ -458,9 +505,28 @@ function CustomerBooking() {
     borderRadius: "14px",
     fontSize: "15px",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: gettingLocation ? "not-allowed" : "pointer",
     marginBottom: "14px",
     boxShadow: "0 10px 22px rgba(8, 145, 178, 0.22)",
+    opacity: gettingLocation ? 0.75 : 1,
+  };
+
+  const messageBoxStyle = {
+    marginBottom: "18px",
+    padding: "14px 16px",
+    borderRadius: "16px",
+    border:
+      bookingMessageType === "success"
+        ? "1px solid #bbf7d0"
+        : "1px solid #fecaca",
+    background:
+      bookingMessageType === "success"
+        ? "linear-gradient(135deg, #f0fdf4, #dcfce7)"
+        : "linear-gradient(135deg, #fef2f2, #fee2e2)",
+    color: bookingMessageType === "success" ? "#166534" : "#991b1b",
+    fontSize: "15px",
+    fontWeight: "700",
+    lineHeight: "1.5",
   };
 
   return (
@@ -471,6 +537,12 @@ function CustomerBooking() {
           Choose your service, area, date, and payment method to place your booking quickly and easily.
         </p>
 
+        {bookingMessage && (
+          <div style={messageBoxStyle}>
+            {bookingMessage}
+          </div>
+        )}
+
         <form onSubmit={handleBooking}>
           <div>
             <p style={sectionTitleStyle}>Select Service</p>
@@ -480,7 +552,10 @@ function CustomerBooking() {
                 type="radio"
                 value="House Cleaning"
                 checked={service === "House Cleaning"}
-                onChange={(e) => setService(e.target.value)}
+                onChange={(e) => {
+                  clearBookingMessage();
+                  setService(e.target.value);
+                }}
               />
               House Cleaning
             </label>
@@ -490,7 +565,10 @@ function CustomerBooking() {
                 type="radio"
                 value="Deep Cleaning"
                 checked={service === "Deep Cleaning"}
-                onChange={(e) => setService(e.target.value)}
+                onChange={(e) => {
+                  clearBookingMessage();
+                  setService(e.target.value);
+                }}
               />
               Deep Cleaning
             </label>
@@ -500,7 +578,10 @@ function CustomerBooking() {
                 type="radio"
                 value="Office Cleaning"
                 checked={service === "Office Cleaning"}
-                onChange={(e) => setService(e.target.value)}
+                onChange={(e) => {
+                  clearBookingMessage();
+                  setService(e.target.value);
+                }}
               />
               Office Cleaning
             </label>
@@ -510,7 +591,10 @@ function CustomerBooking() {
                 type="radio"
                 value="Other"
                 checked={service === "Other"}
-                onChange={(e) => setService(e.target.value)}
+                onChange={(e) => {
+                  clearBookingMessage();
+                  setService(e.target.value);
+                }}
               />
               Other
             </label>
@@ -521,7 +605,10 @@ function CustomerBooking() {
                   type="text"
                   placeholder="Enter service type"
                   value={customService}
-                  onChange={(e) => setCustomService(e.target.value)}
+                  onChange={(e) => {
+                    clearBookingMessage();
+                    setCustomService(e.target.value);
+                  }}
                   style={inputStyle}
                 />
 
@@ -529,7 +616,10 @@ function CustomerBooking() {
                   type="number"
                   placeholder="Enter service price"
                   value={customPrice}
-                  onChange={(e) => setCustomPrice(e.target.value)}
+                  onChange={(e) => {
+                    clearBookingMessage();
+                    setCustomPrice(e.target.value);
+                  }}
                   style={inputStyle}
                 />
               </div>
@@ -545,7 +635,10 @@ function CustomerBooking() {
                   type="radio"
                   value="1-2"
                   checked={roomSize === "1-2"}
-                  onChange={(e) => setRoomSize(e.target.value)}
+                  onChange={(e) => {
+                    clearBookingMessage();
+                    setRoomSize(e.target.value);
+                  }}
                 />
                 1-2 Rooms
               </label>
@@ -555,7 +648,10 @@ function CustomerBooking() {
                   type="radio"
                   value="3-4"
                   checked={roomSize === "3-4"}
-                  onChange={(e) => setRoomSize(e.target.value)}
+                  onChange={(e) => {
+                    clearBookingMessage();
+                    setRoomSize(e.target.value);
+                  }}
                 />
                 3-4 Rooms
               </label>
@@ -565,7 +661,10 @@ function CustomerBooking() {
                   type="radio"
                   value="5-6"
                   checked={roomSize === "5-6"}
-                  onChange={(e) => setRoomSize(e.target.value)}
+                  onChange={(e) => {
+                    clearBookingMessage();
+                    setRoomSize(e.target.value);
+                  }}
                 />
                 5-6 Rooms
               </label>
@@ -672,6 +771,8 @@ function CustomerBooking() {
             <select
               value={area}
               onChange={(e) => {
+                clearBookingMessage();
+
                 const selectedArea = e.target.value;
                 setArea(selectedArea);
 
@@ -696,7 +797,10 @@ function CustomerBooking() {
                 type="text"
                 placeholder="Enter your area, landmark, or GPS location"
                 value={customArea}
-                onChange={(e) => setCustomArea(e.target.value)}
+                onChange={(e) => {
+                  clearBookingMessage();
+                  setCustomArea(e.target.value);
+                }}
                 style={inputStyle}
               />
             )}
@@ -708,7 +812,10 @@ function CustomerBooking() {
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                clearBookingMessage();
+                setDate(e.target.value);
+              }}
               style={inputStyle}
             />
           </div>
@@ -721,7 +828,10 @@ function CustomerBooking() {
                 type="radio"
                 value="pay_after"
                 checked={paymentMethod === "pay_after"}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) => {
+                  clearBookingMessage();
+                  setPaymentMethod(e.target.value);
+                }}
               />
               Pay After Service
             </label>
@@ -731,7 +841,10 @@ function CustomerBooking() {
                 type="radio"
                 value="manual_mobile_money"
                 checked={paymentMethod === "manual_mobile_money"}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+                onChange={(e) => {
+                  clearBookingMessage();
+                  setPaymentMethod(e.target.value);
+                }}
               />
               Pay Now with Mobile Money
             </label>
@@ -809,8 +922,8 @@ function CustomerBooking() {
             </p>
           </div>
 
-          <button type="submit" style={buttonStyle}>
-            Book Service
+          <button type="submit" style={buttonStyle} disabled={isSubmitting}>
+            {isSubmitting ? "Booking..." : "Book Service"}
           </button>
         </form>
       </div>
