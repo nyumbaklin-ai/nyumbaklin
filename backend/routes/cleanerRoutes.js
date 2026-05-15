@@ -383,6 +383,7 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
       LEFT JOIN customers c
         ON b.email = c.email
       WHERE b.cleaner = $1
+      AND (b.cleaner_hidden IS NULL OR b.cleaner_hidden = false)
       ORDER BY b.booking_date ASC
       `,
       [cleaner.email]
@@ -505,6 +506,57 @@ router.get("/earnings-history", auth, cleanerOnly, async (req, res) => {
   } catch (error) {
     console.error("Error fetching earnings history:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ================= REMOVE COMPLETED JOB FROM CLEANER VIEW =================
+router.put("/remove-job/:id", auth, cleanerOnly, async (req, res) => {
+  const jobId = req.params.id;
+
+  if (!isValidId(jobId)) {
+    return res.status(400).json({
+      message: "Invalid job id",
+    });
+  }
+
+  try {
+    let cleaner = await getCurrentCleaner(req.user);
+
+    if (!cleaner) {
+      return res.status(404).json({
+        message: "Cleaner not found",
+      });
+    }
+
+    cleaner = await normalizeCleanerSubscription(cleaner);
+
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET cleaner_hidden = true
+      WHERE id = $1
+      AND cleaner = $2
+      AND status = 'completed'
+      RETURNING id
+      `,
+      [jobId, cleaner.email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({
+        message: "Completed job not found",
+      });
+    }
+
+    res.json({
+      message: "Job removed from cleaner history",
+    });
+  } catch (error) {
+    console.error("Error removing cleaner job:", error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 });
 
