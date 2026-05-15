@@ -119,13 +119,6 @@ function CleanerMyJobs() {
   };
 
   const removeJob = async (id) => {
-  const confirmRemove = window.confirm(
-    "Remove this job from your history?"
-  );
-
-  if (!confirmRemove) {
-    return;
-  }
 
   try {
     const response = await fetch(
