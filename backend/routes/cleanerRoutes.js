@@ -497,6 +497,7 @@ router.get("/earnings-history", auth, cleanerOnly, async (req, res) => {
       FROM bookings
       WHERE cleaner = $1
       AND status = 'completed'
+      AND (cleaner_hidden IS NULL OR cleaner_hidden = false)
       ORDER BY booking_date DESC
       `,
       [cleaner.email]
