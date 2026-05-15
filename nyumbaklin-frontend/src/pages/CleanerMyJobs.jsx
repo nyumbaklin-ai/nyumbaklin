@@ -118,6 +118,51 @@ function CleanerMyJobs() {
     }
   };
 
+  const removeJob = async (id) => {
+  const confirmRemove = window.confirm(
+    "Remove this job from your history?"
+  );
+
+  if (!confirmRemove) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_URL}/cleaner/remove-job/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      showActionMessage(
+        "error",
+        data.message || "Failed to remove job"
+      );
+      return;
+    }
+
+    showActionMessage(
+      "success",
+      "✅ Job removed from history."
+    );
+
+    fetchJobs();
+  } catch (error) {
+    console.error(error);
+    showActionMessage(
+      "error",
+      "Failed to remove job."
+    );
+  }
+};
+
   const getStatusMessage = (status) => {
     if (status === "accepted") {
       return "You have accepted this job. You can now start it.";
@@ -508,6 +553,18 @@ function CleanerMyJobs() {
                       Complete Job
                     </button>
                   )}
+
+                  {job.status === "completed" && (
+  <button
+    onClick={() => removeJob(job.id)}
+    style={{
+      ...actionButtonBase,
+      background: "#dc2626",
+    }}
+  >
+    Remove From History
+  </button>
+)}
                 </div>
               );
             })
