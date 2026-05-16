@@ -361,6 +361,7 @@ router.get("/my-bookings", auth, async (req, res) => {
       LEFT JOIN ratings r
         ON b.id = r.booking_id
       WHERE b.email = $1
+      AND (customer_hidden IS NULL OR customer_hidden = false)
       ORDER BY b.id DESC
       `,
       [req.user.email]
@@ -825,6 +826,39 @@ router.post("/submit-manual-payment/:id", auth, async (req, res) => {
   } catch (error) {
     console.error("Submit manual payment error:", error);
     res.status(500).json({ message: "Error submitting payment proof" });
+  }
+});
+
+// ================= CUSTOMER HIDE BOOKING =================
+router.put("/hide-booking/:id", auth, async (req, res) => {
+  const { id } = req.params;
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET customer_hidden = true
+      WHERE id = $1
+      AND email = $2
+      RETURNING id
+      `,
+      [id, req.user.email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    res.json({
+      message: "Booking removed from history successfully",
+    });
+  } catch (error) {
+    console.error("Hide booking error:", error);
+    res.status(500).json({ message: "Error removing booking" });
   }
 });
 
