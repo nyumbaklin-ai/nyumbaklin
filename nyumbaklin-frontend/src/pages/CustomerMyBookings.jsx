@@ -13,6 +13,7 @@ function CustomerMyBookings() {
   const [submittingPaymentId, setSubmittingPaymentId] = useState(null);
   const [paymentInputs, setPaymentInputs] = useState({});
   const [paymentMessages, setPaymentMessages] = useState({});
+  const [removingBookingId, setRemovingBookingId] = useState(null);
   const token = localStorage.getItem("token");
 
   const fetchBookings = async () => {
@@ -172,6 +173,43 @@ function CustomerMyBookings() {
       setSubmittingPaymentId(null);
     }
   };
+
+  const handleRemoveBooking = async (bookingId) => {
+  const confirmRemove = window.confirm(
+    "Remove this booking from your history?"
+  );
+
+  if (!confirmRemove) {
+    return;
+  }
+
+  try {
+    setRemovingBookingId(bookingId);
+
+    const response = await fetch(
+      `${API_URL}/customers/hide-booking/${bookingId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to remove booking");
+    }
+
+    fetchBookings();
+  } catch (error) {
+    console.error("Remove booking error:", error);
+    alert(error.message || "Failed to remove booking");
+  } finally {
+    setRemovingBookingId(null);
+  }
+};
 
   const getStatusBadge = (status) => {
     if (status === "pending") {
@@ -871,6 +909,34 @@ function CustomerMyBookings() {
                             {paymentMessages[b.id]}
                           </div>
                         )}
+
+                        <div style={{ marginTop: "14px" }}>
+  <button
+    onClick={() => handleRemoveBooking(b.id)}
+    disabled={removingBookingId === b.id}
+    style={{
+      background: "#dc2626",
+      color: "white",
+      border: "none",
+      padding: "10px 14px",
+      borderRadius: "10px",
+      cursor:
+        removingBookingId === b.id
+          ? "not-allowed"
+          : "pointer",
+      opacity:
+        removingBookingId === b.id
+          ? 0.7
+          : 1,
+      fontWeight: "700",
+      fontSize: "14px",
+    }}
+  >
+    {removingBookingId === b.id
+      ? "Removing..."
+      : "Remove Booking"}
+  </button>
+</div>
                       </>
                     )}
                   </div>
