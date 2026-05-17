@@ -175,13 +175,6 @@ function CustomerMyBookings() {
   };
 
   const handleRemoveBooking = async (bookingId) => {
-  const confirmRemove = window.confirm(
-    "Remove this booking from your history?"
-  );
-
-  if (!confirmRemove) {
-    return;
-  }
 
   try {
     setRemovingBookingId(bookingId);
