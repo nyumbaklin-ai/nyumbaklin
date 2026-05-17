@@ -1812,7 +1812,7 @@ function Dashboard() {
         </div>
 
         <div style={cardStyle}>
-          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Platform Revenue (15%)</h3>
+          <h3 style={{ marginTop: 0, marginBottom: "10px", color: "#475569" }}>Platform Revenue (18%)</h3>
           <p style={{ fontSize: "32px", fontWeight: "800", margin: 0, color: "#dc2626" }}>
             UGX {totalPlatformRevenue.toLocaleString()}
           </p>
