@@ -897,42 +897,43 @@ function CustomerMyBookings() {
                           </button>
                         </div>
 
-                        {paymentMessages[b.id] && (
+                                                {paymentMessages[b.id] && (
                           <div style={paymentMessageStyle}>
                             {paymentMessages[b.id]}
                           </div>
                         )}
 
-                                          <div style={{ marginTop: "14px" }}>
-                    <button
-                      onClick={() => handleRemoveBooking(b.id)}
-                      disabled={removingBookingId === b.id}
-                      style={{
-                        background: "#dc2626",
-                        color: "white",
-                        border: "none",
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        cursor:
-                          removingBookingId === b.id
-                            ? "not-allowed"
-                            : "pointer",
-                        opacity:
-                          removingBookingId === b.id
-                            ? 0.7
-                            : 1,
-                        fontWeight: "700",
-                        fontSize: "14px",
-                      }}
-                    >
-                      {removingBookingId === b.id
-                        ? "Removing..."
-                        : "Remove Booking"}
-                    </button>
-                  </div>
-
                       </>
                     )}
+
+                    <div style={{ marginTop: "14px" }}>
+                      <button
+                        onClick={() => handleRemoveBooking(b.id)}
+                        disabled={removingBookingId === b.id}
+                        style={{
+                          background: "#dc2626",
+                          color: "white",
+                          border: "none",
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          cursor:
+                            removingBookingId === b.id
+                              ? "not-allowed"
+                              : "pointer",
+                          opacity:
+                            removingBookingId === b.id
+                              ? 0.7
+                              : 1,
+                          fontWeight: "700",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {removingBookingId === b.id
+                          ? "Removing..."
+                          : "Remove Booking"}
+                      </button>
+                    </div>
+
                   </div>
                 </div>
               );
