@@ -311,7 +311,7 @@ router.put("/update-payment-status/:id", auth, adminOnly, async (req, res) => {
     let cleanerAmount = null;
 
     if (payment_status === "paid") {
-      commission = Math.floor(price * 0.15);
+      commission = Math.floor(price * 0.18);
       cleanerAmount = price - commission;
     }
 
@@ -375,7 +375,7 @@ router.put("/confirm-manual-payment/:id", auth, adminOnly, async (req, res) => {
     }
 
     const price = Number(booking.price || 0);
-    const commission = Math.floor(price * 0.15);
+    const commission = Math.floor(price * 0.18);
     const cleanerAmount = price - commission;
 
     const result = await pool.query(

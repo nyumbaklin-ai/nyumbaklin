@@ -426,7 +426,7 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
           SUM(
             CASE
               WHEN cleaner_payout_status = 'paid'
-              THEN COALESCE(cleaner_amount, price - FLOOR(price * 0.15))
+              THEN COALESCE(cleaner_amount, price - FLOOR(price * 0.18))
               ELSE 0
             END
           ), 0
@@ -437,7 +437,7 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
               WHEN cleaner_payout_status IS NULL
                    OR cleaner_payout_status = 'unpaid'
                    OR cleaner_payout_status = 'pending'
-              THEN COALESCE(cleaner_amount, price - FLOOR(price * 0.15))
+              THEN COALESCE(cleaner_amount, price - FLOOR(price * 0.18))
               ELSE 0
             END
           ), 0
@@ -454,7 +454,7 @@ router.get("/earnings", auth, cleanerOnly, async (req, res) => {
     const totalPaid = Number(result.rows[0].total_paid);
     const totalPending = Number(result.rows[0].total_pending);
 
-    const platformFee = Math.round(totalValue * 0.15);
+    const platformFee = Math.round(totalValue * 0.18);
     const cleanerEarnings = totalValue - platformFee;
 
     res.json({
@@ -493,7 +493,7 @@ router.get("/earnings-history", auth, cleanerOnly, async (req, res) => {
         price,
         booking_date,
         cleaner_payout_status,
-        COALESCE(cleaner_amount, price - FLOOR(price * 0.15)) AS cleaner_amount
+        COALESCE(cleaner_amount, price - FLOOR(price * 0.18)) AS cleaner_amount
       FROM bookings
       WHERE cleaner = $1
       AND status = 'completed'
