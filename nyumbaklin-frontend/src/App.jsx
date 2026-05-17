@@ -1252,7 +1252,7 @@ function Dashboard() {
     0
   );
 
-  const totalPlatformRevenue = Math.round(totalCompletedValue * 0.15);
+  const totalPlatformRevenue = Math.round(totalCompletedValue * 0.18);
   const totalCleanerPayout = totalCompletedValue - totalPlatformRevenue;
   const pendingJobs = bookings.filter((booking) => booking.status === "pending").length;
   const inProgressJobs = bookings.filter((booking) => booking.status === "in progress").length;
@@ -2319,7 +2319,7 @@ function Dashboard() {
                 const bookingPrice = Number(booking.price || 0);
                 const platformFee =
                   booking.status === "completed"
-                    ? Math.round(bookingPrice * 0.15)
+                    ? Math.round(bookingPrice * 0.18)
                     : 0;
                 const cleanerPayout =
                   booking.status === "completed"
@@ -2598,7 +2598,7 @@ function Dashboard() {
             filteredBookings.map((booking) => {
               const bookingPrice = Number(booking.price || 0);
               const platformFee =
-                booking.status === "completed" ? Math.round(bookingPrice * 0.15) : 0;
+                booking.status === "completed" ? Math.round(bookingPrice * 0.18) : 0;
               const cleanerPayout =
                 booking.status === "completed" ? bookingPrice - platformFee : 0;
               const paymentMethod = booking.payment_method || "cash";
