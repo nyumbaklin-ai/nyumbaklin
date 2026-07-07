@@ -1,4 +1,5 @@
 ﻿import { Link } from "react-router-dom";
+import { FaWhatsapp, FaPhoneAlt, FaEnvelope } from "react-icons/fa";
 
 function Footer() {
   return (
@@ -37,7 +38,7 @@ function Footer() {
           }
 
           .nyumba-footer-text {
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.8;
             margin: 0;
             color: #cbd5e1;
@@ -56,6 +57,7 @@ function Footer() {
             font-size: 16px;
             font-weight: 800;
             margin: 0 0 14px 0;
+            letter-spacing: 0.2px;
           }
 
           .nyumba-footer-contact-buttons {
@@ -69,14 +71,21 @@ function Footer() {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 7px;
-            padding: 10px 14px;
+            gap: 6px;
+            padding: 7px 11px;
             border-radius: 999px;
-            font-weight: 800;
+            font-weight: 700;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 13px;
+            line-height: 1;
             transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
-            min-height: 40px;
+            min-height: 34px;
+            white-space: nowrap;
+          }
+
+          .nyumba-footer-button svg {
+            font-size: 14px;
+            flex-shrink: 0;
           }
 
           .nyumba-footer-button:hover {
@@ -102,8 +111,14 @@ function Footer() {
             font-size: 14px;
             display: inline-flex;
             align-items: center;
-            gap: 7px;
+            gap: 8px;
             word-break: break-word;
+            line-height: 1.5;
+          }
+
+          .nyumba-footer-email svg {
+            font-size: 15px;
+            flex-shrink: 0;
           }
 
           .nyumba-footer-email:hover {
@@ -238,7 +253,8 @@ function Footer() {
               href="tel:+256781812743"
               className="nyumba-footer-button nyumba-footer-call"
             >
-              📞 Call Us
+              <FaPhoneAlt />
+              <span>Call Us</span>
             </a>
 
             <a
@@ -247,12 +263,17 @@ function Footer() {
               rel="noopener noreferrer"
               className="nyumba-footer-button nyumba-footer-whatsapp"
             >
-              💬 WhatsApp
+              <FaWhatsapp />
+              <span>WhatsApp</span>
             </a>
           </div>
 
-          <a href="mailto:nyumbaklin@gmail.com" className="nyumba-footer-email">
-            📧 nyumbaklin@gmail.com
+          <a
+            href="mailto:nyumbaklin@gmail.com"
+            className="nyumba-footer-email"
+          >
+            <FaEnvelope />
+            <span>nyumbaklin@gmail.com</span>
           </a>
         </div>
 
@@ -269,7 +290,7 @@ function Footer() {
             </Link>
 
             <Link to="/terms-conditions" className="nyumba-footer-link">
-              Terms & Conditions
+              Terms &amp; Conditions
             </Link>
           </div>
         </div>
