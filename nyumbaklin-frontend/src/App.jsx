@@ -328,7 +328,7 @@ function CleanerRegister() {
 
           <p>
             Please carry your important documents, such as your National ID,
-            phone number, and any other details required for approval.
+            active phone number, and any other details required for approval.
           </p>
 
           <p style={{ marginBottom: 0 }}>
