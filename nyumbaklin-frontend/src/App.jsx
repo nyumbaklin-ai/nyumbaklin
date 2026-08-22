@@ -188,6 +188,7 @@ function Register() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [registrationMessage, setRegistrationMessage] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -209,8 +210,8 @@ function Register() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(data.message || "Registration successful");
-        navigate("/");
+        setRegistrationMessage("Customer registered successfully");
+        setTimeout(() => navigate("/"), 1500);
       } else {
         alert(data.message || "Registration failed");
       }
@@ -229,6 +230,23 @@ function Register() {
             Create your customer account to start booking cleaning services.
           </p>
         </div>
+
+        {registrationMessage && (
+  <div
+    style={{
+      marginBottom: "18px",
+      padding: "12px 16px",
+      borderRadius: "12px",
+      background: "#ecfdf5",
+      border: "1px solid #86efac",
+      color: "#166534",
+      textAlign: "center",
+      fontWeight: "600",
+    }}
+  >
+    {registrationMessage}
+  </div>
+)}
 
         <form onSubmit={handleRegister}>
           <input
