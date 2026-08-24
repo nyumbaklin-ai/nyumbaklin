@@ -300,6 +300,45 @@ router.put("/change-password", auth, async (req, res) => {
   }
 });
 
+// ================= REQUEST ACCOUNT DELETION =================
+router.post("/request-account-deletion", auth, async (req, res) => {
+  try {
+    await pool.query(`
+      ALTER TABLE customers
+      ADD COLUMN IF NOT EXISTS deletion_requested BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMPTZ
+    `);
+
+    const result = await pool.query(
+      `
+      UPDATE customers
+      SET deletion_requested = true,
+          deletion_requested_at = NOW()
+      WHERE email = $1
+      AND role = 'customer'
+      RETURNING id, email, deletion_requested
+      `,
+      [req.user.email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Customer account not found",
+      });
+    }
+
+    res.json({
+      message:
+        "Your account deletion request has been submitted. Nyumbaklin support will review it.",
+    });
+  } catch (error) {
+    console.error("Account deletion request error:", error);
+    res.status(500).json({
+      message: "Error submitting account deletion request",
+    });
+  }
+});
+
 // ================= CREATE BOOKING =================
 router.post("/book", auth, async (req, res) => {
   const service = normalizeText(req.body.service);
