@@ -11,6 +11,7 @@ function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [deletionMessage, setDeletionMessage] = useState("");
 
   const token = localStorage.getItem("token");
 
@@ -475,6 +476,23 @@ function Profile() {
               before taking action.
             </p>
 
+            {deletionMessage && (
+  <div
+    style={{
+      marginBottom: "14px",
+      padding: "12px 14px",
+      borderRadius: "10px",
+      background: "#ecfdf5",
+      border: "1px solid #a7f3d0",
+      color: "#047857",
+      fontSize: "14px",
+      fontWeight: "600",
+    }}
+  >
+    {deletionMessage}
+  </div>
+)}
+
             <button
               onClick={async () => {
                 const confirmed = window.confirm(
@@ -501,7 +519,11 @@ function Profile() {
                       : "Error submitting account deletion request"
                   );
 
-                  console.log(msg);
+                  if (res.ok) {
+                    setDeletionMessage(msg);
+                  } else {
+                   alert(msg);
+                   }
                 } catch (err) {
                   console.error(err);
                   alert("Error submitting account deletion request");
