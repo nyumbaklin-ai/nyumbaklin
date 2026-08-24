@@ -8,6 +8,7 @@ function CustomerBooking() {
   const [customService, setCustomService] = useState("");
   const [customPrice, setCustomPrice] = useState("");
   const [roomSize, setRoomSize] = useState("");
+  const [carpetType, setCarpetType] = useState("");
   const [date, setDate] = useState("");
   const [area, setArea] = useState("");
   const [customArea, setCustomArea] = useState("");
@@ -27,7 +28,9 @@ function CustomerBooking() {
   const needsRoomSelection =
     service === "House Cleaning" ||
     service === "Deep Cleaning" ||
-    service === "Office Cleaning";
+    service === "Office Cleaning" ||
+    service === "Sofa Set Cleaning" ||
+    service === "Carpet Cleaning";
 
   const showBookingMessage = (message, type = "error") => {
     setBookingMessage(message);
@@ -149,6 +152,21 @@ function CustomerBooking() {
       if (roomSize === "3-4") return 95000;
       if (roomSize === "5-6") return 125000;
     }
+
+    if (service === "Sofa Set Cleaning") {
+      if (roomSize === "3-seater") return 60000;
+      if (roomSize === "4-seater") return 80000;
+      if (roomSize === "5-seater") return 100000;
+      if (roomSize === "6-seater") return 120000;
+      if (roomSize === "7-seater") return 140000;
+      if (roomSize === "L-shaped") return 100000;
+    }
+
+   if (service === "Carpet Cleaning") {
+     if (roomSize === "Small") return carpetType === "Shaggy / High-Pile" ? 50000 : 30000;
+     if (roomSize === "Medium") return carpetType === "Shaggy / High-Pile" ? 70000 : 50000;
+     if (roomSize === "Large") return carpetType === "Shaggy / High-Pile" ? 100000 : 80000;
+   }
 
     if (service === "Other") return Number(customPrice);
 
@@ -290,10 +308,26 @@ function CustomerBooking() {
     }
 
     if (needsRoomSelection && !roomSize) {
-      showBookingMessage("Please select the number of rooms.");
-      return;
-    }
+  if (
+    service === "House Cleaning" ||
+    service === "Deep Cleaning" ||
+    service === "Office Cleaning"
+  ) {
+    showBookingMessage("Please select the number of rooms.");
+  } else if (service === "Sofa Set Cleaning") {
+    showBookingMessage("Please select your sofa set size.");
+  } else if (service === "Carpet Cleaning") {
+    showBookingMessage("Please select your carpet size.");
+  }
 
+  return;
+}
+   
+  if (service === "Carpet Cleaning" && !carpetType) {
+  showBookingMessage("Please select your carpet type.");
+  return;
+}
+  
     if (service === "Other" && (!customPrice || Number(customPrice) <= 0)) {
       showBookingMessage("Please enter a valid price for the custom service.");
       return;
@@ -327,7 +361,13 @@ function CustomerBooking() {
           service:
             service === "Other"
               ? finalService
-              : `${finalService} (${roomSize} rooms)`,
+              : service === "House Cleaning" ||
+                service === "Deep Cleaning" ||
+                service === "Office Cleaning"
+              ? `${finalService} (${roomSize} rooms)`
+              : service === "Sofa Set Cleaning"
+              ? `${finalService} (${roomSize})`
+              : `${finalService} (${roomSize}, ${carpetType})`,
           booking_date: date,
           price: finalPrice,
           address: finalAddress,
@@ -586,6 +626,36 @@ function CustomerBooking() {
               Office Cleaning
             </label>
 
+           <label style={optionBoxStyle}>
+             <input
+               type="radio"
+               value="Sofa Set Cleaning"
+               checked={service === "Sofa Set Cleaning"}
+               onChange={(e) => {
+                 clearBookingMessage();
+                 setService(e.target.value);
+                setRoomSize("");
+                setCarpetType("");
+              }}
+            />
+            Sofa Set Cleaning
+          </label>
+
+          <label style={optionBoxStyle}>
+            <input
+              type="radio"
+              value="Carpet Cleaning"
+              checked={service === "Carpet Cleaning"}
+              onChange={(e) => {
+                clearBookingMessage();
+                setService(e.target.value);
+                setRoomSize("");
+                setCarpetType("");
+              }}
+            />
+            Carpet Cleaning
+          </label>
+
             <label style={optionBoxStyle}>
               <input
                 type="radio"
@@ -627,65 +697,233 @@ function CustomerBooking() {
           </div>
 
           {needsRoomSelection && (
-            <div>
-              <p style={sectionTitleStyle}>Select Rooms</p>
+  <div>
+    {service === "House Cleaning" ||
+    service === "Deep Cleaning" ||
+    service === "Office Cleaning" ? (
+      <>
+        <p style={sectionTitleStyle}>Select Rooms</p>
 
-              <label style={optionBoxStyle}>
-                <input
-                  type="radio"
-                  value="1-2"
-                  checked={roomSize === "1-2"}
-                  onChange={(e) => {
-                    clearBookingMessage();
-                    setRoomSize(e.target.value);
-                  }}
-                />
-                1-2 Rooms
-              </label>
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="1-2"
+            checked={roomSize === "1-2"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          1-2 Rooms
+        </label>
 
-              <label style={optionBoxStyle}>
-                <input
-                  type="radio"
-                  value="3-4"
-                  checked={roomSize === "3-4"}
-                  onChange={(e) => {
-                    clearBookingMessage();
-                    setRoomSize(e.target.value);
-                  }}
-                />
-                3-4 Rooms
-              </label>
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="3-4"
+            checked={roomSize === "3-4"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          3-4 Rooms
+        </label>
 
-              <label style={optionBoxStyle}>
-                <input
-                  type="radio"
-                  value="5-6"
-                  checked={roomSize === "5-6"}
-                  onChange={(e) => {
-                    clearBookingMessage();
-                    setRoomSize(e.target.value);
-                  }}
-                />
-                5-6 Rooms
-              </label>
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="5-6"
+            checked={roomSize === "5-6"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          5-6 Rooms
+        </label>
+      </>
+    ) : service === "Sofa Set Cleaning" ? (
+      <>
+        <p style={sectionTitleStyle}>Select Sofa Set</p>
 
-              <div style={priceBoxStyle}>
-                <p style={{ margin: 0, color: "#1d4ed8", fontSize: "14px", fontWeight: "600" }}>
-                  Estimated Price
-                </p>
-                <p
-                  style={{
-                    margin: "8px 0 0 0",
-                    color: "#0f172a",
-                    fontSize: "24px",
-                    fontWeight: "800",
-                  }}
-                >
-                  UGX {getPrice().toLocaleString()}
-                </p>
-              </div>
-            </div>
-          )}
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="3-seater"
+            checked={roomSize === "3-seater"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          3-Seater — UGX 60,000
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="4-seater"
+            checked={roomSize === "4-seater"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          4-Seater — UGX 80,000
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="5-seater"
+            checked={roomSize === "5-seater"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          5-Seater — UGX 100,000
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="6-seater"
+            checked={roomSize === "6-seater"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          6-Seater — UGX 120,000
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="7-seater"
+            checked={roomSize === "7-seater"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          7-Seater — UGX 140,000
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="L-shaped"
+            checked={roomSize === "L-shaped"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          L-Shaped — UGX 100,000
+        </label>
+      </>
+    ) : (
+      <>
+        <p style={sectionTitleStyle}>Select Carpet Size</p>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="Small"
+            checked={roomSize === "Small"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          Small
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="Medium"
+            checked={roomSize === "Medium"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          Medium
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="Large"
+            checked={roomSize === "Large"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          Large
+        </label>
+
+        <p style={sectionTitleStyle}>Select Carpet Type</p>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="Standard"
+            checked={carpetType === "Standard"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setCarpetType(e.target.value);
+            }}
+          />
+          Standard Carpet
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="Shaggy / High-Pile"
+            checked={carpetType === "Shaggy / High-Pile"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setCarpetType(e.target.value);
+            }}
+          />
+          Shaggy / High-Pile (+UGX 20,000)
+        </label>
+      </>
+    )}
+
+    <div style={priceBoxStyle}>
+      <p
+        style={{
+          margin: 0,
+          color: "#1d4ed8",
+          fontSize: "14px",
+          fontWeight: "600",
+        }}
+      >
+        Estimated Price
+      </p>
+
+      <p
+        style={{
+          margin: "8px 0 0 0",
+          color: "#0f172a",
+          fontSize: "24px",
+          fontWeight: "800",
+        }}
+      >
+        UGX {getPrice().toLocaleString()}
+      </p>
+    </div>
+  </div>
+)}
+     
 
           <div>
             <p style={sectionTitleStyle}>Select Area</p>
