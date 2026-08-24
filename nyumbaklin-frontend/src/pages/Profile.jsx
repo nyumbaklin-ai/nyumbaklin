@@ -501,7 +501,7 @@ function Profile() {
                       : "Error submitting account deletion request"
                   );
 
-                  alert(msg);
+                  console.log(msg);
                 } catch (err) {
                   console.error(err);
                   alert("Error submitting account deletion request");
