@@ -443,6 +443,79 @@ function Profile() {
               {changingPassword ? "Changing Password..." : "Change Password"}
             </button>
           </div>
+
+                    <div
+            style={{
+              ...sectionCardStyle,
+              marginBottom: 0,
+              background: "#fff7ed",
+              border: "1px solid #fed7aa",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#9a3412",
+                fontSize: "22px",
+              }}
+            >
+              Account Deletion
+            </h3>
+
+            <p
+              style={{
+                marginTop: "8px",
+                color: "#7c2d12",
+                fontSize: "14px",
+                lineHeight: "1.6",
+              }}
+            >
+              If you no longer want to use Nyumbaklin, you can request to
+              delete your customer account. Our team will review your request
+              before taking action.
+            </p>
+
+            <button
+              onClick={async () => {
+                const confirmed = window.confirm(
+                  "Are you sure you want to request deletion of your Nyumbaklin account?"
+                );
+
+                if (!confirmed) return;
+
+                try {
+                  const res = await fetch(
+                    `${API_URL}/customers/request-account-deletion`,
+                    {
+                      method: "POST",
+                      headers: {
+                        Authorization: "Bearer " + token,
+                      },
+                    }
+                  );
+
+                  const msg = await readResponseMessage(
+                    res,
+                    res.ok
+                      ? "Your account deletion request has been submitted."
+                      : "Error submitting account deletion request"
+                  );
+
+                  alert(msg);
+                } catch (err) {
+                  console.error(err);
+                  alert("Error submitting account deletion request");
+                }
+              }}
+              style={{
+                ...buttonStyle,
+                background: "linear-gradient(90deg, #dc2626, #b91c1c)",
+                boxShadow: "0 10px 18px rgba(220, 38, 38, 0.18)",
+              }}
+            >
+              Request Account Deletion
+            </button>
+          </div>
         </div>
       </div>
     </div>
