@@ -42,6 +42,8 @@ router.get("/users", auth, adminOnly, async (req, res) => {
         email, 
         role, 
         phone,
+        deletion_requested,
+        deletion_requested_at,
         subscription_type,
         subscription_status,
         subscription_expiry
