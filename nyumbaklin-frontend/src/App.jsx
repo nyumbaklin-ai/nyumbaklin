@@ -460,6 +460,8 @@ function Dashboard() {
   const token = localStorage.getItem("token");
 
   const previousPendingPaymentIdsRef = useRef([]);
+  const previousDeletionRequestIdsRef = useRef([]);
+  const hasLoadedUsersOnceRef = useRef(false);
   const hasLoadedBookingsOnceRef = useRef(false);
   const audioRef = useRef(null);
   const adminAudioEnabledRef = useRef(false);
@@ -595,7 +597,42 @@ function Dashboard() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setUsers(Array.isArray(data) ? data : []);
+        const nextUsers = Array.isArray(data) ? data : [];
+
+        const nextDeletionRequestIds = nextUsers
+          .filter(
+            (user) =>
+              user.deletion_requested === true ||
+              user.deletion_requested === "true"
+          )
+          .map((user) => String(user.id));
+
+        if (hasLoadedUsersOnceRef.current) {
+          const hasNewDeletionRequest = nextDeletionRequestIds.some(
+            (id) => !previousDeletionRequestIdsRef.current.includes(id)
+          );
+
+          if (hasNewDeletionRequest) {
+            const requestedUser = nextUsers.find(
+              (user) =>
+                user.deletion_requested === true ||
+                user.deletion_requested === "true"
+            );
+
+            showPaymentAlertMessage(
+              `🔔 Account deletion request from ${
+                requestedUser?.email || "a customer"
+              }. Check the Users section.`
+            );
+
+            playAdminPaymentAlert();
+          }
+        }
+
+        previousDeletionRequestIdsRef.current = nextDeletionRequestIds;
+        hasLoadedUsersOnceRef.current = true;
+
+        setUsers(nextUsers);
       })
       .catch((error) => {
         console.error("Error fetching users:", error);
