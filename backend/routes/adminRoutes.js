@@ -165,6 +165,8 @@ router.put("/activate-cleaner-premium/:id", auth, adminOnly, async (req, res) =>
     let baseDate = now;
 
     if (
+      cleaner.subscription_type === "premium" &&
+      cleaner.subscription_status === "active" &&
       cleaner.subscription_expiry &&
       new Date(cleaner.subscription_expiry) > now
     ) {
