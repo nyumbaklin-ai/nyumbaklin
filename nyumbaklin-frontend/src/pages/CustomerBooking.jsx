@@ -30,7 +30,8 @@ function CustomerBooking() {
     service === "Deep Cleaning" ||
     service === "Office Cleaning" ||
     service === "Sofa Set Cleaning" ||
-    service === "Carpet Cleaning";
+    service === "Carpet Cleaning" ||
+    service === "Mobile Car Washing";
 
   const showBookingMessage = (message, type = "error") => {
     setBookingMessage(message);
@@ -168,6 +169,12 @@ function CustomerBooking() {
      if (roomSize === "Large") return carpetType === "Shaggy / High-Pile" ? 100000 : 80000;
    }
 
+    if (service === "Mobile Car Washing") {
+      if (roomSize === "Small/Medium Car") return 35000;
+      if (roomSize === "SUV/Pickup") return 45000;
+      if (roomSize === "Large SUV/Van") return 55000;
+    }
+
     if (service === "Other") return Number(customPrice);
 
     return 0;
@@ -303,7 +310,7 @@ function CustomerBooking() {
     const isGpsAddress = finalAddress.startsWith("GPS:");
 
     if (!finalService) {
-      showBookingMessage("Please select a cleaning service.");
+      showBookingMessage("Please select a service.");
       return;
     }
 
@@ -318,6 +325,8 @@ function CustomerBooking() {
     showBookingMessage("Please select your sofa set size.");
   } else if (service === "Carpet Cleaning") {
     showBookingMessage("Please select your carpet size.");
+  } else if (service === "Mobile Car Washing") {
+    showBookingMessage("Please select your vehicle type.");
   }
 
   return;
@@ -367,7 +376,11 @@ function CustomerBooking() {
               ? `${finalService} (${roomSize} rooms)`
               : service === "Sofa Set Cleaning"
               ? `${finalService} (${roomSize})`
-              : `${finalService} (${roomSize}, ${carpetType})`,
+              : service === "Carpet Cleaning"
+              ? `${finalService} (${roomSize}, ${carpetType})`
+              : service === "Mobile Car Washing"
+              ? `${finalService} (${roomSize})`
+              : finalService,
           booking_date: date,
           price: finalPrice,
           address: finalAddress,
@@ -572,7 +585,7 @@ function CustomerBooking() {
   return (
     <div style={pageStyle}>
       <div style={cardStyle}>
-        <h2 style={headingStyle}>Book Cleaning</h2>
+        <h2 style={headingStyle}>Book a Service</h2>
         <p style={subTextStyle}>
           Choose your service, area, date, and payment method to place your booking quickly and easily.
         </p>
@@ -654,6 +667,21 @@ function CustomerBooking() {
               }}
             />
             Carpet Cleaning
+          </label>
+
+          <label style={optionBoxStyle}>
+            <input
+              type="radio"
+              value="Mobile Car Washing"
+              checked={service === "Mobile Car Washing"}
+              onChange={(e) => {
+                clearBookingMessage();
+                setService(e.target.value);
+                setRoomSize("");
+                setCarpetType("");
+              }}
+            />
+            🚗 Mobile Car Washing
           </label>
 
             <label style={optionBoxStyle}>
@@ -825,7 +853,7 @@ function CustomerBooking() {
           L-Shaped — UGX 100,000
         </label>
       </>
-    ) : (
+    ) : service === "Carpet Cleaning" ? (
       <>
         <p style={sectionTitleStyle}>Select Carpet Size</p>
 
@@ -895,6 +923,57 @@ function CustomerBooking() {
           />
           Shaggy / High-Pile (+UGX 20,000)
         </label>
+      </>
+    ) : (
+      <>
+        <p style={sectionTitleStyle}>Select Vehicle Type</p>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="Small/Medium Car"
+            checked={roomSize === "Small/Medium Car"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          Small/Medium Car — UGX 35,000
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="SUV/Pickup"
+            checked={roomSize === "SUV/Pickup"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          SUV/Pickup — UGX 45,000
+        </label>
+
+        <label style={optionBoxStyle}>
+          <input
+            type="radio"
+            value="Large SUV/Van"
+            checked={roomSize === "Large SUV/Van"}
+            onChange={(e) => {
+              clearBookingMessage();
+              setRoomSize(e.target.value);
+            }}
+          />
+          Large SUV/Van — UGX 55,000
+        </label>
+
+        <div style={{ ...gpsBoxStyle, marginTop: "14px" }}>
+          <p style={{ margin: 0, color: "#155e75", fontSize: "14px", lineHeight: "1.6" }}>
+            🚗 Home car washing: customer provides access to water and a suitable washing area.
+            Price covers a standard wash; engine washing, seat shampooing, polishing, and full
+            detailing are not included.
+          </p>
+        </div>
       </>
     )}
 
