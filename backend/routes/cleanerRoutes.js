@@ -90,63 +90,12 @@ router.post("/register", async (req, res) => {
   });
 });
 
-// ================= UPGRADE SUBSCRIPTION =================
+// ================= CLEANER SELF-UPGRADE DISABLED =================
 router.put("/upgrade-subscription", auth, cleanerOnly, async (req, res) => {
-  const plan = normalizeText(req.body.plan);
-
-  try {
-    if (!plan || (plan !== "weekly" && plan !== "monthly")) {
-      return res.status(400).json({
-        message: "Plan is required and must be either weekly or monthly",
-      });
-    }
-
-    let cleaner = await getCurrentCleaner(req.user);
-
-    if (!cleaner) {
-      return res.status(404).json({ message: "Cleaner not found" });
-    }
-
-    cleaner = await normalizeCleanerSubscription(cleaner);
-
-    const now = new Date();
-    let baseDate = now;
-
-    if (
-      cleaner.subscription_expiry &&
-      new Date(cleaner.subscription_expiry) > now
-    ) {
-      baseDate = new Date(cleaner.subscription_expiry);
-    }
-
-    const newExpiry = new Date(baseDate);
-
-    if (plan === "weekly") {
-      newExpiry.setDate(newExpiry.getDate() + 7);
-    } else {
-      newExpiry.setMonth(newExpiry.getMonth() + 1);
-    }
-
-    const updateResult = await pool.query(
-      `
-      UPDATE customers
-      SET subscription_type = 'premium',
-          subscription_status = 'active',
-          subscription_expiry = $1
-      WHERE id = $2
-      RETURNING id, email, location, subscription_type, subscription_status, subscription_expiry
-      `,
-      [newExpiry, cleaner.id]
-    );
-
-    res.json({
-      message: `Cleaner upgraded to premium successfully (${plan} plan)`,
-      cleaner: updateResult.rows[0],
-    });
-  } catch (error) {
-    console.error("Error upgrading subscription:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+  return res.status(403).json({
+    message:
+      "Premium activation is handled by Nyumbaklin Admin after payment has been verified.",
+  });
 });
 
 // ================= SUBSCRIPTION STATUS =================

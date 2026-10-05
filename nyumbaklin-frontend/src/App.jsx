@@ -914,6 +914,64 @@ function Dashboard() {
     }
   };
 
+  const activateCleanerPremium = async (id, email) => {
+  const plan = window.prompt(
+    `Enter Premium plan for ${email} (weekly or monthly):`,
+    "weekly"
+  );
+
+  if (plan === null) {
+    return;
+  }
+
+  const cleanedPlan = plan.trim().toLowerCase();
+
+  if (cleanedPlan !== "weekly" && cleanedPlan !== "monthly") {
+    alert("Please enter either weekly or monthly");
+    return;
+  }
+
+  const confirmActivation = window.confirm(
+    `Have you verified this cleaner's Premium payment?\n\nActivate ${cleanedPlan} Premium for ${email}?`
+  );
+
+  if (!confirmActivation) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_URL}/admin/activate-cleaner-premium/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          plan: cleanedPlan,
+        }),
+      }
+    );
+
+    const message = await readResponseMessage(
+      response,
+      response.ok
+        ? "Cleaner Premium activated successfully"
+        : "Error activating Premium"
+    );
+
+    alert(message);
+
+    if (response.ok) {
+      fetchUsers();
+    }
+  } catch (error) {
+    console.error("Premium activation error:", error);
+    alert("Error activating cleaner Premium");
+  }
+};
+
   const deleteBooking = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
 
@@ -2296,6 +2354,7 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Subscription</th>
               <th style={tableHeaderStyle}>Sub Status</th>
               <th style={tableHeaderStyle}>Expiry</th>
+              <th style={tableHeaderStyle}>Premium</th>
               <th style={tableHeaderStyle}>Change Role</th>
               <th style={tableHeaderStyle}>Reset Password</th>
               <th style={tableHeaderStyle}>Delete</th>
@@ -2305,7 +2364,7 @@ function Dashboard() {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="10">
+                <td style={tableCellStyle} colSpan="11">
                   No users found
                 </td>
               </tr>
@@ -2383,6 +2442,25 @@ function Dashboard() {
                   </td>
 
                   <td style={tableCellStyle}>
+  {user.role === "cleaner" ? (
+    <button
+      onClick={() => activateCleanerPremium(user.id, user.email)}
+      style={{
+        ...actionButtonStyle,
+        background: "#0f766e",
+      }}
+    >
+      {user.subscription_type === "premium" &&
+      user.subscription_status === "active"
+        ? "Extend Premium"
+        : "Activate Premium"}
+    </button>
+  ) : (
+    "—"
+  )}
+</td>
+
+                  <td style={tableCellStyle}>
                     <button
                       onClick={() => changeUserRole(user.id, user.role)}
                       style={{
@@ -2451,6 +2529,24 @@ function Dashboard() {
                       ? new Date(user.subscription_expiry).toLocaleDateString()
                       : "—"
                   )}
+
+                  {user.role === "cleaner" && (
+  <div style={{ marginTop: "12px" }}>
+    <button
+      onClick={() => activateCleanerPremium(user.id, user.email)}
+      style={{
+        ...actionButtonStyle,
+        background: "#0f766e",
+        width: "100%",
+      }}
+    >
+      {user.subscription_type === "premium" &&
+      user.subscription_status === "active"
+        ? "Extend Premium"
+        : "Activate Premium"}
+    </button>
+  </div>
+)}
 
                 <div className="admin-mobile-actions">
                   <button

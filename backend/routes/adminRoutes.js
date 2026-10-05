@@ -114,6 +114,101 @@ router.get("/users", auth, adminOnly, async (req, res) => {
   }
 });
 
+// ================= ADMIN ACTIVATE CLEANER PREMIUM =================
+router.put("/activate-cleaner-premium/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const plan = normalizeText(req.body.plan).toLowerCase();
+
+  if (!isValidId(id)) {
+    return res.status(400).json({
+      message: "Invalid cleaner id",
+    });
+  }
+
+  if (plan !== "weekly" && plan !== "monthly") {
+    return res.status(400).json({
+      message: "Plan must be weekly or monthly",
+    });
+  }
+
+  try {
+    const userResult = await pool.query(
+      `
+      SELECT
+        id,
+        email,
+        role,
+        subscription_type,
+        subscription_status,
+        subscription_expiry
+      FROM customers
+      WHERE id = $1
+      `,
+      [id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        message: "Cleaner not found",
+      });
+    }
+
+    const cleaner = userResult.rows[0];
+
+    if (cleaner.role !== "cleaner") {
+      return res.status(400).json({
+        message: "Premium can only be activated for cleaner accounts",
+      });
+    }
+
+    const now = new Date();
+    let baseDate = now;
+
+    if (
+      cleaner.subscription_expiry &&
+      new Date(cleaner.subscription_expiry) > now
+    ) {
+      baseDate = new Date(cleaner.subscription_expiry);
+    }
+
+    const newExpiry = new Date(baseDate);
+
+    if (plan === "weekly") {
+      newExpiry.setDate(newExpiry.getDate() + 7);
+    } else {
+      newExpiry.setMonth(newExpiry.getMonth() + 1);
+    }
+
+    const updateResult = await pool.query(
+      `
+      UPDATE customers
+      SET subscription_type = 'premium',
+          subscription_status = 'active',
+          subscription_expiry = $1
+      WHERE id = $2
+      RETURNING
+        id,
+        email,
+        role,
+        subscription_type,
+        subscription_status,
+        subscription_expiry
+      `,
+      [newExpiry, id]
+    );
+
+    res.json({
+      message: `Premium ${plan} plan activated successfully for ${cleaner.email}`,
+      cleaner: updateResult.rows[0],
+    });
+  } catch (error) {
+    console.error("Admin premium activation error:", error);
+    res.status(500).json({
+      message: "Error activating cleaner premium",
+    });
+  }
+});
+
 // ================= VIEW ALL BOOKINGS =================
 router.get("/bookings", auth, adminOnly, async (req, res) => {
   try {
