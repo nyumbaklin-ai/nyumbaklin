@@ -395,32 +395,12 @@ router.post("/request-account-deletion", auth, async (req, res) => {
   }
 });
 
-// ================= CREATE BOOKING =================
+// ================= OLD BOOKING ROUTE DISABLED =================
 router.post("/book", auth, async (req, res) => {
-  const service = normalizeText(req.body.service);
-  const booking_date = req.body.booking_date;
-  const booking_time = normalizeText(req.body.booking_time);
-  const address = normalizeText(req.body.address);
-  const price = Number(req.body.price);
-  const gps_readable_location = normalizeText(req.body.gps_readable_location) || null;
-
-  if (!service || !booking_date || !booking_time || !address || Number.isNaN(price) || price <= 0) {
-    return res.status(400).json({ message: "All booking fields are required with a valid price" });
-  }
-
-  try {
-    await pool.query(
-      `INSERT INTO bookings 
-      (email, service, booking_date, booking_time, address, status, seen, price, gps_readable_location)
-       VALUES ($1,$2,$3,$4,$5,'pending', false, $6, $7)`,
-      [req.user.email, service, booking_date, booking_time, address, price, gps_readable_location]
-    );
-
-    res.json({ message: "Booking created successfully" });
-  } catch (error) {
-    console.error("Create booking error:", error);
-    res.status(500).json({ message: "Booking failed" });
-  }
+  return res.status(410).json({
+    message:
+      "This booking route is no longer available. Please use the current booking service.",
+  });
 });
 
 // ================= CUSTOMER JOB TRACKING =================
