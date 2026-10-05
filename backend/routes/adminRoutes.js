@@ -25,6 +25,62 @@ const ensureManualPaymentColumns = async () => {
   manualPaymentColumnsReady = true;
 };
 
+let servicePricesReady = false;
+
+const ensureServicePricesTable = async () => {
+  if (servicePricesReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_prices (
+      id SERIAL PRIMARY KEY,
+      service_name VARCHAR(100) NOT NULL,
+      option_label VARCHAR(120) NOT NULL,
+      booking_service VARCHAR(220) NOT NULL UNIQUE,
+      price INTEGER NOT NULL CHECK (price > 0),
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    INSERT INTO service_prices
+      (service_name, option_label, booking_service, price, sort_order)
+    VALUES
+      ('House Cleaning', '1-2 Rooms', 'House Cleaning (1-2 rooms)', 33000, 10),
+      ('House Cleaning', '3-4 Rooms', 'House Cleaning (3-4 rooms)', 48000, 20),
+      ('House Cleaning', '5-6 Rooms', 'House Cleaning (5-6 rooms)', 65000, 30),
+
+      ('Deep Cleaning', '1-2 Rooms', 'Deep Cleaning (1-2 rooms)', 75000, 40),
+      ('Deep Cleaning', '3-4 Rooms', 'Deep Cleaning (3-4 rooms)', 105000, 50),
+      ('Deep Cleaning', '5-6 Rooms', 'Deep Cleaning (5-6 rooms)', 135000, 60),
+
+      ('Office Cleaning', '1-2 Rooms', 'Office Cleaning (1-2 rooms)', 65000, 70),
+      ('Office Cleaning', '3-4 Rooms', 'Office Cleaning (3-4 rooms)', 95000, 80),
+      ('Office Cleaning', '5-6 Rooms', 'Office Cleaning (5-6 rooms)', 125000, 90),
+
+      ('Sofa Set Cleaning', '3-Seater', 'Sofa Set Cleaning (3-seater)', 60000, 100),
+      ('Sofa Set Cleaning', '4-Seater', 'Sofa Set Cleaning (4-seater)', 80000, 110),
+      ('Sofa Set Cleaning', '5-Seater', 'Sofa Set Cleaning (5-seater)', 100000, 120),
+      ('Sofa Set Cleaning', '6-Seater', 'Sofa Set Cleaning (6-seater)', 120000, 130),
+      ('Sofa Set Cleaning', '7-Seater', 'Sofa Set Cleaning (7-seater)', 140000, 140),
+      ('Sofa Set Cleaning', 'L-Shaped', 'Sofa Set Cleaning (L-shaped)', 100000, 150),
+
+      ('Carpet Cleaning', 'Small - Standard', 'Carpet Cleaning (Small, Standard)', 30000, 160),
+      ('Carpet Cleaning', 'Small - Shaggy / High-Pile', 'Carpet Cleaning (Small, Shaggy / High-Pile)', 50000, 170),
+      ('Carpet Cleaning', 'Medium - Standard', 'Carpet Cleaning (Medium, Standard)', 50000, 180),
+      ('Carpet Cleaning', 'Medium - Shaggy / High-Pile', 'Carpet Cleaning (Medium, Shaggy / High-Pile)', 70000, 190),
+      ('Carpet Cleaning', 'Large - Standard', 'Carpet Cleaning (Large, Standard)', 80000, 200),
+      ('Carpet Cleaning', 'Large - Shaggy / High-Pile', 'Carpet Cleaning (Large, Shaggy / High-Pile)', 100000, 210),
+
+      ('Mobile Car Washing', 'Small/Medium Car', 'Mobile Car Washing (Small/Medium Car)', 35000, 220),
+      ('Mobile Car Washing', 'SUV/Pickup', 'Mobile Car Washing (SUV/Pickup)', 45000, 230),
+      ('Mobile Car Washing', 'Large SUV/Van', 'Mobile Car Washing (Large SUV/Van)', 55000, 240)
+    ON CONFLICT (booking_service) DO NOTHING
+  `);
+
+  servicePricesReady = true;
+};
+
 // ================= ADMIN DASHBOARD =================
 router.get("/dashboard", auth, adminOnly, (req, res) => {
   res.json({
@@ -135,6 +191,66 @@ router.get("/stats", auth, adminOnly, async (req, res) => {
   } catch (error) {
     console.error("Error fetching stats:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ================= SERVICE PRICES =================
+router.get("/service-prices", auth, adminOnly, async (req, res) => {
+  try {
+    await ensureServicePricesTable();
+
+    const result = await pool.query(`
+      SELECT id, service_name, option_label, booking_service, price, sort_order, updated_at
+      FROM service_prices
+      ORDER BY sort_order ASC, id ASC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Fetch service prices error:", error);
+    res.status(500).json({ message: "Error fetching service prices" });
+  }
+});
+
+router.put("/service-prices/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const price = Number(req.body.price);
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid service price id" });
+  }
+
+  if (!Number.isFinite(price) || price <= 0 || !Number.isInteger(price)) {
+    return res.status(400).json({
+      message: "Please enter a valid whole-number price above zero",
+    });
+  }
+
+  try {
+    await ensureServicePricesTable();
+
+    const result = await pool.query(
+      `
+      UPDATE service_prices
+      SET price=$1,
+          updated_at=NOW()
+      WHERE id=$2
+      RETURNING id, service_name, option_label, booking_service, price, sort_order, updated_at
+      `,
+      [price, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Service price not found" });
+    }
+
+    res.json({
+      message: "Service price updated successfully",
+      service_price: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Update service price error:", error);
+    res.status(500).json({ message: "Error updating service price" });
   }
 });
 

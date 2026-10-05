@@ -26,6 +26,62 @@ const ensureManualPaymentColumns = async () => {
   manualPaymentColumnsReady = true;
 };
 
+let servicePricesReady = false;
+
+const ensureServicePricesTable = async () => {
+  if (servicePricesReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_prices (
+      id SERIAL PRIMARY KEY,
+      service_name VARCHAR(100) NOT NULL,
+      option_label VARCHAR(120) NOT NULL,
+      booking_service VARCHAR(220) NOT NULL UNIQUE,
+      price INTEGER NOT NULL CHECK (price > 0),
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    INSERT INTO service_prices
+      (service_name, option_label, booking_service, price, sort_order)
+    VALUES
+      ('House Cleaning', '1-2 Rooms', 'House Cleaning (1-2 rooms)', 33000, 10),
+      ('House Cleaning', '3-4 Rooms', 'House Cleaning (3-4 rooms)', 48000, 20),
+      ('House Cleaning', '5-6 Rooms', 'House Cleaning (5-6 rooms)', 65000, 30),
+
+      ('Deep Cleaning', '1-2 Rooms', 'Deep Cleaning (1-2 rooms)', 75000, 40),
+      ('Deep Cleaning', '3-4 Rooms', 'Deep Cleaning (3-4 rooms)', 105000, 50),
+      ('Deep Cleaning', '5-6 Rooms', 'Deep Cleaning (5-6 rooms)', 135000, 60),
+
+      ('Office Cleaning', '1-2 Rooms', 'Office Cleaning (1-2 rooms)', 65000, 70),
+      ('Office Cleaning', '3-4 Rooms', 'Office Cleaning (3-4 rooms)', 95000, 80),
+      ('Office Cleaning', '5-6 Rooms', 'Office Cleaning (5-6 rooms)', 125000, 90),
+
+      ('Sofa Set Cleaning', '3-Seater', 'Sofa Set Cleaning (3-seater)', 60000, 100),
+      ('Sofa Set Cleaning', '4-Seater', 'Sofa Set Cleaning (4-seater)', 80000, 110),
+      ('Sofa Set Cleaning', '5-Seater', 'Sofa Set Cleaning (5-seater)', 100000, 120),
+      ('Sofa Set Cleaning', '6-Seater', 'Sofa Set Cleaning (6-seater)', 120000, 130),
+      ('Sofa Set Cleaning', '7-Seater', 'Sofa Set Cleaning (7-seater)', 140000, 140),
+      ('Sofa Set Cleaning', 'L-Shaped', 'Sofa Set Cleaning (L-shaped)', 100000, 150),
+
+      ('Carpet Cleaning', 'Small - Standard', 'Carpet Cleaning (Small, Standard)', 30000, 160),
+      ('Carpet Cleaning', 'Small - Shaggy / High-Pile', 'Carpet Cleaning (Small, Shaggy / High-Pile)', 50000, 170),
+      ('Carpet Cleaning', 'Medium - Standard', 'Carpet Cleaning (Medium, Standard)', 50000, 180),
+      ('Carpet Cleaning', 'Medium - Shaggy / High-Pile', 'Carpet Cleaning (Medium, Shaggy / High-Pile)', 70000, 190),
+      ('Carpet Cleaning', 'Large - Standard', 'Carpet Cleaning (Large, Standard)', 80000, 200),
+      ('Carpet Cleaning', 'Large - Shaggy / High-Pile', 'Carpet Cleaning (Large, Shaggy / High-Pile)', 100000, 210),
+
+      ('Mobile Car Washing', 'Small/Medium Car', 'Mobile Car Washing (Small/Medium Car)', 35000, 220),
+      ('Mobile Car Washing', 'SUV/Pickup', 'Mobile Car Washing (SUV/Pickup)', 45000, 230),
+      ('Mobile Car Washing', 'Large SUV/Van', 'Mobile Car Washing (Large SUV/Van)', 55000, 240)
+    ON CONFLICT (booking_service) DO NOTHING
+  `);
+
+  servicePricesReady = true;
+};
+
 // ================= REGISTER =================
 router.post("/register", async (req, res) => {
   const name = normalizeText(req.body.name) || "Customer";
@@ -629,15 +685,37 @@ router.get("/my-bookings-simple", auth, async (req, res) => {
   }
 });
 
+// ================= CURRENT SERVICE PRICES =================
+router.get("/service-prices", auth, async (req, res) => {
+  try {
+    await ensureServicePricesTable();
+
+    const result = await pool.query(`
+      SELECT id, service_name, option_label, booking_service, price, sort_order
+      FROM service_prices
+      ORDER BY sort_order ASC, id ASC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Fetch customer service prices error:", error);
+    res.status(500).json({ message: "Error fetching service prices" });
+  }
+});
+
 // ================= BOOK CLEANING SERVICE =================
 router.post("/book-service", auth, async (req, res) => {
   try {
+    await ensureServicePricesTable();
+
     const service = normalizeText(req.body.service);
     const booking_date = req.body.booking_date;
-    const price = Number(req.body.price);
+    const requestedPrice = Number(req.body.price);
     const address = normalizeText(req.body.address);
-    const payment_method = normalizeText(req.body.payment_method) || "pay_after";
-    const gps_readable_location = normalizeText(req.body.gps_readable_location) || null;
+    const payment_method =
+      normalizeText(req.body.payment_method) || "pay_after";
+    const gps_readable_location =
+      normalizeText(req.body.gps_readable_location) || null;
 
     const allowedPaymentMethods = [
       "pay_after",
@@ -647,12 +725,75 @@ router.post("/book-service", auth, async (req, res) => {
       "manual_mobile_money",
     ];
 
-    if (!service || !booking_date || !address || Number.isNaN(price) || price <= 0) {
-      return res.status(400).json({ message: "All fields are required with a valid price" });
+    if (!service || !booking_date || !address) {
+      return res.status(400).json({
+        message: "Service, date, and location are required",
+      });
     }
 
     if (!allowedPaymentMethods.includes(payment_method)) {
-      return res.status(400).json({ message: "Invalid payment method" });
+      return res.status(400).json({
+        message: "Invalid payment method",
+      });
+    }
+
+    const managedServiceNames = [
+      "House Cleaning",
+      "Deep Cleaning",
+      "Office Cleaning",
+      "Sofa Set Cleaning",
+      "Carpet Cleaning",
+      "Mobile Car Washing",
+    ];
+
+    const officialPriceResult = await pool.query(
+      `
+      SELECT price
+      FROM service_prices
+      WHERE booking_service=$1
+      LIMIT 1
+      `,
+      [service]
+    );
+
+    let finalPrice;
+
+    if (officialPriceResult.rows.length > 0) {
+      finalPrice = Number(officialPriceResult.rows[0].price);
+
+      if (
+        !Number.isFinite(requestedPrice) ||
+        requestedPrice !== finalPrice
+      ) {
+        return res.status(409).json({
+          message:
+            "The price for this service has changed. Please refresh the booking page and confirm the current price before booking.",
+        });
+      }
+    } else {
+      const looksLikeManagedService = managedServiceNames.some(
+        (serviceName) =>
+          service === serviceName ||
+          service.startsWith(`${serviceName} (`)
+      );
+
+      if (looksLikeManagedService) {
+        return res.status(400).json({
+          message:
+            "This service option is not available. Please refresh the booking page and try again.",
+        });
+      }
+
+      if (
+        !Number.isFinite(requestedPrice) ||
+        requestedPrice <= 0
+      ) {
+        return res.status(400).json({
+          message: "Please enter a valid price for the custom service",
+        });
+      }
+
+      finalPrice = requestedPrice;
     }
 
     const email = req.user.email;
@@ -677,7 +818,7 @@ router.post("/book-service", auth, async (req, res) => {
         service,
         booking_date,
         address,
-        price,
+        finalPrice,
         payment_method,
         gps_readable_location,
       ]

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -21,6 +21,9 @@ function CustomerBooking() {
   const [bookingMessage, setBookingMessage] = useState("");
   const [bookingMessageType, setBookingMessageType] = useState("error");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [servicePrices, setServicePrices] = useState([]);
+  const [pricesLoading, setPricesLoading] = useState(true);
+  const [pricesError, setPricesError] = useState("");
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -32,6 +35,103 @@ function CustomerBooking() {
     service === "Sofa Set Cleaning" ||
     service === "Carpet Cleaning" ||
     service === "Mobile Car Washing";
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchServicePrices = async () => {
+      try {
+        setPricesLoading(true);
+        setPricesError("");
+
+        const response = await fetch(`${API_URL}/customers/service-prices`, {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        });
+
+        const data = await response.json().catch(() => []);
+
+        if (!response.ok) {
+          throw new Error(data?.message || "Could not load current service prices");
+        }
+
+        if (!cancelled) {
+          setServicePrices(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error("Service prices error:", error);
+
+        if (!cancelled) {
+          setServicePrices([]);
+          setPricesError(
+            "Current service prices could not be loaded. Please refresh the page and try again."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPricesLoading(false);
+        }
+      }
+    };
+
+    fetchServicePrices();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const getBookingServiceName = () => {
+    const finalService = service === "Other" ? customService.trim() : service;
+
+    if (!finalService) return "";
+
+    if (
+      service === "House Cleaning" ||
+      service === "Deep Cleaning" ||
+      service === "Office Cleaning"
+    ) {
+      return roomSize ? `${finalService} (${roomSize} rooms)` : "";
+    }
+
+    if (service === "Sofa Set Cleaning") {
+      return roomSize ? `${finalService} (${roomSize})` : "";
+    }
+
+    if (service === "Carpet Cleaning") {
+      return roomSize && carpetType
+        ? `${finalService} (${roomSize}, ${carpetType})`
+        : "";
+    }
+
+    if (service === "Mobile Car Washing") {
+      return roomSize ? `${finalService} (${roomSize})` : "";
+    }
+
+    return finalService;
+  };
+
+  const getManagedPrice = (bookingServiceName) => {
+    if (!bookingServiceName) return 0;
+
+    const priceItem = servicePrices.find(
+      (item) => item.booking_service === bookingServiceName
+    );
+
+    return priceItem ? Number(priceItem.price) : 0;
+  };
+
+  const formatManagedPrice = (bookingServiceName) => {
+    const price = getManagedPrice(bookingServiceName);
+
+    if (price > 0) {
+      return `UGX ${price.toLocaleString()}`;
+    }
+
+    return pricesLoading ? "Loading price..." : "Price unavailable";
+  };
 
   const showBookingMessage = (message, type = "error") => {
     setBookingMessage(message);
@@ -136,48 +236,11 @@ function CustomerBooking() {
   };
 
   const getPrice = () => {
-    if (service === "House Cleaning") {
-      if (roomSize === "1-2") return 33000;
-      if (roomSize === "3-4") return 48000;
-      if (roomSize === "5-6") return 65000;
+    if (service === "Other") {
+      return Number(customPrice);
     }
 
-    if (service === "Deep Cleaning") {
-      if (roomSize === "1-2") return 75000;
-      if (roomSize === "3-4") return 105000;
-      if (roomSize === "5-6") return 135000;
-    }
-
-    if (service === "Office Cleaning") {
-      if (roomSize === "1-2") return 65000;
-      if (roomSize === "3-4") return 95000;
-      if (roomSize === "5-6") return 125000;
-    }
-
-    if (service === "Sofa Set Cleaning") {
-      if (roomSize === "3-seater") return 60000;
-      if (roomSize === "4-seater") return 80000;
-      if (roomSize === "5-seater") return 100000;
-      if (roomSize === "6-seater") return 120000;
-      if (roomSize === "7-seater") return 140000;
-      if (roomSize === "L-shaped") return 100000;
-    }
-
-   if (service === "Carpet Cleaning") {
-     if (roomSize === "Small") return carpetType === "Shaggy / High-Pile" ? 50000 : 30000;
-     if (roomSize === "Medium") return carpetType === "Shaggy / High-Pile" ? 70000 : 50000;
-     if (roomSize === "Large") return carpetType === "Shaggy / High-Pile" ? 100000 : 80000;
-   }
-
-    if (service === "Mobile Car Washing") {
-      if (roomSize === "Small/Medium Car") return 35000;
-      if (roomSize === "SUV/Pickup") return 45000;
-      if (roomSize === "Large SUV/Van") return 55000;
-    }
-
-    if (service === "Other") return Number(customPrice);
-
-    return 0;
+    return getManagedPrice(getBookingServiceName());
   };
 
   const handleUseCurrentLocation = () => {
@@ -305,6 +368,7 @@ function CustomerBooking() {
     clearBookingMessage();
 
     const finalService = service === "Other" ? customService.trim() : service;
+    const bookingServiceName = getBookingServiceName();
     const finalPrice = getPrice();
     const finalAddress = area === "Other" ? customArea.trim() : area;
     const isGpsAddress = finalAddress.startsWith("GPS:");
@@ -342,6 +406,18 @@ function CustomerBooking() {
       return;
     }
 
+    if (service !== "Other" && pricesLoading) {
+      showBookingMessage("Current service prices are still loading. Please wait a moment.");
+      return;
+    }
+
+    if (service !== "Other" && (!bookingServiceName || finalPrice <= 0)) {
+      showBookingMessage(
+        "The current price for this service could not be loaded. Please refresh the page and try again."
+      );
+      return;
+    }
+
     if (!area) {
       showBookingMessage("Please select your location or area.");
       return;
@@ -367,20 +443,7 @@ function CustomerBooking() {
           Authorization: "Bearer " + token,
         },
         body: JSON.stringify({
-          service:
-            service === "Other"
-              ? finalService
-              : service === "House Cleaning" ||
-                service === "Deep Cleaning" ||
-                service === "Office Cleaning"
-              ? `${finalService} (${roomSize} rooms)`
-              : service === "Sofa Set Cleaning"
-              ? `${finalService} (${roomSize})`
-              : service === "Carpet Cleaning"
-              ? `${finalService} (${roomSize}, ${carpetType})`
-              : service === "Mobile Car Washing"
-              ? `${finalService} (${roomSize})`
-              : finalService,
+          service: bookingServiceName,
           booking_date: date,
           price: finalPrice,
           address: finalAddress,
@@ -596,6 +659,40 @@ function CustomerBooking() {
           </div>
         )}
 
+        {pricesLoading && (
+          <div
+            style={{
+              marginBottom: "18px",
+              padding: "12px 16px",
+              borderRadius: "14px",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
+              fontWeight: "700",
+              fontSize: "14px",
+            }}
+          >
+            Loading current service prices...
+          </div>
+        )}
+
+        {pricesError && (
+          <div
+            style={{
+              marginBottom: "18px",
+              padding: "12px 16px",
+              borderRadius: "14px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#991b1b",
+              fontWeight: "700",
+              fontSize: "14px",
+            }}
+          >
+            {pricesError}
+          </div>
+        )}
+
         <form onSubmit={handleBooking}>
           <div>
             <p style={sectionTitleStyle}>Select Service</p>
@@ -785,7 +882,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          3-Seater — UGX 60,000
+          3-Seater — {formatManagedPrice("Sofa Set Cleaning (3-seater)")}
         </label>
 
         <label style={optionBoxStyle}>
@@ -798,7 +895,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          4-Seater — UGX 80,000
+          4-Seater — {formatManagedPrice("Sofa Set Cleaning (4-seater)")}
         </label>
 
         <label style={optionBoxStyle}>
@@ -811,7 +908,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          5-Seater — UGX 100,000
+          5-Seater — {formatManagedPrice("Sofa Set Cleaning (5-seater)")}
         </label>
 
         <label style={optionBoxStyle}>
@@ -824,7 +921,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          6-Seater — UGX 120,000
+          6-Seater — {formatManagedPrice("Sofa Set Cleaning (6-seater)")}
         </label>
 
         <label style={optionBoxStyle}>
@@ -837,7 +934,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          7-Seater — UGX 140,000
+          7-Seater — {formatManagedPrice("Sofa Set Cleaning (7-seater)")}
         </label>
 
         <label style={optionBoxStyle}>
@@ -850,7 +947,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          L-Shaped — UGX 100,000
+          L-Shaped — {formatManagedPrice("Sofa Set Cleaning (L-shaped)")}
         </label>
       </>
     ) : service === "Carpet Cleaning" ? (
@@ -921,7 +1018,7 @@ function CustomerBooking() {
               setCarpetType(e.target.value);
             }}
           />
-          Shaggy / High-Pile (+UGX 20,000)
+          Shaggy / High-Pile
         </label>
       </>
     ) : (
@@ -938,7 +1035,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          Small/Medium Car — UGX 35,000
+          Small/Medium Car — {formatManagedPrice("Mobile Car Washing (Small/Medium Car)")}
         </label>
 
         <label style={optionBoxStyle}>
@@ -951,7 +1048,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          SUV/Pickup — UGX 45,000
+          SUV/Pickup — {formatManagedPrice("Mobile Car Washing (SUV/Pickup)")}
         </label>
 
         <label style={optionBoxStyle}>
@@ -964,7 +1061,7 @@ function CustomerBooking() {
               setRoomSize(e.target.value);
             }}
           />
-          Large SUV/Van — UGX 55,000
+          Large SUV/Van — {formatManagedPrice("Mobile Car Washing (Large SUV/Van)")}
         </label>
 
         <div style={{ ...gpsBoxStyle, marginTop: "14px" }}>
@@ -1239,7 +1336,11 @@ function CustomerBooking() {
             </p>
           </div>
 
-          <button type="submit" style={buttonStyle} disabled={isSubmitting}>
+          <button
+            type="submit"
+            style={buttonStyle}
+            disabled={isSubmitting || (service !== "Other" && pricesLoading)}
+          >
             {isSubmitting ? "Booking..." : "Book Service"}
           </button>
         </form>

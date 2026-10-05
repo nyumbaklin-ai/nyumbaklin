@@ -446,6 +446,8 @@ function Dashboard() {
   const [bookings, setBookings] = useState([]);
   const [stats, setStats] = useState({});
   const [ratings, setRatings] = useState([]);
+  const [servicePrices, setServicePrices] = useState([]);
+  const [updatingServicePriceId, setUpdatingServicePriceId] = useState(null);
 
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
@@ -474,6 +476,7 @@ function Dashboard() {
     fetchBookings();
     fetchStats();
     fetchRatings();
+    fetchServicePrices();
   };
 
   const showPaymentAlertMessage = (message) => {
@@ -708,6 +711,31 @@ function Dashboard() {
       .catch((error) => {
         console.error("Error fetching ratings:", error);
         setRatings([]);
+      });
+  };
+
+
+  const fetchServicePrices = () => {
+    fetch(`${API_URL}/admin/service-prices`, {
+      headers: {
+        Authorization: "Bearer " + token,
+      },
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => []);
+
+        if (!res.ok) {
+          throw new Error(data?.message || "Error fetching service prices");
+        }
+
+        return data;
+      })
+      .then((data) => {
+        setServicePrices(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error("Error fetching service prices:", error);
+        setServicePrices([]);
       });
   };
 
@@ -954,6 +982,68 @@ function Dashboard() {
     } catch (error) {
       console.error("Error updating price:", error);
       alert("Error updating price");
+    }
+  };
+
+
+  const updateServicePrice = async (priceItem) => {
+    const newPrice = window.prompt(
+      `Enter new official price for ${priceItem.service_name} - ${priceItem.option_label}:`,
+      priceItem.price
+    );
+
+    if (newPrice === null) {
+      return;
+    }
+
+    const cleanedPrice = newPrice.trim();
+    const numericPrice = Number(cleanedPrice);
+
+    if (
+      cleanedPrice === "" ||
+      !Number.isFinite(numericPrice) ||
+      numericPrice <= 0 ||
+      !Number.isInteger(numericPrice)
+    ) {
+      alert("Please enter a valid whole-number price above zero");
+      return;
+    }
+
+    const confirmUpdate = window.confirm(
+      `Change ${priceItem.service_name} - ${priceItem.option_label} to UGX ${numericPrice.toLocaleString()}?\n\nThis new price will be used for future customer bookings. Existing bookings will keep their current price.`
+    );
+
+    if (!confirmUpdate) {
+      return;
+    }
+
+    try {
+      setUpdatingServicePriceId(priceItem.id);
+
+      const response = await fetch(`${API_URL}/admin/service-prices/${priceItem.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ price: numericPrice }),
+      });
+
+      const message = await readResponseMessage(
+        response,
+        response.ok ? "Service price updated successfully" : "Error updating service price"
+      );
+
+      alert(message);
+
+      if (response.ok) {
+        fetchServicePrices();
+      }
+    } catch (error) {
+      console.error("Error updating service price:", error);
+      alert("Error updating service price");
+    } finally {
+      setUpdatingServicePriceId(null);
     }
   };
 
@@ -1925,6 +2015,112 @@ function Dashboard() {
       <div className="admin-section-card" style={sectionStyle}>
         <div style={{ marginBottom: "20px" }}>
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
+            Manage Service Prices
+          </h2>
+          <p style={{ marginTop: "8px", marginBottom: 0, color: "#64748b", fontSize: "14px" }}>
+            These are the official prices used for new customer bookings. Changing a service
+            price here does not change prices already saved on existing bookings.
+          </p>
+        </div>
+
+        <table
+          className="admin-desktop-table"
+          style={{ width: "100%", borderCollapse: "collapse", minWidth: "760px" }}
+        >
+          <thead>
+            <tr>
+              <th style={tableHeaderStyle}>Service</th>
+              <th style={tableHeaderStyle}>Option</th>
+              <th style={tableHeaderStyle}>Current Price</th>
+              <th style={tableHeaderStyle}>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {servicePrices.length === 0 ? (
+              <tr>
+                <td style={tableCellStyle} colSpan="4">
+                  Service prices are loading or unavailable.
+                </td>
+              </tr>
+            ) : (
+              servicePrices.map((priceItem) => (
+                <tr key={priceItem.id} style={{ background: "#fff" }}>
+                  <td style={tableCellStyle}>
+                    <strong>{priceItem.service_name}</strong>
+                  </td>
+                  <td style={tableCellStyle}>{priceItem.option_label}</td>
+                  <td style={tableCellStyle}>
+                    <strong>UGX {Number(priceItem.price || 0).toLocaleString()}</strong>
+                  </td>
+                  <td style={tableCellStyle}>
+                    <button
+                      onClick={() => updateServicePrice(priceItem)}
+                      disabled={updatingServicePriceId === priceItem.id}
+                      style={{
+                        ...actionButtonStyle,
+                        background: "#0f766e",
+                        opacity: updatingServicePriceId === priceItem.id ? 0.7 : 1,
+                        cursor:
+                          updatingServicePriceId === priceItem.id
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      {updatingServicePriceId === priceItem.id
+                        ? "Saving..."
+                        : "Edit Service Price"}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        <div className="admin-mobile-cards">
+          {servicePrices.length === 0 ? (
+            <div className="admin-mobile-card">
+              Service prices are loading or unavailable.
+            </div>
+          ) : (
+            servicePrices.map((priceItem) => (
+              <div key={priceItem.id} className="admin-mobile-card">
+                <h3 className="admin-mobile-card-title">{priceItem.service_name}</h3>
+                {renderMobileRow("Option", priceItem.option_label)}
+                {renderMobileRow(
+                  "Current Price",
+                  <strong>UGX {Number(priceItem.price || 0).toLocaleString()}</strong>
+                )}
+
+                <div className="admin-mobile-actions">
+                  <button
+                    onClick={() => updateServicePrice(priceItem)}
+                    disabled={updatingServicePriceId === priceItem.id}
+                    style={{
+                      ...actionButtonStyle,
+                      background: "#0f766e",
+                      opacity: updatingServicePriceId === priceItem.id ? 0.7 : 1,
+                      cursor:
+                        updatingServicePriceId === priceItem.id
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    {updatingServicePriceId === priceItem.id
+                      ? "Saving..."
+                      : "Edit Service Price"}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="admin-section-card" style={sectionStyle}>
+        <div style={{ marginBottom: "20px" }}>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
             Verified Mobile Money Payments
           </h2>
           <p style={{ marginTop: "8px", marginBottom: 0, color: "#64748b", fontSize: "14px" }}>
@@ -2565,7 +2761,7 @@ function Dashboard() {
                             background: "#16a34a",
                           }}
                         >
-                          Price
+                          Booking Price
                         </button>
 
                         <button
@@ -2707,7 +2903,7 @@ function Dashboard() {
                         background: "#16a34a",
                       }}
                     >
-                      Price
+                      Booking Price
                     </button>
 
                     <button
