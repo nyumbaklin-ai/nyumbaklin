@@ -250,7 +250,7 @@ function Footer() {
 
           <div className="nyumba-footer-contact-buttons">
             <a
-              href="tel:+256781812743"
+              href="tel:+256765256406"
               className="nyumba-footer-button nyumba-footer-call"
             >
               <FaPhoneAlt />
