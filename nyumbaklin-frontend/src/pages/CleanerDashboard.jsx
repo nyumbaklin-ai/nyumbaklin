@@ -528,7 +528,7 @@ function CleanerDashboard() {
                 <div key={job.id} style={jobCard}>
                   <h3 style={{ marginBottom: "5px" }}>{job.service}</h3>
 
-                  <p>📧 {job.email}</p>
+                  
                   <p>📅 {new Date(job.booking_date).toLocaleDateString()}</p>
                   <p>💰 UGX {Number(job.price).toLocaleString()}</p>
 
