@@ -2497,29 +2497,38 @@ function Dashboard() {
                   </td>
 
                   <td style={tableCellStyle}>
-                    {user.role === "cleaner"
-                      ? user.subscription_expiry
-                        ? new Date(user.subscription_expiry).toLocaleDateString()
-                        : "—"
-                      : "—"}
-                  </td>
-
-                  <td style={tableCellStyle}>
   {user.role === "cleaner" ? (
-    <button
-      onClick={() =>
-        setCleanerPhoto(
-          user.id,
-          user.email
-        )
-      }
-      style={{
-        ...actionButtonStyle,
-        background: "#7c3aed",
-      }}
-    >
-      {user.profile_photo_url ? "Change Photo" : "Add Photo"}
-    </button>
+    <div>
+      {user.profile_photo_url && (
+        <img
+          src={user.profile_photo_url}
+          alt="Cleaner"
+          style={{
+            width: "60px",
+            height: "60px",
+            objectFit: "cover",
+            borderRadius: "10px",
+            display: "block",
+            marginBottom: "8px",
+          }}
+        />
+      )}
+
+      <button
+        onClick={() =>
+          setCleanerPhoto(
+            user.id,
+            user.email
+          )
+        }
+        style={{
+          ...actionButtonStyle,
+          background: "#7c3aed",
+        }}
+      >
+        {user.profile_photo_url ? "Change Photo" : "Add Photo"}
+      </button>
+    </div>
   ) : (
     "—"
   )}
