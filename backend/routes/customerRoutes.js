@@ -19,6 +19,8 @@ const ensureBookingAddonsColumns = async () => {
     ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb,
     ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS addon_assessment_required BOOLEAN NOT NULL DEFAULT false
+    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed_at TIMESTAMPTZ
   `);
 
   bookingAddonsColumnsReady = true;
@@ -538,6 +540,8 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.addons,
         b.addon_total,
         b.addon_assessment_required,
+        b.addon_assessment_confirmed,
+        b.addon_assessment_confirmed_at,
         c.phone AS cleaner_phone,
         r.rating AS submitted_rating,
         c.profile_photo_url AS cleaner_photo_url,

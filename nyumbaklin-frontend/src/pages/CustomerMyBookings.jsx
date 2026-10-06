@@ -629,22 +629,44 @@ function CustomerMyBookings() {
       </div>
     )}
 
-    {b.addon_assessment_required && (
-      <div
-        style={{
-          marginTop: "8px",
-          padding: "8px 10px",
-          borderRadius: "8px",
-          background: "#fef3c7",
-          color: "#92400e",
-          fontSize: "13px",
-          fontWeight: "700",
-          lineHeight: "1.5",
-        }}
-      >
-        Assessment required. Nyumbaklin will confirm any additional charge before the extra work is carried out.
-      </div>
-    )}
+    {b.addon_assessment_required &&
+      (b.addon_assessment_confirmed ? (
+        <div
+          style={{
+            marginTop: "8px",
+            padding: "10px",
+            borderRadius: "8px",
+            background: "#dcfce7",
+            color: "#166534",
+            fontSize: "13px",
+            fontWeight: "700",
+            lineHeight: "1.5",
+            border: "1px solid #86efac",
+          }}
+        >
+          ✅ Assessment Confirmed
+          <div style={{ marginTop: "4px", fontWeight: "600" }}>
+            Final price approved by Nyumbaklin: UGX{" "}
+            {Number(b.price || 0).toLocaleString()}
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            marginTop: "8px",
+            padding: "8px 10px",
+            borderRadius: "8px",
+            background: "#fef3c7",
+            color: "#92400e",
+            fontSize: "13px",
+            fontWeight: "700",
+            lineHeight: "1.5",
+          }}
+        >
+          ⚠️ Assessment Required. Nyumbaklin will confirm any additional charge
+          before the extra work is carried out.
+        </div>
+      ))}
   </div>
 )}
 

@@ -1886,21 +1886,41 @@ function Dashboard() {
         </div>
       )}
 
-      {booking.addon_assessment_required && (
-        <div
-          style={{
-            marginTop: "8px",
-            padding: "7px 8px",
-            background: "#fef3c7",
-            borderRadius: "7px",
-            color: "#92400e",
-            fontSize: "12px",
-            fontWeight: "800",
-          }}
-        >
-          ⚠️ Assessment Required
-        </div>
-      )}
+      {booking.addon_assessment_required &&
+  (booking.addon_assessment_confirmed ? (
+    <div
+      style={{
+        marginTop: "8px",
+        padding: "8px",
+        background: "#dcfce7",
+        border: "1px solid #86efac",
+        borderRadius: "7px",
+        color: "#166534",
+        fontSize: "12px",
+        fontWeight: "800",
+        lineHeight: "1.5",
+      }}
+    >
+      ✅ Assessment Confirmed
+      <div style={{ marginTop: "3px", fontWeight: "700" }}>
+        Final price: UGX {Number(booking.price || 0).toLocaleString()}
+      </div>
+    </div>
+  ) : (
+    <div
+      style={{
+        marginTop: "8px",
+        padding: "7px 8px",
+        background: "#fef3c7",
+        borderRadius: "7px",
+        color: "#92400e",
+        fontSize: "12px",
+        fontWeight: "800",
+      }}
+    >
+      ⚠️ Assessment Required
+    </div>
+  ))}
     </div>
   );
 };

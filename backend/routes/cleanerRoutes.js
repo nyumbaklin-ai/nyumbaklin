@@ -19,6 +19,8 @@ const ensureBookingAddonsColumns = async () => {
     ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb,
     ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS addon_assessment_required BOOLEAN NOT NULL DEFAULT false
+    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed_at TIMESTAMPTZ
   `);
 
   bookingAddonsColumnsReady = true;
@@ -148,7 +150,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, service, status, cleaner, price, booking_date, address, gps_readable_location, addons, addon_total, addon_assessment_required
+      SELECT id, service, status, cleaner, price, booking_date, address, gps_readable_location, addons, addon_total, addon_assessment_required, addon_assessment_confirmed, addon_assessment_confirmed_at
       FROM bookings
       WHERE cleaner IS NULL AND status = 'pending'
       ORDER BY booking_date ASC
@@ -347,6 +349,8 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
         b.addons,
         b.addon_total,
         b.addon_assessment_required,
+        b.addon_assessment_confirmed,
+        b.addon_assessment_confirmed_at,
         c.phone AS customer_phone
       FROM bookings b
       LEFT JOIN customers c

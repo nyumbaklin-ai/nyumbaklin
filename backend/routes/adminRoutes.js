@@ -72,6 +72,8 @@ const ensureBookingAddonsColumns = async () => {
     ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb,
     ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS addon_assessment_required BOOLEAN NOT NULL DEFAULT false
+    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed_at TIMESTAMPTZ
   `);
 
   bookingAddonsColumnsReady = true;
@@ -408,6 +410,8 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
         b.addons,
         b.addon_total,
         b.addon_assessment_required,
+        b.addon_assessment_confirmed,
+        b.addon_assessment_confirmed_at,
         customer.phone AS customer_phone,
         cleaner_user.phone AS cleaner_phone
       FROM bookings b
@@ -633,17 +637,59 @@ router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
   }
 
   try {
-    const bookingCheck = await pool.query("SELECT id FROM bookings WHERE id=$1", [
-      id,
-    ]);
+    await ensureBookingAddonsColumns();
+
+    const bookingCheck = await pool.query(
+      `
+      SELECT
+        id,
+        addon_assessment_required,
+        addon_assessment_confirmed
+      FROM bookings
+      WHERE id=$1
+      `,
+      [id]
+    );
 
     if (bookingCheck.rows.length === 0) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    await pool.query("UPDATE bookings SET price=$1 WHERE id=$2", [price, id]);
+    const booking = bookingCheck.rows[0];
 
-    res.json({ message: "Booking price updated successfully" });
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET price=$1,
+          addon_assessment_confirmed =
+            CASE
+              WHEN addon_assessment_required = true THEN true
+              ELSE addon_assessment_confirmed
+            END,
+          addon_assessment_confirmed_at =
+            CASE
+              WHEN addon_assessment_required = true
+                   AND addon_assessment_confirmed = false
+              THEN NOW()
+              ELSE addon_assessment_confirmed_at
+            END
+      WHERE id=$2
+      RETURNING
+        id,
+        price,
+        addon_assessment_required,
+        addon_assessment_confirmed,
+        addon_assessment_confirmed_at
+      `,
+      [Number(price), id]
+    );
+
+    res.json({
+      message: booking.addon_assessment_required
+        ? "Assessment confirmed and final booking price updated successfully ✅"
+        : "Booking price updated successfully",
+      booking: result.rows[0],
+    });
   } catch (error) {
     console.error("Price update error:", error);
     res.status(500).json({ message: "Error updating price" });

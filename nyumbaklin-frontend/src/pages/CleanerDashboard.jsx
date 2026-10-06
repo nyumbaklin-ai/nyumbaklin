@@ -578,22 +578,44 @@ function CleanerDashboard() {
       </div>
     )}
 
-    {job.addon_assessment_required && (
-      <div
-        style={{
-          marginTop: "8px",
-          padding: "8px 10px",
-          background: "#fef3c7",
-          borderRadius: "8px",
-          color: "#92400e",
-          fontSize: "13px",
-          fontWeight: "700",
-          lineHeight: "1.5",
-        }}
-      >
-        ⚠️ Assessment required. Nyumbaklin must confirm any additional charge before this extra work is done.
+    {job.addon_assessment_required &&
+  (job.addon_assessment_confirmed ? (
+    <div
+      style={{
+        marginTop: "8px",
+        padding: "10px",
+        background: "#dcfce7",
+        border: "1px solid #86efac",
+        borderRadius: "8px",
+        color: "#166534",
+        fontSize: "13px",
+        fontWeight: "700",
+        lineHeight: "1.5",
+      }}
+    >
+      ✅ Assessment Confirmed
+      <div style={{ marginTop: "4px", fontWeight: "600" }}>
+        Final price approved by Nyumbaklin: UGX{" "}
+        {Number(job.price || 0).toLocaleString()}
       </div>
-    )}
+    </div>
+  ) : (
+    <div
+      style={{
+        marginTop: "8px",
+        padding: "8px 10px",
+        background: "#fef3c7",
+        borderRadius: "8px",
+        color: "#92400e",
+        fontSize: "13px",
+        fontWeight: "700",
+        lineHeight: "1.5",
+      }}
+    >
+      ⚠️ Assessment required. Nyumbaklin must confirm any additional charge
+      before this extra work is done.
+    </div>
+  ))}
   </div>
 )}
 
