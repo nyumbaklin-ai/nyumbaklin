@@ -9,6 +9,21 @@ const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizeText = (value) => String(value || "").trim();
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 
+let bookingAddonsColumnsReady = false;
+
+const ensureBookingAddonsColumns = async () => {
+  if (bookingAddonsColumnsReady) return;
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS addon_assessment_required BOOLEAN NOT NULL DEFAULT false
+  `);
+
+  bookingAddonsColumnsReady = true;
+};
+
 // ================= HELPER: GET CURRENT CLEANER =================
 const getCurrentCleaner = async (user) => {
   if (user.id) {
