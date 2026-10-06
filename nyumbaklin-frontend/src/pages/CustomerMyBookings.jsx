@@ -2,7 +2,7 @@
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const NYUMBAKLIN_MTN_PAYMENT_NUMBER = "MTN: 0781812743";
+const NYUMBAKLIN_MTN_PAYMENT_NUMBER = "MTN: 0765256406";
 const NYUMBAKLIN_AIRTEL_PAYMENT_NUMBER = "Airtel Merchant Code: 7076122";
 
 function CustomerMyBookings() {
