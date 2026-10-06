@@ -531,6 +531,7 @@ function CustomerMyBookings() {
               const isPendingVerification =
                 b.payment_status === "pending_verification";
               const cleanerPhone = b.cleaner_phone || "";
+              const cleanerPhoto = b.cleaner_photo_url || "";
               const whatsappPhone = formatPhoneForWhatsApp(cleanerPhone);
               const gpsLocation = parseGpsAddress(b.address);
               const currentPaymentInput = paymentInputs[b.id] || {
@@ -648,6 +649,28 @@ function CustomerMyBookings() {
                         border: "1px solid #e5e7eb",
                       }}
                     >
+                    {cleanerPhoto && (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "center",
+      marginBottom: "14px",
+    }}
+  >
+    <img
+      src={cleanerPhoto}
+      alt="Assigned cleaner"
+      style={{
+        width: "110px",
+        height: "110px",
+        objectFit: "cover",
+        borderRadius: "14px",
+        border: "3px solid #e5e7eb",
+        background: "#f8fafc",
+      }}
+    />
+  </div>
+)}
                       <div style={labelStyle}>🧹 Assigned Cleaner</div>
                       <div style={{ ...valueStyle, marginBottom: "10px" }}>
                         {b.cleaner || "Cleaner assigned"}

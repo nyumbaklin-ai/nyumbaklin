@@ -429,6 +429,7 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.manual_payment_submitted_at,
         c.phone AS cleaner_phone,
         r.rating AS submitted_rating,
+        c.profile_photo_url AS cleaner_photo_url,
         r.review AS submitted_review
       FROM bookings b
       LEFT JOIN customers c
@@ -442,15 +443,18 @@ router.get("/my-bookings", auth, async (req, res) => {
       [req.user.email]
     );
 
-    const bookings = result.rows.map((b) => ({
-      ...b,
-      cleaner_phone:
-        b.status === "accepted" ||
-        b.status === "in progress" ||
-        b.status === "completed"
-          ? b.cleaner_phone
-          : null,
-    }));
+    const bookings = result.rows.map((b) => {
+  const cleanerVisible =
+    b.status === "accepted" ||
+    b.status === "in progress" ||
+    b.status === "completed";
+
+  return {
+    ...b,
+    cleaner_phone: cleanerVisible ? b.cleaner_phone : null,
+    cleaner_photo_url: cleanerVisible ? b.cleaner_photo_url : null,
+  };
+});
 
     res.json(bookings);
   } catch (error) {
