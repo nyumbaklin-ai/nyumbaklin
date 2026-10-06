@@ -16,16 +16,31 @@ const ensureBookingAddonsColumns = async () => {
 
   await pool.query(`
     ALTER TABLE bookings
-    ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb,
-    ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb
+  `);
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0
+  `);
+
+  await pool.query(`
+    ALTER TABLE bookings
     ADD COLUMN IF NOT EXISTS addon_assessment_required BOOLEAN NOT NULL DEFAULT false
-    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed BOOLEAN NOT NULL DEFAULT false,
+  `);
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS addon_assessment_confirmed BOOLEAN NOT NULL DEFAULT false
+  `);
+
+  await pool.query(`
+    ALTER TABLE bookings
     ADD COLUMN IF NOT EXISTS addon_assessment_confirmed_at TIMESTAMPTZ
   `);
 
   bookingAddonsColumnsReady = true;
 };
-
 let manualPaymentColumnsReady = false;
 
 const ensureManualPaymentColumns = async () => {
