@@ -119,6 +119,7 @@ router.get("/subscription-status", auth, cleanerOnly, async (req, res) => {
 // ================= AVAILABLE JOBS =================
 router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
   try {
+    await ensureBookingAddonsColumns();
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
@@ -132,7 +133,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, service, status, cleaner, price, booking_date, address, gps_readable_location
+      SELECT id, service, status, cleaner, price, booking_date, address, gps_readable_location, addons, addon_total, addon_assessment_required
       FROM bookings
       WHERE cleaner IS NULL AND status = 'pending'
       ORDER BY booking_date ASC
@@ -308,6 +309,7 @@ router.put("/complete-job/:id", auth, cleanerOnly, async (req, res) => {
 // ================= MY CLEANER JOBS (WITH PHONE LOGIC) =================
 router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
   try {
+      await ensureBookingAddonsColumns();
     let cleaner = await getCurrentCleaner(req.user);
 
     if (!cleaner) {
@@ -327,6 +329,9 @@ router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
         b.booking_date,
         b.address,
         b.gps_readable_location,
+        b.addons,
+        b.addon_total,
+        b.addon_assessment_required,
         c.phone AS customer_phone
       FROM bookings b
       LEFT JOIN customers c

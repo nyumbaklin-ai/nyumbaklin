@@ -1844,6 +1844,67 @@ function Dashboard() {
     </div>
   );
 
+  const renderBookingAddons = (booking) => {
+  if (!Array.isArray(booking.addons) || booking.addons.length === 0) {
+    return "None";
+  }
+
+  return (
+    <div
+      style={{
+        background: "#fff7ed",
+        border: "1px solid #fed7aa",
+        borderRadius: "10px",
+        padding: "10px",
+        minWidth: "190px",
+      }}
+    >
+      {booking.addons.map((addon) => (
+        <div
+          key={addon.addon_code}
+          style={{
+            color: "#7c2d12",
+            fontSize: "13px",
+            marginBottom: "5px",
+            fontWeight: "600",
+          }}
+        >
+          • {addon.addon_name}
+        </div>
+      ))}
+
+      {Number(booking.addon_total) > 0 && (
+        <div
+          style={{
+            marginTop: "8px",
+            color: "#9a3412",
+            fontWeight: "800",
+            fontSize: "13px",
+          }}
+        >
+          Fixed add-ons: UGX {Number(booking.addon_total).toLocaleString()}
+        </div>
+      )}
+
+      {booking.addon_assessment_required && (
+        <div
+          style={{
+            marginTop: "8px",
+            padding: "7px 8px",
+            background: "#fef3c7",
+            borderRadius: "7px",
+            color: "#92400e",
+            fontSize: "12px",
+            fontWeight: "800",
+          }}
+        >
+          ⚠️ Assessment Required
+        </div>
+      )}
+    </div>
+  );
+};
+
   return (
     <>
       <style>{`
@@ -2757,6 +2818,7 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Cleaner</th>
               <th style={tableHeaderStyle}>Cleaner Phone</th>
               <th style={tableHeaderStyle}>Price</th>
+              <th style={tableHeaderStyle}>Add-ons</th>
               <th style={tableHeaderStyle}>Platform Fee</th>
               <th style={tableHeaderStyle}>Cleaner Payout</th>
               <th style={tableHeaderStyle}>Payment Method</th>
@@ -2771,7 +2833,7 @@ function Dashboard() {
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="17">
+                <td style={tableCellStyle} colSpan="18">
                   No bookings found
                 </td>
               </tr>
@@ -2859,6 +2921,10 @@ function Dashboard() {
 
                     <td style={tableCellStyle}>
                       <strong>UGX {bookingPrice.toLocaleString()}</strong>
+                    </td>
+
+                    <td style={tableCellStyle}>
+                      {renderBookingAddons(booking)}
                     </td>
 
                     <td style={tableCellStyle}>
@@ -3087,6 +3153,7 @@ function Dashboard() {
                   {renderMobileRow("Cleaner", booking.cleaner || "Not assigned")}
                   {renderMobileRow("Cleaner Phone", booking.cleaner_phone || "Not available")}
                   {renderMobileRow("Price", <strong>UGX {bookingPrice.toLocaleString()}</strong>)}
+                  {renderMobileRow("Add-ons", renderBookingAddons(booking))}
                   {booking.status === "completed" &&
                     renderMobileRow("Platform Fee", `UGX ${platformFee.toLocaleString()}`)}
                   {booking.status === "completed" &&

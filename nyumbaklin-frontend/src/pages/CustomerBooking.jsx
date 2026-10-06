@@ -24,6 +24,10 @@ function CustomerBooking() {
   const [servicePrices, setServicePrices] = useState([]);
   const [pricesLoading, setPricesLoading] = useState(true);
   const [pricesError, setPricesError] = useState("");
+  const [serviceAddons, setServiceAddons] = useState([]);
+  const [selectedAddons, setSelectedAddons] = useState([]);
+  const [addonsLoading, setAddonsLoading] = useState(false);
+  const [addonsError, setAddonsError] = useState("");
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -82,6 +86,67 @@ function CustomerBooking() {
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+  let cancelled = false;
+
+  const fetchServiceAddons = async () => {
+    if (service !== "Deep Cleaning") {
+      setServiceAddons([]);
+      setSelectedAddons([]);
+      setAddonsError("");
+      setAddonsLoading(false);
+      return;
+    }
+
+    try {
+      setAddonsLoading(true);
+      setAddonsError("");
+
+      const response = await fetch(
+        `${API_URL}/customers/service-addons?service_name=${encodeURIComponent(
+          "Deep Cleaning"
+        )}`,
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
+
+      const data = await response.json().catch(() => []);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Could not load available add-ons"
+        );
+      }
+
+      if (!cancelled) {
+        setServiceAddons(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Service add-ons error:", error);
+
+      if (!cancelled) {
+        setServiceAddons([]);
+        setAddonsError(
+          "Available add-ons could not be loaded. Please refresh and try again."
+        );
+      }
+    } finally {
+      if (!cancelled) {
+        setAddonsLoading(false);
+      }
+    }
+  };
+
+  fetchServiceAddons();
+
+  return () => {
+    cancelled = true;
+  };
+}, [service, token]);
 
   const getBookingServiceName = () => {
     const finalService = service === "Other" ? customService.trim() : service;
@@ -148,6 +213,46 @@ function CustomerBooking() {
       setBookingMessage("");
     }
   };
+
+  const toggleAddon = (addonCode) => {
+  clearBookingMessage();
+
+  setSelectedAddons((current) =>
+    current.includes(addonCode)
+      ? current.filter((code) => code !== addonCode)
+      : [...current, addonCode]
+  );
+};
+
+const getAddonTotal = () => {
+  if (service !== "Deep Cleaning") return 0;
+
+  const fixedAddonCodes = [
+    "inside_refrigerator",
+    "inside_oven",
+    "inside_kitchen_cabinets",
+  ];
+
+  const hasAllThreeFixedAddons = fixedAddonCodes.every((code) =>
+    selectedAddons.includes(code)
+  );
+
+  if (hasAllThreeFixedAddons) {
+    return 25000;
+  }
+
+  return serviceAddons
+    .filter(
+      (addon) =>
+        selectedAddons.includes(addon.addon_code) &&
+        !addon.requires_assessment
+    )
+    .reduce((total, addon) => total + Number(addon.price || 0), 0);
+};
+
+const getEstimatedTotalPrice = () => {
+  return getPrice() + getAddonTotal();
+};
 
   const kampalaAreas = [
     "Ntinda",
@@ -449,6 +554,7 @@ function CustomerBooking() {
           address: finalAddress,
           payment_method: paymentMethod,
           gps_readable_location: isGpsAddress ? gpsReadableLocation || null : null,
+          addons: service === "Deep Cleaning" ? selectedAddons : [],
         }),
       });
 
@@ -1074,6 +1180,123 @@ function CustomerBooking() {
       </>
     )}
 
+    {service === "Deep Cleaning" && (
+  <div style={{ marginTop: "22px" }}>
+    <p style={sectionTitleStyle}>Optional Deep Cleaning Add-ons</p>
+
+    <p
+      style={{
+        marginTop: "-4px",
+        marginBottom: "14px",
+        color: "#64748b",
+        fontSize: "14px",
+        lineHeight: "1.6",
+      }}
+    >
+      Select only the extra work you need. Standard deep cleaning is already
+      included in your normal service price.
+    </p>
+
+    {addonsLoading && (
+      <div
+        style={{
+          padding: "12px 14px",
+          borderRadius: "12px",
+          background: "#eff6ff",
+          border: "1px solid #bfdbfe",
+          color: "#1d4ed8",
+          fontSize: "14px",
+          fontWeight: "700",
+          marginBottom: "12px",
+        }}
+      >
+        Loading available add-ons...
+      </div>
+    )}
+
+    {addonsError && (
+      <div
+        style={{
+          padding: "12px 14px",
+          borderRadius: "12px",
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          color: "#991b1b",
+          fontSize: "14px",
+          fontWeight: "700",
+          marginBottom: "12px",
+        }}
+      >
+        {addonsError}
+      </div>
+    )}
+
+    {!addonsLoading &&
+      !addonsError &&
+      serviceAddons.map((addon) => (
+        <label
+          key={addon.addon_code}
+          style={{
+            ...optionBoxStyle,
+            alignItems: "flex-start",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={selectedAddons.includes(addon.addon_code)}
+            onChange={() => toggleAddon(addon.addon_code)}
+            style={{ marginTop: "3px" }}
+          />
+
+          <span style={{ flex: 1 }}>
+            <span
+              style={{
+                display: "block",
+                fontWeight: "700",
+                color: "#0f172a",
+              }}
+            >
+              {addon.addon_name}
+            </span>
+
+            <span
+              style={{
+                display: "block",
+                marginTop: "4px",
+                color: addon.requires_assessment ? "#b45309" : "#475569",
+                fontSize: "13px",
+                lineHeight: "1.5",
+              }}
+            >
+              {addon.requires_assessment
+                ? "Price confirmed by Nyumbaklin after assessment."
+                : `+ UGX ${Number(addon.price).toLocaleString()}`}
+            </span>
+          </span>
+        </label>
+      ))}
+
+    {selectedAddons.includes("inside_refrigerator") &&
+      selectedAddons.includes("inside_oven") &&
+      selectedAddons.includes("inside_kitchen_cabinets") && (
+        <div
+          style={{
+            padding: "12px 14px",
+            borderRadius: "12px",
+            background: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            color: "#166534",
+            fontSize: "14px",
+            fontWeight: "700",
+            marginTop: "6px",
+          }}
+        >
+          Bundle price applied: all 3 fixed add-ons for UGX 25,000.
+        </div>
+      )}
+  </div>
+)}
+
     <div style={priceBoxStyle}>
       <p
         style={{
@@ -1094,7 +1317,7 @@ function CustomerBooking() {
           fontWeight: "800",
         }}
       >
-        UGX {getPrice().toLocaleString()}
+        UGX {getEstimatedTotalPrice().toLocaleString()}
       </p>
     </div>
   </div>

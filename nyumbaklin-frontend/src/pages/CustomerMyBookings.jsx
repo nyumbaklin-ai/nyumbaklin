@@ -584,6 +584,70 @@ function CustomerMyBookings() {
                     </div>
                   </div>
 
+                  {Array.isArray(b.addons) && b.addons.length > 0 && (
+  <div
+    style={{
+      marginBottom: "16px",
+      padding: "14px",
+      borderRadius: "14px",
+      background: "#fff7ed",
+      border: "1px solid #fed7aa",
+    }}
+  >
+    <div
+      style={{
+        fontWeight: "800",
+        color: "#9a3412",
+        marginBottom: "8px",
+      }}
+    >
+      🧹 Your Selected Add-ons
+    </div>
+
+    {b.addons.map((addon) => (
+      <div
+        key={addon.addon_code}
+        style={{
+          color: "#7c2d12",
+          fontSize: "14px",
+          marginBottom: "5px",
+        }}
+      >
+        • {addon.addon_name}
+      </div>
+    ))}
+
+    {Number(b.addon_total) > 0 && (
+      <div
+        style={{
+          marginTop: "8px",
+          fontWeight: "700",
+          color: "#9a3412",
+        }}
+      >
+        Fixed add-ons total: UGX {Number(b.addon_total).toLocaleString()}
+      </div>
+    )}
+
+    {b.addon_assessment_required && (
+      <div
+        style={{
+          marginTop: "8px",
+          padding: "8px 10px",
+          borderRadius: "8px",
+          background: "#fef3c7",
+          color: "#92400e",
+          fontSize: "13px",
+          fontWeight: "700",
+          lineHeight: "1.5",
+        }}
+      >
+        Assessment required. Nyumbaklin will confirm any additional charge before the extra work is carried out.
+      </div>
+    )}
+  </div>
+)}
+
                   {gpsLocation ? (
                     <div style={gpsLocationBoxStyle}>
                       <div style={labelStyle}>📍 Location</div>

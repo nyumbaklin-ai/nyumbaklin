@@ -9,6 +9,21 @@ const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizeText = (value) => String(value || "").trim();
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 
+let bookingAddonsColumnsReady = false;
+
+const ensureBookingAddonsColumns = async () => {
+  if (bookingAddonsColumnsReady) return;
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS addon_assessment_required BOOLEAN NOT NULL DEFAULT false
+  `);
+
+  bookingAddonsColumnsReady = true;
+};
+
 let manualPaymentColumnsReady = false;
 
 const ensureManualPaymentColumns = async () => {
@@ -80,6 +95,98 @@ const ensureServicePricesTable = async () => {
   `);
 
   servicePricesReady = true;
+};
+
+let serviceAddonsReady = false;
+
+const ensureServiceAddonsTable = async () => {
+  if (serviceAddonsReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS service_addons (
+      id SERIAL PRIMARY KEY,
+      service_name VARCHAR(100) NOT NULL,
+      addon_code VARCHAR(100) NOT NULL UNIQUE,
+      addon_name VARCHAR(150) NOT NULL,
+      price INTEGER NOT NULL DEFAULT 0 CHECK (price >= 0),
+      requires_assessment BOOLEAN NOT NULL DEFAULT false,
+      active BOOLEAN NOT NULL DEFAULT true,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    INSERT INTO service_addons
+      (
+        service_name,
+        addon_code,
+        addon_name,
+        price,
+        requires_assessment,
+        sort_order
+      )
+    VALUES
+      (
+        'Deep Cleaning',
+        'inside_refrigerator',
+        'Inside Refrigerator',
+        10000,
+        false,
+        10
+      ),
+      (
+        'Deep Cleaning',
+        'inside_oven',
+        'Inside Oven',
+        10000,
+        false,
+        20
+      ),
+      (
+        'Deep Cleaning',
+        'inside_kitchen_cabinets',
+        'Inside Kitchen Cabinets',
+        10000,
+        false,
+        30
+      ),
+      (
+        'Deep Cleaning',
+        'wall_sticker_removal',
+        'Wall Sticker / Adhesive Removal',
+        0,
+        true,
+        40
+      ),
+      (
+        'Deep Cleaning',
+        'heavy_mould_treatment',
+        'Heavy Mould / Stain Treatment',
+        0,
+        true,
+        50
+      ),
+      (
+        'Deep Cleaning',
+        'extreme_grease_buildup',
+        'Extreme Grease Buildup',
+        0,
+        true,
+        60
+      ),
+      (
+        'Deep Cleaning',
+        'paint_cement_marks',
+        'Paint / Cement / Post-construction Marks',
+        0,
+        true,
+        70
+      )
+    ON CONFLICT (addon_code) DO NOTHING
+  `);
+
+  serviceAddonsReady = true;
 };
 
 // ================= REGISTER =================
@@ -407,6 +514,7 @@ router.post("/book", auth, async (req, res) => {
 router.get("/my-bookings", auth, async (req, res) => {
   try {
     await ensureManualPaymentColumns();
+    await ensureBookingAddonsColumns();
 
     const result = await pool.query(
       `
@@ -427,6 +535,9 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.manual_payment_reference,
         b.manual_payment_note,
         b.manual_payment_submitted_at,
+        b.addons,
+        b.addon_total,
+        b.addon_assessment_required,
         c.phone AS cleaner_phone,
         r.rating AS submitted_rating,
         c.profile_photo_url AS cleaner_photo_url,
@@ -495,7 +606,7 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, service, booking_date, booking_time, address, gps_readable_location, price
+      SELECT id, service, booking_date, booking_time, address, gps_readable_location, price, addons, addon_total, addon_assessment_required
       FROM bookings
       WHERE cleaner IS NULL AND status='pending'
       ORDER BY
@@ -619,7 +730,7 @@ router.get("/cleaner-earnings-history", auth, cleanerOnly, async (req, res) => {
 router.get("/my-cleaner-jobs", auth, cleanerOnly, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, service, booking_date, booking_time, address, gps_readable_location, status, price
+      `SELECT id, service, booking_date, booking_time, address, gps_readable_location, status, price, addons, addon_total, addon_assessment_required
        FROM bookings 
        WHERE cleaner=$1
        ORDER BY id DESC`,
@@ -687,10 +798,78 @@ router.get("/service-prices", auth, async (req, res) => {
   }
 });
 
+// ================= CURRENT SERVICE ADD-ONS =================
+router.get("/service-addons", auth, async (req, res) => {
+  try {
+    await ensureServiceAddonsTable();
+
+    const serviceName = normalizeText(req.query.service_name);
+
+    if (!serviceName) {
+      return res.status(400).json({
+        message: "Service name is required",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        service_name,
+        addon_code,
+        addon_name,
+        price,
+        requires_assessment,
+        sort_order
+      FROM service_addons
+      WHERE service_name = $1
+      AND active = true
+      ORDER BY sort_order ASC, id ASC
+      `,
+      [serviceName]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Fetch service add-ons error:", error);
+    res.status(500).json({
+      message: "Error fetching service add-ons",
+    });
+  }
+});
+
+const calculateDeepCleaningAddonTotal = (selectedAddons) => {
+  const selectedCodes = selectedAddons.map((addon) => addon.addon_code);
+
+  const fixedAddonCodes = [
+    "inside_refrigerator",
+    "inside_oven",
+    "inside_kitchen_cabinets",
+  ];
+
+  const hasAllThreeFixedAddons = fixedAddonCodes.every((code) =>
+    selectedCodes.includes(code)
+  );
+
+  if (hasAllThreeFixedAddons) {
+    return 25000;
+  }
+
+  return selectedAddons.reduce((total, addon) => {
+    if (addon.requires_assessment) {
+      return total;
+    }
+
+    return total + Number(addon.price || 0);
+  }, 0);
+};
+
 // ================= BOOK CLEANING SERVICE =================
 router.post("/book-service", auth, async (req, res) => {
   try {
     await ensureServicePricesTable();
+    await ensureServiceAddonsTable();
+    await ensureBookingAddonsColumns();
 
     const service = normalizeText(req.body.service);
     const booking_date = req.body.booking_date;
@@ -700,6 +879,14 @@ router.post("/book-service", auth, async (req, res) => {
       normalizeText(req.body.payment_method) || "pay_after";
     const gps_readable_location =
       normalizeText(req.body.gps_readable_location) || null;
+
+      const requestedAddonCodes = Array.isArray(req.body.addons)
+  ? [...new Set(
+      req.body.addons
+        .map((code) => normalizeText(code))
+        .filter(Boolean)
+    )]
+  : [];
 
     const allowedPaymentMethods = [
       "pay_after",
@@ -720,6 +907,53 @@ router.post("/book-service", auth, async (req, res) => {
         message: "Invalid payment method",
       });
     }
+
+    let selectedAddons = [];
+
+if (requestedAddonCodes.length > 0) {
+  if (!service.startsWith("Deep Cleaning (")) {
+    return res.status(400).json({
+      message: "Add-ons are currently available only for Deep Cleaning.",
+    });
+  }
+
+  const addonsResult = await pool.query(
+    `
+    SELECT
+      addon_code,
+      addon_name,
+      price,
+      requires_assessment
+    FROM service_addons
+    WHERE service_name = 'Deep Cleaning'
+    AND addon_code = ANY($1::text[])
+    AND active = true
+    `,
+    [requestedAddonCodes]
+  );
+
+  selectedAddons = addonsResult.rows;
+
+  if (selectedAddons.length !== requestedAddonCodes.length) {
+    return res.status(400).json({
+      message:
+        "One or more selected add-ons are not available. Please refresh the booking page and try again.",
+    });
+  }
+}
+
+const addonTotal = calculateDeepCleaningAddonTotal(selectedAddons);
+
+const addonAssessmentRequired = selectedAddons.some(
+  (addon) => addon.requires_assessment === true
+);
+
+const addonsForStorage = selectedAddons.map((addon) => ({
+  addon_code: addon.addon_code,
+  addon_name: addon.addon_name,
+  price: addon.requires_assessment ? 0 : Number(addon.price),
+  requires_assessment: addon.requires_assessment,
+}));
 
     const managedServiceNames = [
       "House Cleaning",
@@ -743,17 +977,19 @@ router.post("/book-service", auth, async (req, res) => {
     let finalPrice;
 
     if (officialPriceResult.rows.length > 0) {
-      finalPrice = Number(officialPriceResult.rows[0].price);
+  const baseServicePrice = Number(officialPriceResult.rows[0].price);
 
-      if (
-        !Number.isFinite(requestedPrice) ||
-        requestedPrice !== finalPrice
-      ) {
-        return res.status(409).json({
-          message:
-            "The price for this service has changed. Please refresh the booking page and confirm the current price before booking.",
-        });
-      }
+  if (
+    !Number.isFinite(requestedPrice) ||
+    requestedPrice !== baseServicePrice
+  ) {
+    return res.status(409).json({
+      message:
+        "The price for this service has changed. Please refresh the booking page and confirm the current price before booking.",
+    });
+  }
+
+  finalPrice = baseServicePrice + addonTotal;
     } else {
       const looksLikeManagedService = managedServiceNames.some(
         (serviceName) =>
@@ -783,30 +1019,48 @@ router.post("/book-service", auth, async (req, res) => {
     const email = req.user.email;
 
     const result = await pool.query(
-      `
-      INSERT INTO bookings (
-        email,
-        service,
-        booking_date,
-        address,
-        price,
-        status,
-        payment_method,
-        gps_readable_location
-      )
-      VALUES ($1,$2,$3,$4,$5,'pending',$6,$7)
-      RETURNING *
-      `,
-      [
-        email,
-        service,
-        booking_date,
-        address,
-        finalPrice,
-        payment_method,
-        gps_readable_location,
-      ]
-    );
+  `
+  INSERT INTO bookings (
+    email,
+    service,
+    booking_date,
+    address,
+    price,
+    status,
+    payment_method,
+    gps_readable_location,
+    addons,
+    addon_total,
+    addon_assessment_required
+  )
+  VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    'pending',
+    $6,
+    $7,
+    $8::jsonb,
+    $9,
+    $10
+  )
+  RETURNING *
+  `,
+  [
+    email,
+    service,
+    booking_date,
+    address,
+    finalPrice,
+    payment_method,
+    gps_readable_location,
+    JSON.stringify(addonsForStorage),
+    addonTotal,
+    addonAssessmentRequired,
+  ]
+);
 
     res.status(201).json({
       message: "Booking created successfully",

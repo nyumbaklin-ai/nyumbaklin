@@ -62,6 +62,21 @@ const ensureManualPaymentColumns = async () => {
   manualPaymentColumnsReady = true;
 };
 
+let bookingAddonsColumnsReady = false;
+
+const ensureBookingAddonsColumns = async () => {
+  if (bookingAddonsColumnsReady) return;
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS addon_total INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS addon_assessment_required BOOLEAN NOT NULL DEFAULT false
+  `);
+
+  bookingAddonsColumnsReady = true;
+};
+
 let servicePricesReady = false;
 
 const ensureServicePricesTable = async () => {
@@ -367,6 +382,7 @@ router.put("/activate-cleaner-premium/:id", auth, adminOnly, async (req, res) =>
 router.get("/bookings", auth, adminOnly, async (req, res) => {
   try {
     await ensureManualPaymentColumns();
+    await ensureBookingAddonsColumns();
 
     const result = await pool.query(`
       SELECT 
@@ -389,6 +405,9 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
         b.manual_payment_reference,
         b.manual_payment_note,
         b.manual_payment_submitted_at,
+        b.addons,
+        b.addon_total,
+        b.addon_assessment_required,
         customer.phone AS customer_phone,
         cleaner_user.phone AS cleaner_phone
       FROM bookings b

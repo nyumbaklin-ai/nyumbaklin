@@ -532,6 +532,71 @@ function CleanerDashboard() {
                   <p>📅 {new Date(job.booking_date).toLocaleDateString()}</p>
                   <p>💰 UGX {Number(job.price).toLocaleString()}</p>
 
+                  {Array.isArray(job.addons) && job.addons.length > 0 && (
+  <div
+    style={{
+      marginTop: "10px",
+      marginBottom: "12px",
+      padding: "12px",
+      background: "#fff7ed",
+      border: "1px solid #fed7aa",
+      borderRadius: "12px",
+    }}
+  >
+    <div
+      style={{
+        fontWeight: "800",
+        color: "#9a3412",
+        marginBottom: "8px",
+      }}
+    >
+      🧹 Additional Cleaning Needs
+    </div>
+
+    {job.addons.map((addon) => (
+      <div
+        key={addon.addon_code}
+        style={{
+          color: "#7c2d12",
+          fontSize: "14px",
+          marginBottom: "5px",
+        }}
+      >
+        • {addon.addon_name}
+      </div>
+    ))}
+
+    {Number(job.addon_total) > 0 && (
+      <div
+        style={{
+          marginTop: "8px",
+          fontWeight: "700",
+          color: "#9a3412",
+        }}
+      >
+        Fixed add-ons total: UGX {Number(job.addon_total).toLocaleString()}
+      </div>
+    )}
+
+    {job.addon_assessment_required && (
+      <div
+        style={{
+          marginTop: "8px",
+          padding: "8px 10px",
+          background: "#fef3c7",
+          borderRadius: "8px",
+          color: "#92400e",
+          fontSize: "13px",
+          fontWeight: "700",
+          lineHeight: "1.5",
+        }}
+      >
+        ⚠️ Assessment required. Nyumbaklin must confirm any additional charge before this extra work is done.
+      </div>
+    )}
+  </div>
+)}
+
                   {gpsLocation ? (
                     <div style={gpsBoxStyle}>
                       <div style={{ ...gpsLabelStyle, marginBottom: "8px", fontSize: "13px" }}>
