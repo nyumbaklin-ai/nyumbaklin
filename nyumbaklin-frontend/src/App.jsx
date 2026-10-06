@@ -972,59 +972,66 @@ function Dashboard() {
   }
 };
 
-  const setCleanerPhoto = async (id, email, currentPhotoUrl = "") => {
-  const photoUrl = window.prompt(
-    `Enter approved photo URL for ${email}:`,
-    currentPhotoUrl || ""
-  );
+  const setCleanerPhoto = (id, email) => {
+  const fileInput = document.createElement("input");
 
-  if (photoUrl === null) {
-    return;
-  }
+  fileInput.type = "file";
+  fileInput.accept = "image/jpeg,image/png,image/webp";
 
-  const cleanedPhotoUrl = photoUrl.trim();
+  fileInput.onchange = async (event) => {
+    const photo = event.target.files?.[0];
 
-  if (!cleanedPhotoUrl) {
-    alert("Please enter the cleaner photo URL");
-    return;
-  }
+    if (!photo) {
+      return;
+    }
 
-  const confirmPhoto = window.confirm(
-    `Set this approved photo for ${email}?`
-  );
+    if (photo.size > 5 * 1024 * 1024) {
+      alert("Cleaner photo must be 5 MB or smaller");
+      return;
+    }
 
-  if (!confirmPhoto) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/admin/cleaner-photo/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({
-        profile_photo_url: cleanedPhotoUrl,
-      }),
-    });
-
-    const message = await readResponseMessage(
-      response,
-      response.ok
-        ? "Cleaner photo updated successfully"
-        : "Error updating cleaner photo"
+    const confirmPhoto = window.confirm(
+      `Upload this approved cleaner photo for ${email}?`
     );
 
-    alert(message);
-
-    if (response.ok) {
-      fetchUsers();
+    if (!confirmPhoto) {
+      return;
     }
-  } catch (error) {
-    console.error("Cleaner photo update error:", error);
-    alert("Error updating cleaner photo");
-  }
+
+    const formData = new FormData();
+    formData.append("photo", photo);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/admin/cleaner-photo/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+          body: formData,
+        }
+      );
+
+      const message = await readResponseMessage(
+        response,
+        response.ok
+          ? "Cleaner photo uploaded successfully"
+          : "Error uploading cleaner photo"
+      );
+
+      alert(message);
+
+      if (response.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error("Cleaner photo upload error:", error);
+      alert("Error uploading cleaner photo");
+    }
+  };
+
+  fileInput.click();
 };
 
   const deleteBooking = async (id) => {
@@ -2503,8 +2510,7 @@ function Dashboard() {
       onClick={() =>
         setCleanerPhoto(
           user.id,
-          user.email,
-          user.profile_photo_url
+          user.email
         )
       }
       style={{

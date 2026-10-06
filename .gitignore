@@ -5,4 +5,4 @@ nyumbaklin-frontend/.env
 nyumbaklin-frontend/.env.local
 **/dist/
 *.zip
-cd
+cdbackend/.env

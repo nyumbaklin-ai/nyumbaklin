@@ -4,9 +4,33 @@ const router = express.Router();
 const { auth, adminOnly } = require("../middleware/auth");
 const pool = require("../config/db");
 const bcrypt = require("bcrypt");
+const multer = require("multer");
+const cloudinary = require("../config/cloudinary");
 
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 const normalizeText = (value) => String(value || "").trim();
+
+const cleanerPhotoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(
+        new Error("Only JPG, PNG, or WEBP image files are allowed")
+      );
+    }
+
+    cb(null, true);
+  },
+});
 
 let cleanerPhotoColumnReady = false;
 
@@ -116,7 +140,7 @@ router.get("/users", auth, adminOnly, async (req, res) => {
         deletion_requested_at,
         subscription_type,
         subscription_status,
-        subscription_expiry
+        subscription_expiry,
         profile_photo_url
        FROM customers 
        ORDER BY id ASC`
@@ -129,10 +153,9 @@ router.get("/users", auth, adminOnly, async (req, res) => {
   }
 });
 
-// ================= ADMIN SET CLEANER PHOTO =================
+// ================= ADMIN UPLOAD CLEANER PHOTO =================
 router.put("/cleaner-photo/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
-  const profilePhotoUrl = normalizeText(req.body.profile_photo_url);
 
   if (!isValidId(id)) {
     return res.status(400).json({
@@ -140,58 +163,105 @@ router.put("/cleaner-photo/:id", auth, adminOnly, async (req, res) => {
     });
   }
 
-  if (!profilePhotoUrl) {
-    return res.status(400).json({
-      message: "Cleaner photo URL is required",
-    });
-  }
-
-  try {
-    const parsedUrl = new URL(profilePhotoUrl);
-
-    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-      return res.status(400).json({
-        message: "Please enter a valid photo URL",
-      });
-    }
-  } catch {
-    return res.status(400).json({
-      message: "Please enter a valid photo URL",
-    });
-  }
-
   try {
     await ensureCleanerPhotoColumn();
 
-    const result = await pool.query(
+    const cleanerCheck = await pool.query(
       `
-      UPDATE customers
-      SET profile_photo_url = $1
-      WHERE id = $2
-      AND role = 'cleaner'
-      RETURNING
-        id,
-        email,
-        role,
-        profile_photo_url
+      SELECT id, email, role
+      FROM customers
+      WHERE id = $1
       `,
-      [profilePhotoUrl, id]
+      [id]
     );
 
-    if (result.rows.length === 0) {
+    if (cleanerCheck.rows.length === 0) {
       return res.status(404).json({
         message: "Cleaner not found",
       });
     }
 
-    res.json({
-      message: "Cleaner photo updated successfully",
-      cleaner: result.rows[0],
+    if (cleanerCheck.rows[0].role !== "cleaner") {
+      return res.status(400).json({
+        message: "Photo can only be uploaded for cleaner accounts",
+      });
+    }
+
+    cleanerPhotoUpload.single("photo")(req, res, async (uploadError) => {
+      if (uploadError) {
+        return res.status(400).json({
+          message: uploadError.message || "Invalid photo upload",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          message: "Please select a cleaner photo",
+        });
+      }
+
+      try {
+        const cloudinaryResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: "nyumbaklin/cleaners",
+              public_id: `cleaner_${id}`,
+              overwrite: true,
+              invalidate: true,
+              resource_type: "image",
+              transformation: [
+                {
+                  width: 500,
+                  height: 500,
+                  crop: "fill",
+                  gravity: "face",
+                },
+              ],
+            },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+
+          uploadStream.end(req.file.buffer);
+        });
+
+        const result = await pool.query(
+          `
+          UPDATE customers
+          SET profile_photo_url = $1
+          WHERE id = $2
+          AND role = 'cleaner'
+          RETURNING
+            id,
+            email,
+            role,
+            profile_photo_url
+          `,
+          [cloudinaryResult.secure_url, id]
+        );
+
+        res.json({
+          message: "Cleaner photo uploaded successfully",
+          cleaner: result.rows[0],
+        });
+      } catch (error) {
+        console.error("Cleaner photo upload error:", error);
+
+        res.status(500).json({
+          message: "Error uploading cleaner photo",
+        });
+      }
     });
   } catch (error) {
-    console.error("Cleaner photo update error:", error);
+    console.error("Cleaner photo preparation error:", error);
+
     res.status(500).json({
-      message: "Error updating cleaner photo",
+      message: "Error preparing cleaner photo upload",
     });
   }
 });
