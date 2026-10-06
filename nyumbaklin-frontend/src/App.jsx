@@ -972,6 +972,61 @@ function Dashboard() {
   }
 };
 
+  const setCleanerPhoto = async (id, email, currentPhotoUrl = "") => {
+  const photoUrl = window.prompt(
+    `Enter approved photo URL for ${email}:`,
+    currentPhotoUrl || ""
+  );
+
+  if (photoUrl === null) {
+    return;
+  }
+
+  const cleanedPhotoUrl = photoUrl.trim();
+
+  if (!cleanedPhotoUrl) {
+    alert("Please enter the cleaner photo URL");
+    return;
+  }
+
+  const confirmPhoto = window.confirm(
+    `Set this approved photo for ${email}?`
+  );
+
+  if (!confirmPhoto) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/admin/cleaner-photo/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        profile_photo_url: cleanedPhotoUrl,
+      }),
+    });
+
+    const message = await readResponseMessage(
+      response,
+      response.ok
+        ? "Cleaner photo updated successfully"
+        : "Error updating cleaner photo"
+    );
+
+    alert(message);
+
+    if (response.ok) {
+      fetchUsers();
+    }
+  } catch (error) {
+    console.error("Cleaner photo update error:", error);
+    alert("Error updating cleaner photo");
+  }
+};
+
   const deleteBooking = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this booking?");
 
@@ -2354,6 +2409,7 @@ function Dashboard() {
               <th style={tableHeaderStyle}>Subscription</th>
               <th style={tableHeaderStyle}>Sub Status</th>
               <th style={tableHeaderStyle}>Expiry</th>
+              <th style={tableHeaderStyle}>Photo</th>
               <th style={tableHeaderStyle}>Premium</th>
               <th style={tableHeaderStyle}>Change Role</th>
               <th style={tableHeaderStyle}>Reset Password</th>
@@ -2364,7 +2420,7 @@ function Dashboard() {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="11">
+                <td style={tableCellStyle} colSpan="12">
                   No users found
                 </td>
               </tr>
@@ -2440,6 +2496,28 @@ function Dashboard() {
                         : "—"
                       : "—"}
                   </td>
+
+                  <td style={tableCellStyle}>
+  {user.role === "cleaner" ? (
+    <button
+      onClick={() =>
+        setCleanerPhoto(
+          user.id,
+          user.email,
+          user.profile_photo_url
+        )
+      }
+      style={{
+        ...actionButtonStyle,
+        background: "#7c3aed",
+      }}
+    >
+      {user.profile_photo_url ? "Change Photo" : "Add Photo"}
+    </button>
+  ) : (
+    "—"
+  )}
+</td>
 
                   <td style={tableCellStyle}>
   {user.role === "cleaner" ? (
@@ -2529,6 +2607,27 @@ function Dashboard() {
                       ? new Date(user.subscription_expiry).toLocaleDateString()
                       : "—"
                   )}
+
+                  {user.role === "cleaner" && (
+  <div style={{ marginTop: "12px" }}>
+    <button
+      onClick={() =>
+        setCleanerPhoto(
+          user.id,
+          user.email,
+          user.profile_photo_url
+        )
+      }
+      style={{
+        ...actionButtonStyle,
+        background: "#7c3aed",
+        width: "100%",
+      }}
+    >
+      {user.profile_photo_url ? "Change Photo" : "Add Photo"}
+    </button>
+  </div>
+)}
 
                   {user.role === "cleaner" && (
   <div style={{ marginTop: "12px" }}>

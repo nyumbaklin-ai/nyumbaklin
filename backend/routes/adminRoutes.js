@@ -8,6 +8,19 @@ const bcrypt = require("bcrypt");
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 const normalizeText = (value) => String(value || "").trim();
 
+let cleanerPhotoColumnReady = false;
+
+const ensureCleanerPhotoColumn = async () => {
+  if (cleanerPhotoColumnReady) return;
+
+  await pool.query(`
+    ALTER TABLE customers
+    ADD COLUMN IF NOT EXISTS profile_photo_url TEXT
+  `);
+
+  cleanerPhotoColumnReady = true;
+};
+
 let manualPaymentColumnsReady = false;
 
 const ensureManualPaymentColumns = async () => {
@@ -92,6 +105,7 @@ router.get("/dashboard", auth, adminOnly, (req, res) => {
 // ================= VIEW ALL USERS =================
 router.get("/users", auth, adminOnly, async (req, res) => {
   try {
+      await ensureCleanerPhotoColumn()
     const result = await pool.query(
       `SELECT 
         id, 
@@ -103,6 +117,7 @@ router.get("/users", auth, adminOnly, async (req, res) => {
         subscription_type,
         subscription_status,
         subscription_expiry
+        profile_photo_url
        FROM customers 
        ORDER BY id ASC`
     );
@@ -111,6 +126,73 @@ router.get("/users", auth, adminOnly, async (req, res) => {
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ================= ADMIN SET CLEANER PHOTO =================
+router.put("/cleaner-photo/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const profilePhotoUrl = normalizeText(req.body.profile_photo_url);
+
+  if (!isValidId(id)) {
+    return res.status(400).json({
+      message: "Invalid cleaner id",
+    });
+  }
+
+  if (!profilePhotoUrl) {
+    return res.status(400).json({
+      message: "Cleaner photo URL is required",
+    });
+  }
+
+  try {
+    const parsedUrl = new URL(profilePhotoUrl);
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      return res.status(400).json({
+        message: "Please enter a valid photo URL",
+      });
+    }
+  } catch {
+    return res.status(400).json({
+      message: "Please enter a valid photo URL",
+    });
+  }
+
+  try {
+    await ensureCleanerPhotoColumn();
+
+    const result = await pool.query(
+      `
+      UPDATE customers
+      SET profile_photo_url = $1
+      WHERE id = $2
+      AND role = 'cleaner'
+      RETURNING
+        id,
+        email,
+        role,
+        profile_photo_url
+      `,
+      [profilePhotoUrl, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Cleaner not found",
+      });
+    }
+
+    res.json({
+      message: "Cleaner photo updated successfully",
+      cleaner: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Cleaner photo update error:", error);
+    res.status(500).json({
+      message: "Error updating cleaner photo",
+    });
   }
 });
 
