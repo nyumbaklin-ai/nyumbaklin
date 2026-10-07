@@ -164,7 +164,8 @@ router.get("/users", auth, adminOnly, async (req, res) => {
       await ensureCleanerPhotoColumn()
     const result = await pool.query(
       `SELECT 
-        id, 
+        id,
+        name,
         email, 
         role, 
         phone,
@@ -609,6 +610,59 @@ router.put("/change-role/:id", auth, adminOnly, async (req, res) => {
   } catch (error) {
     console.error("Role update error:", error);
     res.status(500).json({ message: "Error updating role" });
+  }
+});
+
+// ================= UPDATE CLEANER NAME =================
+router.put("/update-cleaner-name/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const name = normalizeText(req.body.name);
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid cleaner id" });
+  }
+
+  if (!name) {
+    return res.status(400).json({ message: "Cleaner name is required" });
+  }
+
+  try {
+    const cleanerCheck = await pool.query(
+      `
+      SELECT id, role
+      FROM customers
+      WHERE id=$1
+      `,
+      [id]
+    );
+
+    if (cleanerCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Cleaner not found" });
+    }
+
+    if (cleanerCheck.rows[0].role !== "cleaner") {
+      return res.status(400).json({
+        message: "Name can only be updated here for cleaner accounts",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE customers
+      SET name=$1
+      WHERE id=$2
+      RETURNING id, name, email, role
+      `,
+      [name, id]
+    );
+
+    res.json({
+      message: "Cleaner name updated successfully",
+      cleaner: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Cleaner name update error:", error);
+    res.status(500).json({ message: "Error updating cleaner name" });
   }
 });
 

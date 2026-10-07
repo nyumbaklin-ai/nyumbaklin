@@ -856,6 +856,56 @@ function Dashboard() {
     }
   };
 
+  const updateCleanerName = async (id, currentName, email) => {
+  const newName = window.prompt(
+    `Enter the cleaner's real name for ${email}:`,
+    currentName || ""
+  );
+
+  if (newName === null) {
+    return;
+  }
+
+  const cleanedName = newName.trim();
+
+  if (!cleanedName) {
+    alert("Cleaner name is required");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_URL}/admin/update-cleaner-name/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          name: cleanedName,
+        }),
+      }
+    );
+
+    const message = await readResponseMessage(
+      response,
+      response.ok
+        ? "Cleaner name updated successfully"
+        : "Error updating cleaner name"
+    );
+
+    alert(message);
+
+    if (response.ok) {
+      fetchUsers();
+    }
+  } catch (error) {
+    console.error("Cleaner name update error:", error);
+    alert("Error updating cleaner name");
+  }
+};
+
   const resetUserPassword = async (id, email, role) => {
     if (role === "admin") {
       alert("You cannot reset another admin password from here.");
@@ -2634,17 +2684,33 @@ function Dashboard() {
   )}
 </td>
 
-                  <td style={tableCellStyle}>
-                    <button
-                      onClick={() => changeUserRole(user.id, user.role)}
-                      style={{
-                        ...actionButtonStyle,
-                        background: "#2563eb",
-                      }}
-                    >
-                      Change Role
-                    </button>
-                  </td>
+ <td style={tableCellStyle}>
+  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+    {user.role === "cleaner" && (
+      <button
+        onClick={() =>
+          updateCleanerName(user.id, user.name, user.email)
+        }
+        style={{
+          ...actionButtonStyle,
+          background: "#16a34a",
+        }}
+      >
+        Edit Name
+      </button>
+    )}
+
+    <button
+      onClick={() => changeUserRole(user.id, user.role)}
+      style={{
+        ...actionButtonStyle,
+        background: "#2563eb",
+      }}
+    >
+      Change Role
+    </button>
+  </div>
+</td>
 
                   <td style={tableCellStyle}>
                     {user.role === "admin" ? (
@@ -2743,7 +2809,20 @@ function Dashboard() {
   </div>
 )}
 
-                <div className="admin-mobile-actions">
+ <div className="admin-mobile-actions">
+ {user.role === "cleaner" && (
+  <button
+    onClick={() =>
+      updateCleanerName(user.id, user.name, user.email)
+    }
+    style={{
+      ...actionButtonStyle,
+      background: "#16a34a",
+    }}
+  >
+    Edit Name
+  </button>
+)}
                   <button
                     onClick={() => changeUserRole(user.id, user.role)}
                     style={{
