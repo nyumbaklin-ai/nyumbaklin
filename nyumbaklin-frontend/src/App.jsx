@@ -2695,6 +2695,7 @@ const createCleanerAccount = async (e) => {
           <thead>
             <tr>
               <th style={tableHeaderStyle}>ID</th>
+              <th style={tableHeaderStyle}>Name</th>
               <th style={tableHeaderStyle}>Email</th>
               <th style={tableHeaderStyle}>Phone</th>
               <th style={tableHeaderStyle}>Role</th>
@@ -2712,7 +2713,7 @@ const createCleanerAccount = async (e) => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="12">
+                <td style={tableCellStyle} colSpan="13">
                   No users found
                 </td>
               </tr>
@@ -2720,6 +2721,7 @@ const createCleanerAccount = async (e) => {
               filteredUsers.map((user) => (
                 <tr key={user.id} style={{ background: "#fff" }}>
                   <td style={tableCellStyle}>{user.id}</td>
+                  <td style={tableCellStyle}>{user.name || "Not provided"}</td>
                   <td style={tableCellStyle}>{user.email}</td>
                   <td style={tableCellStyle}>{user.phone || "Not provided"}</td>
                   <td style={tableCellStyle}>
@@ -2909,6 +2911,7 @@ const createCleanerAccount = async (e) => {
               <div key={user.id} className="admin-mobile-card">
                 <h3 className="admin-mobile-card-title">{user.email}</h3>
                 {renderMobileRow("ID", user.id)}
+                {renderMobileRow("Name", user.name || "Not provided")}
                 {renderMobileRow("Email", user.email || "Not provided")}
                 {renderMobileRow("Phone", user.phone || "Not provided")}
                 {renderMobileRow("Role", renderRoleBadge(user.role))}
