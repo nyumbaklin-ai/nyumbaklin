@@ -666,6 +666,79 @@ router.put("/update-cleaner-name/:id", auth, adminOnly, async (req, res) => {
   }
 });
 
+// ================= CREATE CLEANER ACCOUNT =================
+router.post("/create-cleaner", auth, adminOnly, async (req, res) => {
+  const name = normalizeText(req.body.name);
+  const email = normalizeText(req.body.email).toLowerCase();
+  const phone = normalizeText(req.body.phone);
+  const password = String(req.body.password || "");
+
+  if (!name || !email || !phone || !password) {
+    return res.status(400).json({
+      message: "Name, email, phone number, and password are required",
+    });
+  }
+
+  if (!email.includes("@")) {
+    return res.status(400).json({
+      message: "Please enter a valid email address",
+    });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({
+      message: "Temporary password must be at least 6 characters",
+    });
+  }
+
+  try {
+    const existingUser = await pool.query(
+      `
+      SELECT id
+      FROM customers
+      WHERE LOWER(email) = LOWER($1)
+      LIMIT 1
+      `,
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
+        message: "An account with this email already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `
+      INSERT INTO customers
+        (name, email, password, role, phone)
+      VALUES
+        ($1, $2, $3, 'cleaner', $4)
+      RETURNING
+        id,
+        name,
+        email,
+        role,
+        phone
+      `,
+      [name, email, hashedPassword, phone]
+    );
+
+    res.status(201).json({
+      message: "Cleaner account created successfully",
+      cleaner: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Create cleaner error:", error);
+
+    res.status(500).json({
+      message: "Error creating cleaner account",
+    });
+  }
+});
+
 // ================= DELETE BOOKING =================
 router.delete("/delete-booking/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;

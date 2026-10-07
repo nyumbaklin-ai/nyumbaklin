@@ -452,6 +452,12 @@ function Dashboard() {
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
 
+  const [newCleanerName, setNewCleanerName] = useState("");
+  const [newCleanerEmail, setNewCleanerEmail] = useState("");
+  const [newCleanerPhone, setNewCleanerPhone] = useState("");
+  const [newCleanerPassword, setNewCleanerPassword] = useState("");
+  const [creatingCleaner, setCreatingCleaner] = useState(false);
+
   const [bookingSearch, setBookingSearch] = useState("");
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
 
@@ -903,6 +909,75 @@ function Dashboard() {
   } catch (error) {
     console.error("Cleaner name update error:", error);
     alert("Error updating cleaner name");
+  }
+};
+
+const createCleanerAccount = async (e) => {
+  e.preventDefault();
+
+  const name = newCleanerName.trim();
+  const email = newCleanerEmail.trim().toLowerCase();
+  const phone = newCleanerPhone.trim();
+  const password = newCleanerPassword;
+
+  if (!name || !email || !phone || !password) {
+    alert("Please complete all cleaner account fields");
+    return;
+  }
+
+  if (password.length < 6) {
+    alert("Temporary password must be at least 6 characters");
+    return;
+  }
+
+  const confirmCreate = window.confirm(
+    `Create cleaner account for ${name} (${email})?`
+  );
+
+  if (!confirmCreate) {
+    return;
+  }
+
+  try {
+    setCreatingCleaner(true);
+
+    const response = await fetch(`${API_URL}/admin/create-cleaner`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        password,
+      }),
+    });
+
+    const message = await readResponseMessage(
+      response,
+      response.ok
+        ? "Cleaner account created successfully"
+        : "Error creating cleaner account"
+    );
+
+    alert(message);
+
+    if (response.ok) {
+      setNewCleanerName("");
+      setNewCleanerEmail("");
+      setNewCleanerPhone("");
+      setNewCleanerPassword("");
+
+      fetchUsers();
+      fetchStats();
+    }
+  } catch (error) {
+    console.error("Create cleaner account error:", error);
+    alert("Error creating cleaner account");
+  } finally {
+    setCreatingCleaner(false);
   }
 };
 
@@ -2536,6 +2611,85 @@ function Dashboard() {
             </select>
           </div>
         </div>
+
+ <form
+  onSubmit={createCleanerAccount}
+  style={{
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: "14px",
+    padding: "18px",
+    marginBottom: "22px",
+  }}
+>
+  <h3
+    style={{
+      marginTop: 0,
+      marginBottom: "15px",
+      color: "#0f172a",
+    }}
+  >
+    Create Cleaner Account
+  </h3>
+
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+      gap: "12px",
+    }}
+  >
+    <input
+      type="text"
+      placeholder="Cleaner real name"
+      value={newCleanerName}
+      onChange={(e) => setNewCleanerName(e.target.value)}
+      style={inputStyle}
+      required
+    />
+
+    <input
+      type="email"
+      placeholder="Cleaner email"
+      value={newCleanerEmail}
+      onChange={(e) => setNewCleanerEmail(e.target.value)}
+      style={inputStyle}
+      required
+    />
+
+    <input
+      type="text"
+      placeholder="Cleaner phone number"
+      value={newCleanerPhone}
+      onChange={(e) => setNewCleanerPhone(e.target.value)}
+      style={inputStyle}
+      required
+    />
+
+    <input
+      type="password"
+      placeholder="Temporary password"
+      value={newCleanerPassword}
+      onChange={(e) => setNewCleanerPassword(e.target.value)}
+      style={inputStyle}
+      required
+      minLength={6}
+    />
+  </div>
+
+  <button
+    type="submit"
+    disabled={creatingCleaner}
+    style={{
+      ...actionButtonStyle,
+      background: creatingCleaner ? "#94a3b8" : "#16a34a",
+      marginTop: "8px",
+      cursor: creatingCleaner ? "not-allowed" : "pointer",
+    }}
+  >
+    {creatingCleaner ? "Creating Cleaner..." : "Create Cleaner Account"}
+  </button>
+</form>
 
         <table className="admin-desktop-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
           <thead>
