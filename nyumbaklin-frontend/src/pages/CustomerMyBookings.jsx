@@ -530,6 +530,7 @@ function CustomerMyBookings() {
               const isPaid = b.payment_status === "paid";
               const isPendingVerification =
                 b.payment_status === "pending_verification";
+              const cleanerName = b.cleaner_name || "";
               const cleanerPhone = b.cleaner_phone || "";
               const cleanerPhoto = b.cleaner_photo_url || "";
               const whatsappPhone = formatPhoneForWhatsApp(cleanerPhone);
@@ -759,7 +760,7 @@ function CustomerMyBookings() {
 )}
                       <div style={labelStyle}>🧹 Assigned Cleaner</div>
                       <div style={{ ...valueStyle, marginBottom: "10px" }}>
-                        {b.cleaner || "Cleaner assigned"}
+                        {cleanerName || "Cleaner assigned"}
                       </div>
 
                       {cleanerPhone && (

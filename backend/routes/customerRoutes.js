@@ -557,6 +557,7 @@ router.get("/my-bookings", auth, async (req, res) => {
         b.addon_assessment_required,
         b.addon_assessment_confirmed,
         b.addon_assessment_confirmed_at,
+        c.name AS cleaner_name,
         c.phone AS cleaner_phone,
         r.rating AS submitted_rating,
         c.profile_photo_url AS cleaner_photo_url,
@@ -581,6 +582,7 @@ router.get("/my-bookings", auth, async (req, res) => {
 
   return {
     ...b,
+    cleaner_name: cleanerVisible ? b.cleaner_name : null,
     cleaner_phone: cleanerVisible ? b.cleaner_phone : null,
     cleaner_photo_url: cleanerVisible ? b.cleaner_photo_url : null,
   };
