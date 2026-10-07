@@ -3050,15 +3050,31 @@ function Dashboard() {
 
                     <td style={tableCellStyle}>
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        <button
-                          onClick={() => updatePrice(booking.id, booking.price)}
-                          style={{
-                            ...actionButtonStyle,
-                            background: "#16a34a",
-                          }}
-                        >
-                          Booking Price
-                        </button>
+                        {paymentStatus === "paid" ? (
+  <span
+    style={{
+      background: "#e5e7eb",
+      color: "#475569",
+      padding: "9px 14px",
+      borderRadius: "8px",
+      fontWeight: "700",
+      fontSize: "13px",
+      display: "inline-block",
+    }}
+  >
+    🔒 Price Locked
+  </span>
+) : (
+  <button
+    onClick={() => updatePrice(booking.id, booking.price)}
+    style={{
+      ...actionButtonStyle,
+      background: "#16a34a",
+    }}
+  >
+    Booking Price
+  </button>
+)}
 
                         <button
                           onClick={() => updatePayment(booking.id, booking.payment_method)}
@@ -3193,15 +3209,31 @@ function Dashboard() {
                   )}
 
                   <div className="admin-mobile-actions">
-                    <button
-                      onClick={() => updatePrice(booking.id, booking.price)}
-                      style={{
-                        ...actionButtonStyle,
-                        background: "#16a34a",
-                      }}
-                    >
-                      Booking Price
-                    </button>
+{paymentStatus === "paid" ? (
+  <span
+    style={{
+      background: "#e5e7eb",
+      color: "#475569",
+      padding: "9px 14px",
+      borderRadius: "8px",
+      fontWeight: "700",
+      fontSize: "13px",
+      display: "inline-block",
+    }}
+  >
+    🔒 Price Locked
+  </span>
+) : (
+  <button
+    onClick={() => updatePrice(booking.id, booking.price)}
+    style={{
+      ...actionButtonStyle,
+      background: "#16a34a",
+    }}
+  >
+    Booking Price
+  </button>
+)}
 
                     <button
                       onClick={() => updatePayment(booking.id, booking.payment_method)}
