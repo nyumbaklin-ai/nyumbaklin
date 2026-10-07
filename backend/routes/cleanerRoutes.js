@@ -9,6 +9,79 @@ const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
 const normalizeText = (value) => String(value || "").trim();
 const isValidId = (id) => Number.isInteger(Number(id)) && Number(id) > 0;
 
+const publicJobAreas = [
+  "Ntinda",
+  "Kisaasi",
+  "Najjera",
+  "Kyaliwajjala",
+  "Bukoto",
+  "Bugolobi",
+  "Kibuli",
+  "Muyenga",
+  "Kansanga",
+  "Makindye",
+  "Rubaga",
+  "Mengo",
+  "Nansana",
+  "Wakiso",
+  "Kawempe",
+  "Bwaise",
+  "Kireka",
+  "Namugongo",
+  "Seeta",
+  "Gayaza",
+  "Entebbe",
+  "Nakawa",
+  "Banda",
+  "Kasubi",
+  "Munyonyo",
+  "Bunga",
+  "Luzira",
+  "Najjanankumbi",
+  "Lubowa",
+  "Zzana",
+  "Kitintale",
+  "Kulambiro",
+  "Naalya",
+  "Kyebando",
+  "Kamwokya",
+  "Kololo",
+  "Acacia",
+  "Wandegeya",
+  "Makerere",
+  "Mulago",
+  "Old Kampala",
+  "Kabalagala",
+  "Bukasa",
+  "Sonde",
+  "Mukono",
+];
+
+const getPublicJobArea = (address, gpsReadableLocation) => {
+  const locationText = `${address || ""} ${gpsReadableLocation || ""}`.toLowerCase();
+
+  const matchedArea = publicJobAreas.find((area) =>
+    locationText.includes(area.toLowerCase())
+  );
+
+  if (matchedArea) {
+    return matchedArea;
+  }
+
+  if (gpsReadableLocation) {
+    const parts = String(gpsReadableLocation)
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts[parts.length - 1];
+    }
+  }
+
+  return "Area available after acceptance";
+};
+
 let bookingAddonsColumnsReady = false;
 
 const ensureBookingAddonsColumns = async () => {
@@ -175,14 +248,16 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const jobs = result.rows;
 
-    const scoredJobs = jobs.map((job) => {
-      const address = (job.address || "").toLowerCase();
-      const hasAddress = job.address ? 1 : 0;
-      const matchesLocation =
-        cleanerLocation && address.includes(cleanerLocation) ? 1 : 0;
+const scoredJobs = jobs.map((job) => {
+  const locationSearchText =
+    `${job.address || ""} ${job.gps_readable_location || ""}`.toLowerCase();
 
-      let priorityScore = 0;
+  const hasAddress = job.address || job.gps_readable_location ? 1 : 0;
 
+  const matchesLocation =
+    cleanerLocation && locationSearchText.includes(cleanerLocation) ? 1 : 0;
+
+  let priorityScore = 0;
       if (premiumActive) {
         if (matchesLocation) priorityScore += 100;
         if (hasAddress) priorityScore += 20;
@@ -207,9 +282,20 @@ router.get("/available-jobs", auth, cleanerOnly, async (req, res) => {
 
     const visibleJobs = premiumActive ? scoredJobs : scoredJobs.slice(0, 3);
 
-    const cleanedJobs = visibleJobs.map(
-      ({ _priorityScore, _matchesLocation, ...job }) => job
-    );
+    const cleanedJobs = visibleJobs.map((job) => {
+  const {
+    _priorityScore,
+    _matchesLocation,
+    address,
+    gps_readable_location,
+    ...safeJob
+  } = job;
+
+  return {
+    ...safeJob,
+    area: getPublicJobArea(address, gps_readable_location),
+  };
+});
 
     res.json(cleanedJobs);
   } catch (error) {

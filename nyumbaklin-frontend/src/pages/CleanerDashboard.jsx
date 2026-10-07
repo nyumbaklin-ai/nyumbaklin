@@ -619,66 +619,48 @@ function CleanerDashboard() {
   </div>
 )}
 
-                  {gpsLocation ? (
-                    <div style={gpsBoxStyle}>
-                      <div style={{ ...gpsLabelStyle, marginBottom: "8px", fontSize: "13px" }}>
-                        📍 Customer Location
-                      </div>
+ <div
+  style={{
+    marginTop: "10px",
+    marginBottom: "10px",
+    padding: "12px",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
+    borderRadius: "12px",
+  }}
+>
+  <div
+    style={{
+      color: "#166534",
+      fontSize: "13px",
+      fontWeight: "700",
+      marginBottom: "4px",
+    }}
+  >
+    📍 Job Area
+  </div>
 
-                      <div style={gpsBadgeStyle}>GPS Location</div>
+  <div
+    style={{
+      color: "#14532d",
+      fontSize: "16px",
+      fontWeight: "800",
+    }}
+  >
+    {job.area || "Area available after acceptance"}
+  </div>
 
-                      <div style={gpsGridStyle}>
-                        <div style={gpsItemStyle}>
-                          <div style={gpsLabelStyle}>Latitude</div>
-                          <div style={gpsValueStyle}>{gpsLocation.latitude}</div>
-                        </div>
-
-                        <div style={gpsItemStyle}>
-                          <div style={gpsLabelStyle}>Longitude</div>
-                          <div style={gpsValueStyle}>{gpsLocation.longitude}</div>
-                        </div>
-
-                        {gpsLocation.accuracy && (
-                          <div style={gpsItemStyle}>
-                            <div style={gpsLabelStyle}>Accuracy</div>
-                            <div style={gpsValueStyle}>{gpsLocation.accuracy} meters</div>
-                          </div>
-                        )}
-
-                        {job.gps_readable_location && (
-                          <div style={gpsItemStyle}>
-                            <div style={gpsLabelStyle}>Approx Area</div>
-                            <div style={gpsValueStyle}>{job.gps_readable_location}</div>
-                          </div>
-                        )}
-                      </div>
-
-                      <p
-                        style={{
-                          color: "#155e75",
-                          fontSize: "14px",
-                          marginTop: "10px",
-                          marginBottom: "0",
-                          lineHeight: "1.5",
-                        }}
-                      >
-                        This job uses the customer&apos;s GPS location.
-                      </p>
-
-                      <a
-                        href={getGoogleMapsLink(gpsLocation.latitude, gpsLocation.longitude)}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={mapButtonStyle}
-                      >
-                        Open in Google Maps
-                      </a>
-                    </div>
-                  ) : (
-                    <p style={{ wordBreak: "break-word" }}>
-                      📍 {job.address || "No location"}
-                    </p>
-                  )}
+  <div
+    style={{
+      marginTop: "6px",
+      color: "#15803d",
+      fontSize: "12px",
+      lineHeight: "1.5",
+    }}
+  >
+    Exact location and directions will be available after you accept the job.
+  </div>
+</div>
 
                   <button
                     style={{
