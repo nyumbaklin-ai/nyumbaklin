@@ -658,6 +658,7 @@ router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
       `
       SELECT
         id,
+        payment_status,
         addon_assessment_required,
         addon_assessment_confirmed
       FROM bookings
@@ -671,6 +672,12 @@ router.put("/update-price/:id", auth, adminOnly, async (req, res) => {
     }
 
     const booking = bookingCheck.rows[0];
+    if (booking.payment_status === "paid") {
+  return res.status(400).json({
+    message:
+      "This booking is already paid. The booking price can no longer be changed.",
+  });
+}
 
     const result = await pool.query(
       `
