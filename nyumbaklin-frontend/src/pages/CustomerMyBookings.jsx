@@ -86,6 +86,102 @@ function CustomerMyBookings() {
     return () => clearInterval(interval);
   }, [token]);
 
+  const handleRatingChange = (bookingId, field, value) => {
+  setRatingInputs((prev) => ({
+    ...prev,
+    [bookingId]: {
+      ...(prev[bookingId] || {}),
+      [field]: value,
+    },
+  }));
+
+  setRatingMessages((prev) => ({
+    ...prev,
+    [bookingId]: "",
+  }));
+};
+
+const submitRating = async (bookingId) => {
+  const currentInput = ratingInputs[bookingId] || {};
+  const rating = Number(currentInput.rating || 0);
+  const review = String(currentInput.review || "").trim();
+
+  if (!rating || rating < 1 || rating > 5) {
+    setRatingMessages((prev) => ({
+      ...prev,
+      [bookingId]: "Please choose a star rating first.",
+    }));
+    return;
+  }
+
+  try {
+    setSubmittingRatings((prev) => ({
+      ...prev,
+      [bookingId]: true,
+    }));
+
+    setRatingMessages((prev) => ({
+      ...prev,
+      [bookingId]: "",
+    }));
+
+    const response = await fetch(
+      `${API_URL}/customers/rate-job/${bookingId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          rating,
+          review,
+        }),
+      }
+    );
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      setRatingMessages((prev) => ({
+        ...prev,
+        [bookingId]:
+          data?.message || "Failed to submit rating.",
+      }));
+      return;
+    }
+
+    setRatingInputs((prev) => ({
+      ...prev,
+      [bookingId]: {
+        rating,
+        review,
+        submitted: true,
+      },
+    }));
+
+    setRatingMessages((prev) => ({
+      ...prev,
+      [bookingId]:
+        data?.message || "Rating submitted successfully.",
+    }));
+
+    fetchBookings();
+  } catch (error) {
+    console.error("Error submitting rating:", error);
+
+    setRatingMessages((prev) => ({
+      ...prev,
+      [bookingId]: "Failed to submit rating.",
+    }));
+  } finally {
+    setSubmittingRatings((prev) => ({
+      ...prev,
+      [bookingId]: false,
+    }));
+  }
+};
+
   const handlePaymentInputChange = (bookingId, field, value) => {
     setPaymentInputs((prev) => ({
       ...prev,
@@ -1045,6 +1141,181 @@ function CustomerMyBookings() {
                     </div>
 
                   </div>
+{b.status === "completed" &&
+  ratingInputs[b.id]?.submitted !== true && (
+    <div
+      style={{
+        marginTop: "18px",
+        padding: "18px",
+        borderRadius: "14px",
+        background: "#fff7ed",
+        border: "1px solid #fdba74",
+      }}
+    >
+      <h3
+        style={{
+          margin: "0 0 8px 0",
+          color: "#9a3412",
+          fontSize: "18px",
+        }}
+      >
+        ⭐ Rate Your Cleaning Service
+      </h3>
+
+      <p
+        style={{
+          margin: "0 0 14px 0",
+          color: "#7c2d12",
+          fontSize: "14px",
+        }}
+      >
+        How was your experience with your cleaner?
+      </p>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          flexWrap: "wrap",
+          marginBottom: "14px",
+        }}
+      >
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() =>
+              handleRatingChange(b.id, "rating", star)
+            }
+            disabled={submittingRatings[b.id] === true}
+            style={{
+              border:
+                Number(ratingInputs[b.id]?.rating) === star
+                  ? "2px solid #f59e0b"
+                  : "1px solid #d1d5db",
+              background:
+                Number(ratingInputs[b.id]?.rating) === star
+                  ? "#fef3c7"
+                  : "white",
+              color: "#92400e",
+              padding: "9px 12px",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "15px",
+            }}
+          >
+            {star} ★
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        placeholder="Write an optional review..."
+        value={ratingInputs[b.id]?.review || ""}
+        onChange={(e) =>
+          handleRatingChange(
+            b.id,
+            "review",
+            e.target.value
+          )
+        }
+        disabled={submittingRatings[b.id] === true}
+        style={{
+          width: "100%",
+          minHeight: "90px",
+          padding: "12px",
+          borderRadius: "10px",
+          border: "1px solid #d1d5db",
+          fontSize: "14px",
+          resize: "vertical",
+          boxSizing: "border-box",
+          marginBottom: "12px",
+        }}
+      />
+
+      <button
+        type="button"
+        onClick={() => submitRating(b.id)}
+        disabled={submittingRatings[b.id] === true}
+        style={{
+          background: "#ea580c",
+          color: "white",
+          border: "none",
+          padding: "11px 16px",
+          borderRadius: "10px",
+          fontWeight: "700",
+          cursor:
+            submittingRatings[b.id] === true
+              ? "not-allowed"
+              : "pointer",
+          opacity:
+            submittingRatings[b.id] === true ? 0.7 : 1,
+        }}
+      >
+        {submittingRatings[b.id] === true
+          ? "Submitting..."
+          : "Submit Rating"}
+      </button>
+
+      {ratingMessages[b.id] && (
+        <div
+          style={{
+            marginTop: "10px",
+            color: "#7c2d12",
+            fontWeight: "600",
+            fontSize: "14px",
+          }}
+        >
+          {ratingMessages[b.id]}
+        </div>
+      )}
+    </div>
+  )}
+
+{b.status === "completed" &&
+  ratingInputs[b.id]?.submitted === true && (
+    <div
+      style={{
+        marginTop: "18px",
+        padding: "18px",
+        borderRadius: "14px",
+        background: "#ecfdf5",
+        border: "1px solid #86efac",
+      }}
+    >
+      <h3
+        style={{
+          margin: "0 0 12px 0",
+          color: "#166534",
+          fontSize: "18px",
+        }}
+      >
+        ✅ Your Rating
+      </h3>
+
+      <div
+        style={{
+          color: "#166534",
+          fontWeight: "800",
+          marginBottom: "8px",
+        }}
+      >
+        {ratingInputs[b.id]?.rating} / 5 ★
+      </div>
+
+      <div
+        style={{
+          color: "#334155",
+          lineHeight: "1.6",
+        }}
+      >
+        {ratingInputs[b.id]?.review?.trim()
+          ? ratingInputs[b.id].review
+          : "No written review submitted."}
+      </div>
+    </div>
+  )}
                 </div>
               );
             })}
