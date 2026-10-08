@@ -94,6 +94,25 @@ const ensureBookingAddonsColumns = async () => {
 
   bookingAddonsColumnsReady = true;
 };
+
+// ================= ADMIN ARCHIVE COLUMNS =================
+let adminArchiveColumnsReady = false;
+
+const ensureAdminArchiveColumns = async () => {
+  if (adminArchiveColumnsReady) return;
+
+  await pool.query(`
+    ALTER TABLE bookings
+    ADD COLUMN IF NOT EXISTS manual_payment_archived BOOLEAN NOT NULL DEFAULT false
+  `);
+
+  await pool.query(`
+    ALTER TABLE ratings
+    ADD COLUMN IF NOT EXISTS admin_archived BOOLEAN NOT NULL DEFAULT false
+  `);
+
+  adminArchiveColumnsReady = true;
+};
 let servicePricesReady = false;
 
 const ensureServicePricesTable = async () => {
@@ -401,6 +420,7 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
   try {
     await ensureManualPaymentColumns();
     await ensureBookingAddonsColumns();
+    await ensureAdminArchiveColumns();
 
     const result = await pool.query(`
       SELECT 
@@ -423,6 +443,7 @@ router.get("/bookings", auth, adminOnly, async (req, res) => {
         b.manual_payment_reference,
         b.manual_payment_note,
         b.manual_payment_submitted_at,
+        b.manual_payment_archived,
         b.addons,
         b.addon_total,
         b.addon_assessment_required,
@@ -1067,6 +1088,71 @@ router.put("/reject-manual-payment/:id", auth, adminOnly, async (req, res) => {
   }
 });
 
+// ================= ARCHIVE / RESTORE VERIFIED MOBILE MONEY PAYMENT =================
+router.put("/archive-manual-payment/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const archived = req.body.archived === true;
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid booking id" });
+  }
+
+  try {
+    await ensureAdminArchiveColumns();
+
+    const bookingCheck = await pool.query(
+      `
+      SELECT
+        id,
+        payment_status,
+        payment_method,
+        manual_payment_reference
+      FROM bookings
+      WHERE id=$1
+      `,
+      [id]
+    );
+
+    if (bookingCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    const booking = bookingCheck.rows[0];
+
+    if (
+      booking.payment_status !== "paid" ||
+      booking.payment_method !== "manual_mobile_money" ||
+      !booking.manual_payment_reference
+    ) {
+      return res.status(400).json({
+        message: "Only verified Mobile Money payments can be archived",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE bookings
+      SET manual_payment_archived=$1
+      WHERE id=$2
+      RETURNING id, manual_payment_archived
+      `,
+      [archived, id]
+    );
+
+    res.json({
+      message: archived
+        ? "Verified payment archived successfully"
+        : "Verified payment restored successfully",
+      booking: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Archive manual payment error:", error);
+    res.status(500).json({
+      message: "Error updating verified payment archive status",
+    });
+  }
+});
+
 // ================= UPDATE CLEANER PAYOUT STATUS =================
 router.put("/update-payout-status/:id", auth, adminOnly, async (req, res) => {
   const { id } = req.params;
@@ -1162,9 +1248,62 @@ router.put("/reset-password/:id", auth, adminOnly, async (req, res) => {
   }
 });
 
+// ================= ARCHIVE / RESTORE CUSTOMER REVIEW =================
+router.put("/archive-rating/:id", auth, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const archived = req.body.archived === true;
+
+  if (!isValidId(id)) {
+    return res.status(400).json({ message: "Invalid rating id" });
+  }
+
+  try {
+    await ensureAdminArchiveColumns();
+
+    const ratingCheck = await pool.query(
+      `
+      SELECT id
+      FROM ratings
+      WHERE id=$1
+      `,
+      [id]
+    );
+
+    if (ratingCheck.rows.length === 0) {
+      return res.status(404).json({
+        message: "Customer review not found",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE ratings
+      SET admin_archived=$1
+      WHERE id=$2
+      RETURNING id, admin_archived
+      `,
+      [archived, id]
+    );
+
+    res.json({
+      message: archived
+        ? "Customer review archived successfully"
+        : "Customer review restored successfully",
+      rating: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Archive customer review error:", error);
+
+    res.status(500).json({
+      message: "Error updating customer review archive status",
+    });
+  }
+});
+
 // ================= VIEW ALL RATINGS =================
 router.get("/ratings", auth, adminOnly, async (req, res) => {
   try {
+      await ensureAdminArchiveColumns();
     const result = await pool.query(`
       SELECT 
         r.id,
@@ -1174,6 +1313,7 @@ router.get("/ratings", auth, adminOnly, async (req, res) => {
         r.rating,
         r.review,
         r.created_at
+        r.admin_archived
       FROM ratings r
       ORDER BY r.id DESC
     `);

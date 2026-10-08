@@ -475,6 +475,9 @@ function Dashboard() {
   const [adminAudioEnabled, setAdminAudioEnabled] = useState(false);
   const [paymentAlertMessage, setPaymentAlertMessage] = useState("");
 
+  const [showArchivedPayments, setShowArchivedPayments] = useState(false);
+  const [showArchivedRatings, setShowArchivedRatings] = useState(false);
+
   const token = localStorage.getItem("token");
 
   const previousPendingPaymentIdsRef = useRef([]);
@@ -1428,6 +1431,92 @@ const createCleanerAccount = async (e) => {
     }
   };
 
+  const archiveManualPayment = async (id, archived) => {
+  const actionText = archived ? "restore" : "archive";
+
+  const confirmAction = window.confirm(
+    `Are you sure you want to ${actionText} this verified payment?`
+  );
+
+  if (!confirmAction) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/admin/archive-manual-payment/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        archived: !archived,
+      }),
+    });
+
+    const message = await readResponseMessage(
+      response,
+      response.ok
+        ? archived
+          ? "Verified payment restored successfully"
+          : "Verified payment archived successfully"
+        : "Error updating payment archive status"
+    );
+
+    alert(message);
+
+    if (response.ok) {
+      fetchBookings();
+    }
+  } catch (error) {
+    console.error("Payment archive error:", error);
+    alert("Error updating payment archive status");
+  }
+};
+
+const archiveRating = async (id, archived) => {
+  const actionText = archived ? "restore" : "archive";
+
+  const confirmAction = window.confirm(
+    `Are you sure you want to ${actionText} this customer review?`
+  );
+
+  if (!confirmAction) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/admin/archive-rating/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        archived: !archived,
+      }),
+    });
+
+    const message = await readResponseMessage(
+      response,
+      response.ok
+        ? archived
+          ? "Customer review restored successfully"
+          : "Customer review archived successfully"
+        : "Error updating customer review archive status"
+    );
+
+    alert(message);
+
+    if (response.ok) {
+      fetchRatings();
+    }
+  } catch (error) {
+    console.error("Customer review archive error:", error);
+    alert("Error updating customer review archive status");
+  }
+};
+
   const markCleanerPaid = async (id) => {
     try {
       const response = await fetch(`${API_URL}/admin/update-payout-status/${id}`, {
@@ -1661,16 +1750,40 @@ const createCleanerAccount = async (e) => {
   ).length;
 
   const verifiedMobileMoneyPayments = bookings.filter(
-    (booking) =>
-      booking.payment_status === "paid" &&
-      booking.payment_method === "manual_mobile_money" &&
-      booking.manual_payment_reference
-  );
+  (booking) =>
+    booking.payment_status === "paid" &&
+    booking.payment_method === "manual_mobile_money" &&
+    booking.manual_payment_reference
+);
 
-  const totalVerifiedMobileMoneyValue = verifiedMobileMoneyPayments.reduce(
-    (sum, booking) => sum + Number(booking.price || 0),
-    0
-  );
+const currentVerifiedMobileMoneyPayments = verifiedMobileMoneyPayments.filter(
+  (booking) => booking.manual_payment_archived !== true
+);
+
+const archivedVerifiedMobileMoneyPayments = verifiedMobileMoneyPayments.filter(
+  (booking) => booking.manual_payment_archived === true
+);
+
+const displayedVerifiedMobileMoneyPayments = showArchivedPayments
+  ? archivedVerifiedMobileMoneyPayments
+  : currentVerifiedMobileMoneyPayments;
+
+const currentRatings = ratings.filter(
+  (rating) => rating.admin_archived !== true
+);
+
+const archivedRatings = ratings.filter(
+  (rating) => rating.admin_archived === true
+);
+
+const displayedRatings = showArchivedRatings
+  ? archivedRatings
+  : currentRatings;
+
+const totalVerifiedMobileMoneyValue = verifiedMobileMoneyPayments.reduce(
+  (sum, booking) => sum + Number(booking.price || 0),
+  0
+);
 
   const pageStyle = {
     padding: "32px 24px",
@@ -2455,14 +2568,48 @@ const createCleanerAccount = async (e) => {
       </div>
 
       <div className="admin-section-card" style={sectionStyle}>
-        <div style={{ marginBottom: "20px" }}>
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
-            Verified Mobile Money Payments
-          </h2>
-          <p style={{ marginTop: "8px", marginBottom: 0, color: "#64748b", fontSize: "14px" }}>
-            Use this as transaction proof when Pegasus asks for payment activity.
-          </p>
-        </div>
+ <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    flexWrap: "wrap",
+    marginBottom: "20px",
+  }}
+>
+  <div>
+    <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
+      Verified Mobile Money Payments
+    </h2>
+
+    <p
+      style={{
+        marginTop: "8px",
+        marginBottom: 0,
+        color: "#64748b",
+        fontSize: "14px",
+      }}
+    >
+      {showArchivedPayments
+        ? "Archived verified Mobile Money payment history."
+        : "Use this as transaction proof when Pegasus asks for payment activity."}
+    </p>
+  </div>
+
+  <button
+    type="button"
+    onClick={() => setShowArchivedPayments((current) => !current)}
+    style={{
+      ...actionButtonStyle,
+      background: showArchivedPayments ? "#475569" : "#2563eb",
+    }}
+  >
+    {showArchivedPayments
+      ? "← Back to Current Payments"
+      : `View Archived (${archivedVerifiedMobileMoneyPayments.length})`}
+  </button>
+</div>
 
         <table className="admin-desktop-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "1500px" }}>
           <thead>
@@ -2477,18 +2624,19 @@ const createCleanerAccount = async (e) => {
               <th style={tableHeaderStyle}>Transaction Ref</th>
               <th style={tableHeaderStyle}>Submitted</th>
               <th style={tableHeaderStyle}>Status</th>
+              <th style={tableHeaderStyle}>Action</th>
             </tr>
           </thead>
 
           <tbody>
-            {verifiedMobileMoneyPayments.length === 0 ? (
+            {displayedVerifiedMobileMoneyPayments.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="10">
+                <td style={tableCellStyle} colSpan="11">
                   No verified Mobile Money payments yet
                 </td>
               </tr>
             ) : (
-              verifiedMobileMoneyPayments.map((booking) => {
+              displayedVerifiedMobileMoneyPayments.map((booking) => {
                 const bookingPrice = Number(booking.price || 0);
                 const paymentStatus = booking.payment_status || "unpaid";
 
@@ -2531,6 +2679,26 @@ const createCleanerAccount = async (e) => {
                         {getPaymentStatusLabel(paymentStatus)}
                       </span>
                     </td>
+
+<td style={tableCellStyle}>
+  <button
+    type="button"
+    onClick={() =>
+      archiveManualPayment(
+        booking.id,
+        booking.manual_payment_archived === true
+      )
+    }
+    style={{
+      ...actionButtonStyle,
+      background:
+        booking.manual_payment_archived === true ? "#16a34a" : "#64748b",
+    }}
+  >
+    {booking.manual_payment_archived === true ? "Restore" : "Archive"}
+  </button>
+</td>
+
                   </tr>
                 );
               })
@@ -2539,10 +2707,10 @@ const createCleanerAccount = async (e) => {
         </table>
 
         <div className="admin-mobile-cards">
-          {verifiedMobileMoneyPayments.length === 0 ? (
+          {displayedVerifiedMobileMoneyPayments.length === 0 ? (
             <div className="admin-mobile-card">No verified Mobile Money payments yet</div>
           ) : (
-            verifiedMobileMoneyPayments.map((booking) => {
+            displayedVerifiedMobileMoneyPayments.map((booking) => {
               const bookingPrice = Number(booking.price || 0);
               const paymentStatus = booking.payment_status || "unpaid";
 
@@ -2572,6 +2740,26 @@ const createCleanerAccount = async (e) => {
                       : "Not recorded"
                   )}
                   {renderMobileRow("Status", renderPaymentStatusBadge(paymentStatus))}
+<button
+  type="button"
+  onClick={() =>
+    archiveManualPayment(
+      booking.id,
+      booking.manual_payment_archived === true
+    )
+  }
+  style={{
+    ...actionButtonStyle,
+    width: "100%",
+    marginTop: "12px",
+    background:
+      booking.manual_payment_archived === true ? "#16a34a" : "#64748b",
+  }}
+>
+  {booking.manual_payment_archived === true
+    ? "Restore Payment"
+    : "Archive Payment"}
+</button>
                 </div>
               );
             })
@@ -3081,6 +3269,7 @@ const createCleanerAccount = async (e) => {
               <th style={tableHeaderStyle}>Service</th>
               <th style={tableHeaderStyle}>Location / Area</th>
               <th style={tableHeaderStyle}>Status</th>
+              <th style={tableHeaderStyle}>Action</th>
               <th style={tableHeaderStyle}>Cleaner</th>
               <th style={tableHeaderStyle}>Cleaner Phone</th>
               <th style={tableHeaderStyle}>Price</th>
@@ -3570,10 +3759,37 @@ const createCleanerAccount = async (e) => {
             marginBottom: "20px",
           }}
         >
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>Customer Ratings</h2>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
-            Reviews submitted by customers after completed jobs.
-          </p>
+<div>
+  <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>
+    Customer Ratings
+  </h2>
+
+  <p
+    style={{
+      marginTop: "8px",
+      marginBottom: 0,
+      color: "#64748b",
+      fontSize: "14px",
+    }}
+  >
+    {showArchivedRatings
+      ? "Archived customer reviews."
+      : "Reviews submitted by customers after completed jobs."}
+  </p>
+</div>
+
+<button
+  type="button"
+  onClick={() => setShowArchivedRatings((current) => !current)}
+  style={{
+    ...actionButtonStyle,
+    background: showArchivedRatings ? "#475569" : "#2563eb",
+  }}
+>
+  {showArchivedRatings
+    ? "← Back to Current Reviews"
+    : `View Archived (${archivedRatings.length})`}
+</button>
         </div>
 
         <table className="admin-desktop-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "1200px" }}>
@@ -3586,18 +3802,19 @@ const createCleanerAccount = async (e) => {
               <th style={tableHeaderStyle}>Rating</th>
               <th style={tableHeaderStyle}>Review</th>
               <th style={tableHeaderStyle}>Date</th>
+              <th style={tableHeaderStyle}>Action</th>
             </tr>
           </thead>
 
           <tbody>
-            {ratings.length === 0 ? (
+             {displayedRatings.length === 0 ? (
               <tr>
-                <td style={tableCellStyle} colSpan="7">
+                <td style={tableCellStyle} colSpan="8">
                   No ratings submitted yet
                 </td>
               </tr>
             ) : (
-              ratings.map((rating) => (
+              displayedRatings.map((rating) => (
                 <tr key={rating.id} style={{ background: "#fff" }}>
                   <td style={tableCellStyle}>{rating.id}</td>
                   <td style={tableCellStyle}>#{rating.booking_id}</td>
@@ -3622,6 +3839,25 @@ const createCleanerAccount = async (e) => {
                   <td style={tableCellStyle}>
                     {new Date(rating.created_at).toLocaleDateString()}
                   </td>
+<td style={tableCellStyle}>
+  <button
+    type="button"
+    onClick={() =>
+      archiveRating(
+        rating.id,
+        rating.admin_archived === true
+      )
+    }
+    style={{
+      ...actionButtonStyle,
+      background:
+        rating.admin_archived === true ? "#16a34a" : "#64748b",
+    }}
+  >
+    {rating.admin_archived === true ? "Restore" : "Archive"}
+  </button>
+</td>
+
                 </tr>
               ))
             )}
@@ -3629,10 +3865,10 @@ const createCleanerAccount = async (e) => {
         </table>
 
         <div className="admin-mobile-cards">
-          {ratings.length === 0 ? (
+          {displayedRatings.length === 0 ? (
             <div className="admin-mobile-card">No ratings submitted yet</div>
           ) : (
-            ratings.map((rating) => (
+            displayedRatings.map((rating) => (
               <div key={rating.id} className="admin-mobile-card">
                 <h3 className="admin-mobile-card-title">Rating #{rating.id}</h3>
                 {renderMobileRow("Booking ID", `#${rating.booking_id}`)}
@@ -3661,6 +3897,27 @@ const createCleanerAccount = async (e) => {
                     ? new Date(rating.created_at).toLocaleDateString()
                     : "Not recorded"
                 )}
+ <button
+  type="button"
+  onClick={() =>
+    archiveRating(
+      rating.id,
+      rating.admin_archived === true
+    )
+  }
+  style={{
+    ...actionButtonStyle,
+    width: "100%",
+    marginTop: "12px",
+    background:
+      rating.admin_archived === true ? "#16a34a" : "#64748b",
+  }}
+>
+  {rating.admin_archived === true
+    ? "Restore Review"
+    : "Archive Review"}
+</button>
+
               </div>
             ))
           )}
