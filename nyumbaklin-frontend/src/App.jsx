@@ -184,6 +184,7 @@ function Login() {
 function Register() {
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -204,7 +205,7 @@ function Register() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password, phone }),
+        body: JSON.stringify({ name, email, password, phone }),
       });
 
       const data = await response.json();
@@ -249,6 +250,15 @@ function Register() {
 )}
 
         <form onSubmit={handleRegister}>
+        <input
+          type="text"
+          placeholder="Full name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          style={authInputStyle}
+        />
+
           <input
             type="email"
             placeholder="Email address"
