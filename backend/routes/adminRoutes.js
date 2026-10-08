@@ -1312,7 +1312,7 @@ router.get("/ratings", auth, adminOnly, async (req, res) => {
         r.cleaner_email,
         r.rating,
         r.review,
-        r.created_at
+        r.created_at,
         r.admin_archived
       FROM ratings r
       ORDER BY r.id DESC
