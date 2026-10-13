@@ -64,9 +64,14 @@ function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginMessage, setLoginMessage] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    setLoginMessage("");
+    setIsLoggingIn(true);
 
     try {
       const response = await fetch(`${API_URL}/customers/login`, {
@@ -89,11 +94,16 @@ function Login() {
           navigate("/book-service");
         }
       } else {
-        alert(data.message || "Login failed");
+        setLoginMessage(data.message || "Login failed. Please check your details.");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Something went wrong during login");
+
+      setLoginMessage(
+        "Unable to connect to Nyumbaklin. Please check your internet connection and try again."
+      );
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -101,18 +111,43 @@ function Login() {
     <div style={authPageStyle}>
       <div style={authCardStyle}>
         <div style={{ textAlign: "center", marginBottom: "22px" }}>
-          <h1 style={{ margin: 0, color: "#0f172a", fontSize: "32px" }}>Nyumbaklin</h1>
+          <h1 style={{ margin: 0, color: "#0f172a", fontSize: "32px" }}>
+            Nyumbaklin
+          </h1>
+
           <p style={{ marginTop: "10px", color: "#64748b" }}>
             Sign in to manage bookings, jobs, and earnings.
           </p>
         </div>
+
+        {loginMessage && (
+          <div
+            style={{
+              marginBottom: "18px",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#b91c1c",
+              textAlign: "center",
+              fontWeight: "600",
+              fontSize: "14px",
+              lineHeight: "1.5",
+            }}
+          >
+            {loginMessage}
+          </div>
+        )}
 
         <form onSubmit={handleLogin}>
           <input
             type="email"
             placeholder="Email address"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setLoginMessage("");
+            }}
             required
             style={authInputStyle}
           />
@@ -121,13 +156,24 @@ function Login() {
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setLoginMessage("");
+            }}
             required
             style={authInputStyle}
           />
 
-          <button type="submit" style={primaryButtonStyle}>
-            Login
+          <button
+            type="submit"
+            disabled={isLoggingIn}
+            style={{
+              ...primaryButtonStyle,
+              opacity: isLoggingIn ? 0.7 : 1,
+              cursor: isLoggingIn ? "not-allowed" : "pointer",
+            }}
+          >
+            {isLoggingIn ? "Signing in..." : "Login"}
           </button>
         </form>
 
@@ -146,13 +192,29 @@ function Login() {
         >
           <strong style={{ color: "#0f172a" }}>Forgot password?</strong>
           <br />
-          Contact Nyumbaklin support. Admin will verify your account and reset your password.
+          Contact Nyumbaklin support. Admin will verify your account and reset
+          your password.
         </div>
 
-        <div style={{ marginTop: "20px", textAlign: "center", color: "#475569" }}>
-          <p style={{ marginBottom: "12px" }}>Don&apos;t have an account?</p>
+        <div
+          style={{
+            marginTop: "20px",
+            textAlign: "center",
+            color: "#475569",
+          }}
+        >
+          <p style={{ marginBottom: "12px" }}>
+            Don&apos;t have an account?
+          </p>
 
-          <div style={{ display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "16px",
+              flexWrap: "wrap",
+            }}
+          >
             <Link
               to="/register"
               style={{
