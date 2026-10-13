@@ -604,6 +604,9 @@ function Dashboard() {
   const [newCleanerPassword, setNewCleanerPassword] = useState("");
   const [creatingCleaner, setCreatingCleaner] = useState(false);
 
+  const [cleanerAccountMessage, setCleanerAccountMessage] = useState("");
+  const [cleanerAccountMessageType, setCleanerAccountMessageType] = useState("");
+
   const [bookingSearch, setBookingSearch] = useState("");
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
 
@@ -1064,18 +1067,25 @@ function Dashboard() {
 const createCleanerAccount = async (e) => {
   e.preventDefault();
 
+  setCleanerAccountMessage("");
+  setCleanerAccountMessageType("");
+
   const name = newCleanerName.trim();
   const email = newCleanerEmail.trim().toLowerCase();
   const phone = newCleanerPhone.trim();
   const password = newCleanerPassword;
 
   if (!name || !email || !phone || !password) {
-    alert("Please complete all cleaner account fields");
+    setCleanerAccountMessage("Please complete all cleaner account fields.");
+    setCleanerAccountMessageType("error");
     return;
   }
 
   if (password.length < 6) {
-    alert("Temporary password must be at least 6 characters");
+    setCleanerAccountMessage(
+      "Temporary password must be at least 6 characters."
+    );
+    setCleanerAccountMessageType("error");
     return;
   }
 
@@ -1111,9 +1121,10 @@ const createCleanerAccount = async (e) => {
         : "Error creating cleaner account"
     );
 
-    alert(message);
-
     if (response.ok) {
+      setCleanerAccountMessage(message);
+      setCleanerAccountMessageType("success");
+
       setNewCleanerName("");
       setNewCleanerEmail("");
       setNewCleanerPhone("");
@@ -1121,10 +1132,17 @@ const createCleanerAccount = async (e) => {
 
       fetchUsers();
       fetchStats();
+    } else {
+      setCleanerAccountMessage(message);
+      setCleanerAccountMessageType("error");
     }
   } catch (error) {
     console.error("Create cleaner account error:", error);
-    alert("Error creating cleaner account");
+
+    setCleanerAccountMessage(
+      "Unable to create cleaner account. Please try again."
+    );
+    setCleanerAccountMessageType("error");
   } finally {
     setCreatingCleaner(false);
   }
@@ -2965,6 +2983,32 @@ const totalVerifiedMobileMoneyValue = verifiedMobileMoneyPayments.reduce(
   >
     Create Cleaner Account
   </h3>
+  {cleanerAccountMessage && (
+  <div
+    style={{
+      marginBottom: "15px",
+      padding: "12px 14px",
+      borderRadius: "10px",
+      background:
+        cleanerAccountMessageType === "success"
+          ? "#ecfdf5"
+          : "#fef2f2",
+      border:
+        cleanerAccountMessageType === "success"
+          ? "1px solid #86efac"
+          : "1px solid #fecaca",
+      color:
+        cleanerAccountMessageType === "success"
+          ? "#166534"
+          : "#b91c1c",
+      fontWeight: "600",
+      fontSize: "14px",
+      lineHeight: "1.5",
+    }}
+  >
+    {cleanerAccountMessage}
+  </div>
+)}
 
   <div
     style={{
