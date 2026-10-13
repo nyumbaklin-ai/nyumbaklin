@@ -14,6 +14,7 @@ function CustomerMyBookings() {
   const [paymentInputs, setPaymentInputs] = useState({});
   const [paymentMessages, setPaymentMessages] = useState({});
   const [removingBookingId, setRemovingBookingId] = useState(null);
+  const [removalMessages, setRemovalMessages] = useState({});
   const token = localStorage.getItem("token");
 
   const fetchBookings = async () => {
@@ -270,10 +271,14 @@ const submitRating = async (bookingId) => {
     }
   };
 
-  const handleRemoveBooking = async (bookingId) => {
-
+ const handleRemoveBooking = async (bookingId) => {
   try {
     setRemovingBookingId(bookingId);
+
+    setRemovalMessages((prev) => ({
+      ...prev,
+      [bookingId]: "",
+    }));
 
     const response = await fetch(
       `${API_URL}/customers/hide-booking/${bookingId}`,
@@ -294,7 +299,12 @@ const submitRating = async (bookingId) => {
     fetchBookings();
   } catch (error) {
     console.error("Remove booking error:", error);
-    alert(error.message || "Failed to remove booking");
+
+    setRemovalMessages((prev) => ({
+      ...prev,
+      [bookingId]:
+        error.message || "Failed to remove booking. Please try again.",
+    }));
   } finally {
     setRemovingBookingId(null);
   }
@@ -1138,6 +1148,22 @@ const submitRating = async (bookingId) => {
                           ? "Removing..."
                           : "Remove Booking"}
                       </button>
+{removalMessages[b.id] && (
+  <div
+    style={{
+      marginTop: "10px",
+      padding: "10px 12px",
+      borderRadius: "10px",
+      background: "#fef2f2",
+      border: "1px solid #fecaca",
+      color: "#b91c1c",
+      fontWeight: "600",
+      fontSize: "14px",
+    }}
+  >
+    {removalMessages[b.id]}
+  </div>
+)}
                     </div>
 
                   </div>
