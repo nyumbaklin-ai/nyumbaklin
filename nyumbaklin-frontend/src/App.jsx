@@ -252,16 +252,27 @@ function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [registrationMessage, setRegistrationMessage] = useState("");
+  const [registrationError, setRegistrationError] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  const clearRegistrationMessages = () => {
+    setRegistrationMessage("");
+    setRegistrationError("");
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
+    clearRegistrationMessages();
+
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setRegistrationError("Passwords do not match. Please check and try again.");
       return;
     }
 
     try {
+      setIsRegistering(true);
+
       const response = await fetch(`${API_URL}/customers/register`, {
         method: "POST",
         headers: {
@@ -273,14 +284,25 @@ function Register() {
       const data = await response.json();
 
       if (response.ok) {
+        setRegistrationError("");
         setRegistrationMessage("Customer registered successfully");
-        setTimeout(() => navigate("/"), 1500);
+
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
       } else {
-        alert(data.message || "Registration failed");
+        setRegistrationError(
+          data.message || "Registration failed. Please check your details."
+        );
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert("Something went wrong during registration");
+
+      setRegistrationError(
+        "Unable to connect to Nyumbaklin. Please check your internet connection and try again."
+      );
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -288,44 +310,78 @@ function Register() {
     <div style={authPageStyle}>
       <div style={authCardStyle}>
         <div style={{ textAlign: "center", marginBottom: "22px" }}>
-          <h2 style={{ margin: 0, color: "#0f172a", fontSize: "28px" }}>Customer Registration</h2>
+          <h2
+            style={{
+              margin: 0,
+              color: "#0f172a",
+              fontSize: "28px",
+            }}
+          >
+            Customer Registration
+          </h2>
+
           <p style={{ marginTop: "10px", color: "#64748b" }}>
             Create your customer account to start booking cleaning services.
           </p>
         </div>
 
         {registrationMessage && (
-  <div
-    style={{
-      marginBottom: "18px",
-      padding: "12px 16px",
-      borderRadius: "12px",
-      background: "#ecfdf5",
-      border: "1px solid #86efac",
-      color: "#166534",
-      textAlign: "center",
-      fontWeight: "600",
-    }}
-  >
-    {registrationMessage}
-  </div>
-)}
+          <div
+            style={{
+              marginBottom: "18px",
+              padding: "12px 16px",
+              borderRadius: "12px",
+              background: "#ecfdf5",
+              border: "1px solid #86efac",
+              color: "#166534",
+              textAlign: "center",
+              fontWeight: "600",
+            }}
+          >
+            {registrationMessage}
+          </div>
+        )}
+
+        {registrationError && (
+          <div
+            style={{
+              marginBottom: "18px",
+              padding: "12px 16px",
+              borderRadius: "12px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#b91c1c",
+              textAlign: "center",
+              fontWeight: "600",
+              fontSize: "14px",
+              lineHeight: "1.5",
+            }}
+          >
+            {registrationError}
+          </div>
+        )}
 
         <form onSubmit={handleRegister}>
-        <input
-          type="text"
-          placeholder="Full name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          style={authInputStyle}
-        />
+          <input
+            type="text"
+            placeholder="Full name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              clearRegistrationMessages();
+            }}
+            required
+            style={authInputStyle}
+          />
 
           <input
             type="email"
             placeholder="Email address"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              clearRegistrationMessages();
+            }}
             required
             style={authInputStyle}
           />
@@ -334,7 +390,10 @@ function Register() {
             type="text"
             placeholder="Phone number"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              clearRegistrationMessages();
+            }}
             required
             style={authInputStyle}
           />
@@ -343,7 +402,10 @@ function Register() {
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              clearRegistrationMessages();
+            }}
             required
             style={authInputStyle}
           />
@@ -352,24 +414,36 @@ function Register() {
             type="password"
             placeholder="Confirm password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              clearRegistrationMessages();
+            }}
             required
             style={authInputStyle}
           />
 
           <button
             type="submit"
+            disabled={isRegistering}
             style={{
               ...primaryButtonStyle,
               background: "linear-gradient(90deg, #16a34a, #15803d)",
               boxShadow: "0 10px 18px rgba(22, 163, 74, 0.20)",
+              opacity: isRegistering ? 0.7 : 1,
+              cursor: isRegistering ? "not-allowed" : "pointer",
             }}
           >
-            Register
+            {isRegistering ? "Creating account..." : "Register"}
           </button>
         </form>
 
-        <p style={{ marginTop: "18px", textAlign: "center", color: "#475569" }}>
+        <p
+          style={{
+            marginTop: "18px",
+            textAlign: "center",
+            color: "#475569",
+          }}
+        >
           Already have an account?{" "}
           <Link
             to="/"
