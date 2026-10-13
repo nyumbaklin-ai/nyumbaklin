@@ -11,7 +11,20 @@ function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const [phoneMessage, setPhoneMessage] = useState("");
+  const [phoneMessageType, setPhoneMessageType] = useState("");
+
+  const [locationMessage, setLocationMessage] = useState("");
+  const [locationMessageType, setLocationMessageType] = useState("");
+
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordMessageType, setPasswordMessageType] = useState("");
+
   const [deletionMessage, setDeletionMessage] = useState("");
+  const [deletionMessageType, setDeletionMessageType] = useState("");
+  const [showDeletionConfirm, setShowDeletionConfirm] = useState(false);
+  const [requestingDeletion, setRequestingDeletion] = useState(false);
 
   const token = localStorage.getItem("token");
 
@@ -86,6 +99,7 @@ function Profile() {
       });
 
       const data = await res.json();
+
       setProfile(data);
       setPhone(data.phone || "");
       setLocation(data.location || "");
@@ -99,6 +113,9 @@ function Profile() {
   }, []);
 
   const updatePhone = async () => {
+    setPhoneMessage("");
+    setPhoneMessageType("");
+
     try {
       const res = await fetch(`${API_URL}/customers/update-phone`, {
         method: "PUT",
@@ -114,17 +131,25 @@ function Profile() {
         res.ok ? "Phone updated successfully" : "Error updating phone"
       );
 
-      alert(msg);
+      setPhoneMessage(msg);
+      setPhoneMessageType(res.ok ? "success" : "error");
+
       fetchProfile();
     } catch (err) {
       console.error(err);
-      alert("Error updating phone");
+
+      setPhoneMessage("Error updating phone. Please try again.");
+      setPhoneMessageType("error");
     }
   };
 
   const updateLocation = async () => {
+    setLocationMessage("");
+    setLocationMessageType("");
+
     if (!location) {
-      alert("Please select a location");
+      setLocationMessage("Please select a location.");
+      setLocationMessageType("error");
       return;
     }
 
@@ -143,36 +168,55 @@ function Profile() {
         res.ok ? "Location updated successfully" : "Error updating location"
       );
 
-      alert(msg);
+      setLocationMessage(msg);
+      setLocationMessageType(res.ok ? "success" : "error");
+
       fetchProfile();
     } catch (err) {
       console.error(err);
-      alert("Error updating location");
+
+      setLocationMessage("Error updating location. Please try again.");
+      setLocationMessageType("error");
     }
   };
 
   const changePassword = async () => {
+    setPasswordMessage("");
+    setPasswordMessageType("");
+
     const cleanedCurrentPassword = currentPassword.trim();
     const cleanedNewPassword = newPassword.trim();
     const cleanedConfirmPassword = confirmPassword.trim();
 
-    if (!cleanedCurrentPassword || !cleanedNewPassword || !cleanedConfirmPassword) {
-      alert("Please fill in current password, new password, and confirm password.");
+    if (
+      !cleanedCurrentPassword ||
+      !cleanedNewPassword ||
+      !cleanedConfirmPassword
+    ) {
+      setPasswordMessage(
+        "Please fill in current password, new password, and confirm password."
+      );
+      setPasswordMessageType("error");
       return;
     }
 
     if (cleanedNewPassword.length < 6) {
-      alert("New password must be at least 6 characters.");
+      setPasswordMessage("New password must be at least 6 characters.");
+      setPasswordMessageType("error");
       return;
     }
 
     if (cleanedNewPassword !== cleanedConfirmPassword) {
-      alert("New password and confirm password do not match.");
+      setPasswordMessage("New password and confirm password do not match.");
+      setPasswordMessageType("error");
       return;
     }
 
     if (cleanedCurrentPassword === cleanedNewPassword) {
-      alert("New password must be different from current password.");
+      setPasswordMessage(
+        "New password must be different from current password."
+      );
+      setPasswordMessageType("error");
       return;
     }
 
@@ -197,7 +241,8 @@ function Profile() {
         res.ok ? "Password changed successfully" : "Error changing password"
       );
 
-      alert(msg);
+      setPasswordMessage(msg);
+      setPasswordMessageType(res.ok ? "success" : "error");
 
       if (res.ok) {
         setCurrentPassword("");
@@ -206,10 +251,84 @@ function Profile() {
       }
     } catch (err) {
       console.error(err);
-      alert("Error changing password");
+
+      setPasswordMessage("Error changing password. Please try again.");
+      setPasswordMessageType("error");
     } finally {
       setChangingPassword(false);
     }
+  };
+
+  const submitDeletionRequest = async () => {
+    setDeletionMessage("");
+    setDeletionMessageType("");
+
+    try {
+      setRequestingDeletion(true);
+
+      const res = await fetch(
+        `${API_URL}/customers/request-account-deletion`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
+
+      const msg = await readResponseMessage(
+        res,
+        res.ok
+          ? "Your account deletion request has been submitted."
+          : "Error submitting account deletion request"
+      );
+
+      setDeletionMessage(msg);
+      setDeletionMessageType(res.ok ? "success" : "error");
+
+      if (res.ok) {
+        setShowDeletionConfirm(false);
+      }
+    } catch (err) {
+      console.error(err);
+
+      setDeletionMessage(
+        "Error submitting account deletion request. Please try again."
+      );
+      setDeletionMessageType("error");
+    } finally {
+      setRequestingDeletion(false);
+    }
+  };
+
+  const getMessageStyle = (type) => {
+    if (type === "success") {
+      return {
+        marginTop: "14px",
+        marginBottom: "14px",
+        padding: "12px 14px",
+        borderRadius: "10px",
+        background: "#ecfdf5",
+        border: "1px solid #86efac",
+        color: "#166534",
+        fontSize: "14px",
+        fontWeight: "600",
+        lineHeight: "1.5",
+      };
+    }
+
+    return {
+      marginTop: "14px",
+      marginBottom: "14px",
+      padding: "12px 14px",
+      borderRadius: "10px",
+      background: "#fef2f2",
+      border: "1px solid #fecaca",
+      color: "#b91c1c",
+      fontSize: "14px",
+      fontWeight: "600",
+      lineHeight: "1.5",
+    };
   };
 
   const pageStyle = {
@@ -297,49 +416,103 @@ function Profile() {
       <div style={containerStyle}>
         <div style={cardStyle}>
           <div style={{ marginBottom: "10px" }}>
-            <h1 style={{ margin: 0, color: "#0f172a", fontSize: "32px" }}>
+            <h1
+              style={{
+                margin: 0,
+                color: "#0f172a",
+                fontSize: "32px",
+              }}
+            >
               My Profile
             </h1>
-            <p style={{ marginTop: "10px", color: "#64748b", fontSize: "15px" }}>
-              View your account details and keep your phone number, location, and password up to date.
+
+            <p
+              style={{
+                marginTop: "10px",
+                color: "#64748b",
+                fontSize: "15px",
+              }}
+            >
+              View your account details and keep your phone number, location,
+              and password up to date.
             </p>
           </div>
 
           <div style={infoGridStyle}>
             <div style={infoBoxStyle}>
               <div style={labelStyle}>Email</div>
-              <div style={valueStyle}>{profile.email || "Not available"}</div>
+              <div style={valueStyle}>
+                {profile.email || "Not available"}
+              </div>
             </div>
 
             <div style={infoBoxStyle}>
               <div style={labelStyle}>Role</div>
-              <div style={{ ...valueStyle, textTransform: "capitalize" }}>
+
+              <div
+                style={{
+                  ...valueStyle,
+                  textTransform: "capitalize",
+                }}
+              >
                 {profile.role || "Not available"}
               </div>
             </div>
 
             <div style={infoBoxStyle}>
               <div style={labelStyle}>Current Location</div>
-              <div style={valueStyle}>{profile.location || "Not set yet"}</div>
+
+              <div style={valueStyle}>
+                {profile.location || "Not set yet"}
+              </div>
             </div>
           </div>
 
           <div style={sectionCardStyle}>
-            <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#0f172a",
+                fontSize: "22px",
+              }}
+            >
               Update Phone Number
             </h3>
-            <p style={{ marginTop: "8px", color: "#64748b", fontSize: "14px" }}>
-              Make sure your number is correct so customers, cleaners, and admin support can reach you when needed.
+
+            <p
+              style={{
+                marginTop: "8px",
+                color: "#64748b",
+                fontSize: "14px",
+              }}
+            >
+              Make sure your number is correct so customers, cleaners, and
+              admin support can reach you when needed.
             </p>
 
-            <label style={{ ...labelStyle, display: "block", marginTop: "18px" }}>
+            {phoneMessage && (
+              <div style={getMessageStyle(phoneMessageType)}>
+                {phoneMessage}
+              </div>
+            )}
+
+            <label
+              style={{
+                ...labelStyle,
+                display: "block",
+                marginTop: "18px",
+              }}
+            >
               Phone Number
             </label>
 
             <input
               type="text"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setPhoneMessage("");
+              }}
               placeholder="Enter phone number"
               style={inputStyle}
             />
@@ -350,23 +523,53 @@ function Profile() {
           </div>
 
           <div style={sectionCardStyle}>
-            <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#0f172a",
+                fontSize: "22px",
+              }}
+            >
               Update Location
             </h3>
-            <p style={{ marginTop: "8px", color: "#64748b", fontSize: "14px" }}>
-              Select your main working area so Nyumbaklin can prioritize nearby jobs for you.
+
+            <p
+              style={{
+                marginTop: "8px",
+                color: "#64748b",
+                fontSize: "14px",
+              }}
+            >
+              Select your main working area so Nyumbaklin can prioritize nearby
+              jobs for you.
             </p>
 
-            <label style={{ ...labelStyle, display: "block", marginTop: "18px" }}>
+            {locationMessage && (
+              <div style={getMessageStyle(locationMessageType)}>
+                {locationMessage}
+              </div>
+            )}
+
+            <label
+              style={{
+                ...labelStyle,
+                display: "block",
+                marginTop: "18px",
+              }}
+            >
               Location
             </label>
 
             <select
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                setLocationMessage("");
+              }}
               style={inputStyle}
             >
               <option value="">Select your area</option>
+
               {kampalaAreas.map((area) => (
                 <option key={area} value={area}>
                   {area}
@@ -382,50 +585,93 @@ function Profile() {
           <div
             style={{
               ...sectionCardStyle,
-              marginBottom: 0,
               background: "#f8fafc",
             }}
           >
-            <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "22px" }}>
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#0f172a",
+                fontSize: "22px",
+              }}
+            >
               Change Password
             </h3>
 
-            <p style={{ marginTop: "8px", color: "#64748b", fontSize: "14px" }}>
-              If admin gave you a temporary password, enter it as your current password, then set your own new password.
+            <p
+              style={{
+                marginTop: "8px",
+                color: "#64748b",
+                fontSize: "14px",
+              }}
+            >
+              If admin gave you a temporary password, enter it as your current
+              password, then set your own new password.
             </p>
 
-            <label style={{ ...labelStyle, display: "block", marginTop: "18px" }}>
+            {passwordMessage && (
+              <div style={getMessageStyle(passwordMessageType)}>
+                {passwordMessage}
+              </div>
+            )}
+
+            <label
+              style={{
+                ...labelStyle,
+                display: "block",
+                marginTop: "18px",
+              }}
+            >
               Current Password
             </label>
 
             <input
               type="password"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={(e) => {
+                setCurrentPassword(e.target.value);
+                setPasswordMessage("");
+              }}
               placeholder="Enter current password"
               style={inputStyle}
             />
 
-            <label style={{ ...labelStyle, display: "block" }}>
+            <label
+              style={{
+                ...labelStyle,
+                display: "block",
+              }}
+            >
               New Password
             </label>
 
             <input
               type="password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                setPasswordMessage("");
+              }}
               placeholder="Enter new password"
               style={inputStyle}
             />
 
-            <label style={{ ...labelStyle, display: "block" }}>
+            <label
+              style={{
+                ...labelStyle,
+                display: "block",
+              }}
+            >
               Confirm New Password
             </label>
 
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setPasswordMessage("");
+              }}
               placeholder="Confirm new password"
               style={inputStyle}
             />
@@ -435,17 +681,23 @@ function Profile() {
               disabled={changingPassword}
               style={{
                 ...buttonStyle,
-                background: "linear-gradient(90deg, #7c3aed, #6d28d9)",
-                boxShadow: "0 10px 18px rgba(124, 58, 237, 0.20)",
+                background:
+                  "linear-gradient(90deg, #7c3aed, #6d28d9)",
+                boxShadow:
+                  "0 10px 18px rgba(124, 58, 237, 0.20)",
                 opacity: changingPassword ? 0.7 : 1,
-                cursor: changingPassword ? "not-allowed" : "pointer",
+                cursor: changingPassword
+                  ? "not-allowed"
+                  : "pointer",
               }}
             >
-              {changingPassword ? "Changing Password..." : "Change Password"}
+              {changingPassword
+                ? "Changing Password..."
+                : "Change Password"}
             </button>
           </div>
 
-                    <div
+          <div
             style={{
               ...sectionCardStyle,
               marginBottom: 0,
@@ -477,66 +729,111 @@ function Profile() {
             </p>
 
             {deletionMessage && (
-  <div
-    style={{
-      marginBottom: "14px",
-      padding: "12px 14px",
-      borderRadius: "10px",
-      background: "#ecfdf5",
-      border: "1px solid #a7f3d0",
-      color: "#047857",
-      fontSize: "14px",
-      fontWeight: "600",
-    }}
-  >
-    {deletionMessage}
-  </div>
-)}
+              <div style={getMessageStyle(deletionMessageType)}>
+                {deletionMessage}
+              </div>
+            )}
 
-            <button
-              onClick={async () => {
-                const confirmed = window.confirm(
-                  "Are you sure you want to request deletion of your Nyumbaklin account?"
-                );
+            {!showDeletionConfirm ? (
+              <button
+                onClick={() => {
+                  setDeletionMessage("");
+                  setDeletionMessageType("");
+                  setShowDeletionConfirm(true);
+                }}
+                style={{
+                  ...buttonStyle,
+                  background:
+                    "linear-gradient(90deg, #dc2626, #b91c1c)",
+                  boxShadow:
+                    "0 10px 18px rgba(220, 38, 38, 0.18)",
+                }}
+              >
+                Request Account Deletion
+              </button>
+            ) : (
+              <div
+                style={{
+                  marginTop: "14px",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                }}
+              >
+                <div
+                  style={{
+                    color: "#991b1b",
+                    fontWeight: "700",
+                    marginBottom: "8px",
+                    fontSize: "15px",
+                  }}
+                >
+                  Confirm account deletion request
+                </div>
 
-                if (!confirmed) return;
+                <p
+                  style={{
+                    margin: "0 0 14px 0",
+                    color: "#7f1d1d",
+                    fontSize: "14px",
+                    lineHeight: "1.6",
+                  }}
+                >
+                  Are you sure you want to request deletion of your
+                  Nyumbaklin account?
+                </p>
 
-                try {
-                  const res = await fetch(
-                    `${API_URL}/customers/request-account-deletion`,
-                    {
-                      method: "POST",
-                      headers: {
-                        Authorization: "Bearer " + token,
-                      },
-                    }
-                  );
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    onClick={submitDeletionRequest}
+                    disabled={requestingDeletion}
+                    style={{
+                      flex: "1 1 180px",
+                      background: "#dc2626",
+                      color: "white",
+                      border: "none",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      fontWeight: "700",
+                      cursor: requestingDeletion
+                        ? "not-allowed"
+                        : "pointer",
+                      opacity: requestingDeletion ? 0.7 : 1,
+                    }}
+                  >
+                    {requestingDeletion
+                      ? "Submitting Request..."
+                      : "Yes, Submit Request"}
+                  </button>
 
-                  const msg = await readResponseMessage(
-                    res,
-                    res.ok
-                      ? "Your account deletion request has been submitted."
-                      : "Error submitting account deletion request"
-                  );
-
-                  if (res.ok) {
-                    setDeletionMessage(msg);
-                  } else {
-                   alert(msg);
-                   }
-                } catch (err) {
-                  console.error(err);
-                  alert("Error submitting account deletion request");
-                }
-              }}
-              style={{
-                ...buttonStyle,
-                background: "linear-gradient(90deg, #dc2626, #b91c1c)",
-                boxShadow: "0 10px 18px rgba(220, 38, 38, 0.18)",
-              }}
-            >
-              Request Account Deletion
-            </button>
+                  <button
+                    onClick={() => setShowDeletionConfirm(false)}
+                    disabled={requestingDeletion}
+                    style={{
+                      flex: "1 1 120px",
+                      background: "#ffffff",
+                      color: "#334155",
+                      border: "1px solid #cbd5e1",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      fontWeight: "700",
+                      cursor: requestingDeletion
+                        ? "not-allowed"
+                        : "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
